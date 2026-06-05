@@ -11,7 +11,12 @@ import('../../shared/sharedUtils.js').then(utils => {
 
 // Sign JWT token
 const signToken = (userId) => {
-    return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+        console.error('❌ CRITICAL: JWT_SECRET environment variable is not set!');
+        throw new Error('JWT_SECRET is not configured. Please set it in environment variables.');
+    }
+    return jwt.sign({ id: userId }, secret, {
         expiresIn: process.env.JWT_EXPIRES_IN || '7d'
     });
 };
