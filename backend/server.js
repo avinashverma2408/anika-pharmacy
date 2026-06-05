@@ -12,6 +12,7 @@ const allowedOrigins = [
     process.env.FRONTEND_URL || 'http://localhost:5173',
     'http://localhost:5173',
     'http://localhost:4173',
+    'https://stirring-queijadas-445b92.netlify.app',
 ];
 // In production, also allow any netlify.app subdomain
 app.use(cors({
