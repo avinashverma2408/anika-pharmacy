@@ -1,0 +1,10 @@
+{
+  "name": "anika-pharmacy-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run dev --prefix frontend",
+    "backend": "npm run start --prefix backend"
+  }
+}
