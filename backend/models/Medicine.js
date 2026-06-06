@@ -49,6 +49,17 @@ const medicineSchema = new mongoose.Schema({
             message: 'Status must be: Active, Inactive, or Out of Stock'
         },
         default: 'Active'
+    },
+    stockistName: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    ptr: {
+        type: Number,
+        min: [0, 'PTR/Purchasing rate cannot be negative'],
+        max: [999999, 'PTR seems too high'],
+        default: 0
     }
 }, {
     timestamps: true,

@@ -17,6 +17,8 @@ export default function ProductModals() {
     const [addQuantity, setAddQuantity] = useState('');
     const [addExpiry, setAddExpiry] = useState('');
     const [addStatus, setAddStatus] = useState('Active');
+    const [addStockistName, setAddStockistName] = useState('');
+    const [addPtr, setAddPtr] = useState('');
 
     // Edit Form Local States
     const [editName, setEditName] = useState('');
@@ -26,6 +28,8 @@ export default function ProductModals() {
     const [editQuantity, setEditQuantity] = useState('');
     const [editExpiry, setEditExpiry] = useState('');
     const [editStatus, setEditStatus] = useState('Active');
+    const [editStockistName, setEditStockistName] = useState('');
+    const [editPtr, setEditPtr] = useState('');
 
     // Populate edit form when product loads
     useEffect(() => {
@@ -37,6 +41,8 @@ export default function ProductModals() {
             setEditQuantity(editingProduct.quantity || '');
             setEditExpiry(editingProduct.expiryDate || '');
             setEditStatus(editingProduct.status || 'Active');
+            setEditStockistName(editingProduct.stockistName || '');
+            setEditPtr(editingProduct.ptr || '');
         }
     }, [editingProduct]);
 
@@ -44,11 +50,13 @@ export default function ProductModals() {
         e.preventDefault();
         const success = await addMedicine({
             name: addName, category: addCategory, batch: addBatch,
-            price: addPrice, quantity: addQuantity, expiryDate: addExpiry, status: addStatus
+            price: addPrice, quantity: addQuantity, expiryDate: addExpiry, status: addStatus,
+            stockistName: addStockistName, ptr: addPtr
         });
         if (success) {
             setAddName(''); setAddCategory(''); setAddBatch('');
             setAddPrice(''); setAddQuantity(''); setAddExpiry(''); setAddStatus('Active');
+            setAddStockistName(''); setAddPtr('');
         }
     };
 
@@ -57,7 +65,8 @@ export default function ProductModals() {
         if (!editingProduct) return;
         await updateMedicine(editingProduct._id || editingProduct.id, {
             name: editName, category: editCategory, batch: editBatch,
-            price: editPrice, quantity: editQuantity, expiryDate: editExpiry, status: editStatus
+            price: editPrice, quantity: editQuantity, expiryDate: editExpiry, status: editStatus,
+            stockistName: editStockistName, ptr: editPtr
         });
     };
 
@@ -161,6 +170,30 @@ export default function ProductModals() {
                                     <option value="Inactive">Inactive</option>
                                     <option value="Out of Stock">Out of Stock</option>
                                 </select>
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="add-stockist">Stockist Name</label>
+                                <input 
+                                    type="text" 
+                                    id="add-stockist" 
+                                    placeholder="e.g., Cipla Ltd"
+                                    value={addStockistName}
+                                    onChange={(e) => setAddStockistName(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="add-ptr">PTR (₹)</label>
+                                <input 
+                                    type="number" 
+                                    id="add-ptr"
+                                    min="0"
+                                    step="0.01"
+                                    placeholder="e.g., 38.50"
+                                    value={addPtr}
+                                    onChange={(e) => setAddPtr(e.target.value)}
+                                />
                             </div>
                         </div>
 
@@ -269,6 +302,30 @@ export default function ProductModals() {
                                     <option value="Inactive">Inactive</option>
                                     <option value="Out of Stock">Out of Stock</option>
                                 </select>
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="edit-stockist">Stockist Name</label>
+                                <input 
+                                    type="text" 
+                                    id="edit-stockist" 
+                                    placeholder="e.g., Cipla Ltd"
+                                    value={editStockistName}
+                                    onChange={(e) => setEditStockistName(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="edit-ptr">PTR (₹)</label>
+                                <input 
+                                    type="number" 
+                                    id="edit-ptr"
+                                    min="0"
+                                    step="0.01"
+                                    placeholder="e.g., 38.50"
+                                    value={editPtr}
+                                    onChange={(e) => setEditPtr(e.target.value)}
+                                />
                             </div>
                         </div>
 

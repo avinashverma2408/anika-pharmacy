@@ -15,8 +15,10 @@ export default function DashboardTab() {
     const totalCount       = stats?.totalMedicines  ?? medicines.length;
     const activeSafeCount  = stats?.activeMedicines  ?? medicines.filter(m => m.status === 'Active').length;
     const expiringSoonCount= stats?.expiring20Days  ?? 0;
-    const expiredOrOutCount= (stats ? (stats.expiredCount + stats.outOfStock) : 0) ||
-        medicines.filter(m => m.status === 'Out of Stock' || calculateDaysDifference(new Date().toISOString().slice(0,10), m.expiryDate) < 0).length;
+    const expiredCount = stats?.expiredCount ?? 
+        medicines.filter(m => calculateDaysDifference(new Date().toISOString().slice(0,10), m.expiryDate) < 0).length;
+    const outOfStockCount = stats?.outOfStock ?? 
+        medicines.filter(m => m.status === 'Out of Stock' || m.quantity === 0).length;
 
     // Expiring soon list from API or local compute
     const expiringSoonItems = dashboardStats?.expiringSoon
@@ -69,8 +71,16 @@ export default function DashboardTab() {
                 <div className="stat-card border-danger">
                     <div className="stat-icon bg-danger"><i className="fa-solid fa-circle-xmark"></i></div>
                     <div className="stat-info">
-                        <span className="stat-label">Expired / Out of Stock</span>
-                        <StatValue val={expiredOrOutCount} />
+                        <span className="stat-label">Expired Medicines</span>
+                        <StatValue val={expiredCount} />
+                    </div>
+                </div>
+
+                <div className="stat-card border-orange">
+                    <div className="stat-icon bg-orange"><i className="fa-solid fa-boxes-stacked"></i></div>
+                    <div className="stat-info">
+                        <span className="stat-label">Out of Stock</span>
+                        <StatValue val={outOfStockCount} />
                     </div>
                 </div>
             </div>

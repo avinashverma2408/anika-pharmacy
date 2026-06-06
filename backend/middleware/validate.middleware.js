@@ -95,7 +95,14 @@ const medicineRules = [
         .isISO8601().withMessage('Expiry date must be a valid date (YYYY-MM-DD)'),
     body('status')
         .notEmpty().withMessage('Status is required')
-        .isIn(['Active', 'Inactive', 'Out of Stock']).withMessage('Invalid status')
+        .isIn(['Active', 'Inactive', 'Out of Stock']).withMessage('Invalid status'),
+    body('stockistName')
+        .optional({ checkFalsy: true })
+        .trim()
+        .isLength({ max: 100 }).withMessage('Stockist name cannot exceed 100 characters'),
+    body('ptr')
+        .optional({ checkFalsy: true })
+        .isFloat({ min: 0, max: 999999 }).withMessage('PTR must be between 0 and 999,999')
 ];
 
 const statusUpdateRules = [

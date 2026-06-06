@@ -159,6 +159,7 @@ const loadInitialState = () => {
         isAddModalOpen: false,
         isEditModalOpen: false,
         isDeleteModalOpen: false,
+        selectedMedicineForDetails: null,
         globalSearchQuery: '',
 
         // Loading states
@@ -352,6 +353,7 @@ export const usePharmacyStore = create((set, get) => ({
     setAddModalOpen: (isOpen) => set({ isAddModalOpen: isOpen }),
     setEditModalOpen: (isOpen, product = null) => set({ isEditModalOpen: isOpen, editingProduct: product }),
     setDeleteModalOpen: (isOpen, product = null) => set({ isDeleteModalOpen: isOpen, deletingProduct: product }),
+    setSelectedMedicineForDetails: (product) => set({ selectedMedicineForDetails: product }),
 
     // ── Theme ─────────────────────────────────────────────────────────────────
     toggleTheme: () => {
@@ -411,13 +413,19 @@ export const usePharmacyStore = create((set, get) => ({
         set({ isSavingMedicine: true });
         try {
             const { data } = await medicineApi.update(id, medData);
-            set(state => ({
-                medicines: state.medicines.map(m => m._id === id || m.id === id
-                    ? { ...data.medicine, id: data.medicine._id } : m),
-                isSavingMedicine: false,
-                isEditModalOpen: false,
-                editingProduct: null
-            }));
+            set(state => {
+                const updatedMed = { ...data.medicine, id: data.medicine._id };
+                const currentSelected = state.selectedMedicineForDetails;
+                const newSelected = (currentSelected?._id === id || currentSelected?.id === id)
+                    ? updatedMed : currentSelected;
+                return {
+                    medicines: state.medicines.map(m => m._id === id || m.id === id ? updatedMed : m),
+                    selectedMedicineForDetails: newSelected,
+                    isSavingMedicine: false,
+                    isEditModalOpen: false,
+                    editingProduct: null
+                };
+            });
             get().fetchNotifications();
             showSimpleToast('Medicine Updated', `"${data.medicine.name}" updated.`, 'success');
             return true;
@@ -438,14 +446,21 @@ export const usePharmacyStore = create((set, get) => ({
         if (!deletingProduct) return;
         set({ isDeletingMedicine: true });
         try {
-            await medicineApi.delete(deletingProduct._id || deletingProduct.id);
-            set(state => ({
-                medicines: state.medicines.filter(m => (m._id || m.id) !== (deletingProduct._id || deletingProduct.id)),
-                notifications: state.notifications.filter(n => String(n.medicineId) !== String(deletingProduct._id || deletingProduct.id)),
-                isDeleteModalOpen: false,
-                deletingProduct: null,
-                isDeletingMedicine: false
-            }));
+            const delId = deletingProduct._id || deletingProduct.id;
+            await medicineApi.delete(delId);
+            set(state => {
+                const currentSelected = state.selectedMedicineForDetails;
+                const newSelected = (currentSelected?._id === delId || currentSelected?.id === delId)
+                    ? null : currentSelected;
+                return {
+                    medicines: state.medicines.filter(m => (m._id || m.id) !== delId),
+                    notifications: state.notifications.filter(n => String(n.medicineId) !== String(delId)),
+                    selectedMedicineForDetails: newSelected,
+                    isDeleteModalOpen: false,
+                    deletingProduct: null,
+                    isDeletingMedicine: false
+                };
+            });
             showSimpleToast('Medicine Deleted', `"${deletingProduct.name}" was removed.`, 'danger');
         } catch (err) {
             set({ isDeletingMedicine: false });
