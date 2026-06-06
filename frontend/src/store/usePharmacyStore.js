@@ -23,6 +23,7 @@ import {
   addDays,
   calculateDaysDifference,
   formatDateDisplay,
+  formatDateTimeDisplay,
   getExpiryStatus,
   generateOTP,
 } from "../../../shared/sharedUtils.js";
@@ -32,6 +33,7 @@ export {
   addDays,
   calculateDaysDifference,
   formatDateDisplay,
+  formatDateTimeDisplay,
   getExpiryStatus,
   generateOTP,
 };

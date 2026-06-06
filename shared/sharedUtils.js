@@ -27,6 +27,14 @@ export function formatDateDisplay(dateStr) {
     return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
+export function formatDateTimeDisplay(dateStr) {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    const datePart = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    const timePart = date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+    return `${datePart} ${timePart}`;
+}
+
 export function getExpiryStatus(daysLeft) {
     if (daysLeft < 0) {
         return { status: 'expired', severity: 'critical', urgencyClass: 'critical', daysLabel: 'EXPIRED' };

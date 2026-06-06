@@ -1,5 +1,5 @@
 import React from 'react';
-import { usePharmacyStore, calculateDaysDifference, formatDateDisplay } from '../store/usePharmacyStore';
+import { usePharmacyStore, calculateDaysDifference, formatDateDisplay, formatDateTimeDisplay } from '../store/usePharmacyStore';
 
 export default function ProductDetails() {
     const {
@@ -153,14 +153,14 @@ export default function ProductDetails() {
                         <div className="info-item">
                             <span className="info-label">Added On</span>
                             <span className="info-value text-secondary-val">
-                                {med.createdAt ? new Date(med.createdAt).toLocaleString() : 'N/A'}
+                                {formatDateTimeDisplay(med.createdAt)}
                             </span>
                         </div>
 
                         <div className="info-item">
                             <span className="info-label">Last Updated</span>
                             <span className="info-value text-secondary-val">
-                                {med.updatedAt ? new Date(med.updatedAt).toLocaleString() : 'N/A'}
+                                {formatDateTimeDisplay(med.updatedAt)}
                             </span>
                         </div>
                     </div>

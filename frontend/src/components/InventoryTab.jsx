@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { usePharmacyStore, calculateDaysDifference, formatDateDisplay } from '../store/usePharmacyStore';
+import { usePharmacyStore, calculateDaysDifference, formatDateDisplay, formatDateTimeDisplay } from '../store/usePharmacyStore';
 import { medicineApi } from '../api/apiClient';
 import ProductDetails from './ProductDetails';
 
@@ -191,6 +191,7 @@ export default function InventoryTab() {
                                     <th>Stockist</th>
                                     <th>Expiry Date</th>
                                     <th>Days Left</th>
+                                    <th>Added Date & Time</th>
                                     <th>PTR</th>
                                     <th>MRP / Price</th>
                                     <th>Qty</th>
@@ -202,7 +203,7 @@ export default function InventoryTab() {
                                 {(isLoading || isLoadingMedicines) ? (
                                     Array.from({ length: 5 }).map((_, i) => (
                                         <tr key={i}>
-                                            {Array.from({ length: 11 }).map((_, j) => (
+                                            {Array.from({ length: 12 }).map((_, j) => (
                                                 <td key={j}>
                                                     <span style={{ display: 'inline-block', width: '80%', height: 14, background: 'var(--bg-input)', borderRadius: 4, animation: 'pulse 1.5s infinite' }}></span>
                                                 </td>
@@ -252,6 +253,11 @@ export default function InventoryTab() {
                                             <td>{med.stockistName || <em style={{ color: 'var(--text-muted)' }}>None</em>}</td>
                                             <td>{formatDateDisplay(med.expiryDate)}</td>
                                             <td><span className={`badge ${daysBadgeClass}`}>{daysText}</span></td>
+                                            <td>
+                                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                                    {formatDateTimeDisplay(med.createdAt)}
+                                                </span>
+                                            </td>
                                             <td>₹{(med.ptr || 0).toFixed(2)}</td>
                                             <td>₹{med.price.toFixed(2)}</td>
                                             <td>{med.quantity}</td>
