@@ -7,6 +7,7 @@ export default function Sidebar() {
     const menuItems = [
         { id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-pie' },
         { id: 'inventory', label: 'Inventory', icon: 'fa-boxes-stacked' },
+        { id: 'billing', label: 'GST Billing', icon: 'fa-file-invoice-dollar' },
         { id: 'simulator', label: 'Expiry Simulator', icon: 'fa-flask-vial' },
         { id: 'notifications-log', label: 'Alert Logs', icon: 'fa-bell-concierge' },
         { id: 'settings', label: 'Settings', icon: 'fa-gear' }

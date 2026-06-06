@@ -19,6 +19,9 @@ export default function ProductModals() {
     const [addStatus, setAddStatus] = useState('Active');
     const [addStockistName, setAddStockistName] = useState('');
     const [addPtr, setAddPtr] = useState('');
+    const [addHsn, setAddHsn] = useState('');
+    const [addPack, setAddPack] = useState('');
+    const [addGstRate, setAddGstRate] = useState('5');
 
     // Edit Form Local States
     const [editName, setEditName] = useState('');
@@ -30,6 +33,9 @@ export default function ProductModals() {
     const [editStatus, setEditStatus] = useState('Active');
     const [editStockistName, setEditStockistName] = useState('');
     const [editPtr, setEditPtr] = useState('');
+    const [editHsn, setEditHsn] = useState('');
+    const [editPack, setEditPack] = useState('');
+    const [editGstRate, setEditGstRate] = useState('5');
 
     // Populate edit form when product loads
     useEffect(() => {
@@ -43,6 +49,9 @@ export default function ProductModals() {
             setEditStatus(editingProduct.status || 'Active');
             setEditStockistName(editingProduct.stockistName || '');
             setEditPtr(editingProduct.ptr || '');
+            setEditHsn(editingProduct.hsn || '');
+            setEditPack(editingProduct.pack || '1*10');
+            setEditGstRate(editingProduct.gstRate !== undefined ? String(editingProduct.gstRate) : '5');
         }
     }, [editingProduct]);
 
@@ -51,12 +60,14 @@ export default function ProductModals() {
         const success = await addMedicine({
             name: addName, category: addCategory, batch: addBatch,
             price: addPrice, quantity: addQuantity, expiryDate: addExpiry, status: addStatus,
-            stockistName: addStockistName, ptr: addPtr
+            stockistName: addStockistName, ptr: addPtr,
+            hsn: addHsn, pack: addPack, gstRate: addGstRate
         });
         if (success) {
             setAddName(''); setAddCategory(''); setAddBatch('');
             setAddPrice(''); setAddQuantity(''); setAddExpiry(''); setAddStatus('Active');
             setAddStockistName(''); setAddPtr('');
+            setAddHsn(''); setAddPack(''); setAddGstRate('5');
         }
     };
 
@@ -66,7 +77,8 @@ export default function ProductModals() {
         await updateMedicine(editingProduct._id || editingProduct.id, {
             name: editName, category: editCategory, batch: editBatch,
             price: editPrice, quantity: editQuantity, expiryDate: editExpiry, status: editStatus,
-            stockistName: editStockistName, ptr: editPtr
+            stockistName: editStockistName, ptr: editPtr,
+            hsn: editHsn, pack: editPack, gstRate: editGstRate
         });
     };
 
@@ -194,6 +206,43 @@ export default function ProductModals() {
                                     value={addPtr}
                                     onChange={(e) => setAddPtr(e.target.value)}
                                 />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="add-hsn">HSN Code</label>
+                                <input 
+                                    type="text" 
+                                    id="add-hsn" 
+                                    placeholder="e.g., 30045033"
+                                    value={addHsn}
+                                    onChange={(e) => setAddHsn(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="add-pack">Pack Size</label>
+                                <input 
+                                    type="text" 
+                                    id="add-pack" 
+                                    placeholder="e.g., 1*10"
+                                    value={addPack}
+                                    onChange={(e) => setAddPack(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="add-gst">GST Rate (%)</label>
+                                <select 
+                                    id="add-gst"
+                                    value={addGstRate}
+                                    onChange={(e) => setAddGstRate(e.target.value)}
+                                >
+                                    <option value="0">0% GST</option>
+                                    <option value="5">5% GST (2.5% CGST + 2.5% SGST)</option>
+                                    <option value="12">12% GST (6% CGST + 6% SGST)</option>
+                                    <option value="18">18% GST (9% CGST + 9% SGST)</option>
+                                    <option value="28">28% GST (14% CGST + 14% SGST)</option>
+                                </select>
                             </div>
                         </div>
 
@@ -326,6 +375,43 @@ export default function ProductModals() {
                                     value={editPtr}
                                     onChange={(e) => setEditPtr(e.target.value)}
                                 />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="edit-hsn">HSN Code</label>
+                                <input 
+                                    type="text" 
+                                    id="edit-hsn" 
+                                    placeholder="e.g., 30045033"
+                                    value={editHsn}
+                                    onChange={(e) => setEditHsn(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="edit-pack">Pack Size</label>
+                                <input 
+                                    type="text" 
+                                    id="edit-pack" 
+                                    placeholder="e.g., 1*10"
+                                    value={editPack}
+                                    onChange={(e) => setEditPack(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="edit-gst">GST Rate (%)</label>
+                                <select 
+                                    id="edit-gst"
+                                    value={editGstRate}
+                                    onChange={(e) => setEditGstRate(e.target.value)}
+                                >
+                                    <option value="0">0% GST</option>
+                                    <option value="5">5% GST (2.5% CGST + 2.5% SGST)</option>
+                                    <option value="12">12% GST (6% CGST + 6% SGST)</option>
+                                    <option value="18">18% GST (9% CGST + 9% SGST)</option>
+                                    <option value="28">28% GST (14% CGST + 14% SGST)</option>
+                                </select>
                             </div>
                         </div>
 

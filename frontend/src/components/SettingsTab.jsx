@@ -68,6 +68,7 @@ export default function SettingsTab() {
                                     placeholder="Enter current password"
                                     value={currentPass}
                                     onChange={(e) => setCurrentPass(e.target.value)}
+                                    autoComplete="current-password"
                                 />
                                 <button 
                                     type="button" 
@@ -94,6 +95,7 @@ export default function SettingsTab() {
                                     placeholder="Minimum 6 characters"
                                     value={newPass}
                                     onChange={(e) => setNewPass(e.target.value)}
+                                    autoComplete="new-password"
                                 />
                                 <button 
                                     type="button" 
@@ -120,6 +122,7 @@ export default function SettingsTab() {
                                     placeholder="Re-type new password"
                                     value={confirmPass}
                                     onChange={(e) => setConfirmPass(e.target.value)}
+                                    autoComplete="new-password"
                                 />
                                 <button 
                                     type="button" 

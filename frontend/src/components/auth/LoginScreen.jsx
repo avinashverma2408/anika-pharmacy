@@ -31,6 +31,7 @@ export default function LoginScreen() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={isLoadingAuth}
+                        autoComplete="username"
                     />
                 </div>
 
@@ -55,6 +56,7 @@ export default function LoginScreen() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             disabled={isLoadingAuth}
+                            autoComplete="current-password"
                         />
                         <button
                             type="button"

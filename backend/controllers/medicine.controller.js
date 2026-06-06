@@ -71,12 +71,13 @@ exports.getMedicines = async (req, res) => {
 // POST /api/medicines
 exports.addMedicine = async (req, res) => {
     try {
-        const { name, category, batch, price, quantity, expiryDate, status, stockistName, ptr } = req.body;
+        const { name, category, batch, price, quantity, expiryDate, status, stockistName, ptr, hsn, pack, gstRate } = req.body;
 
         const medicine = await Medicine.create({
             name, category, batch, price: parseFloat(price),
             quantity: parseInt(quantity), expiryDate, status,
-            stockistName, ptr: ptr ? parseFloat(ptr) : 0
+            stockistName, ptr: ptr ? parseFloat(ptr) : 0,
+            hsn, pack, gstRate: gstRate ? parseFloat(gstRate) : 5
         });
 
         // Trigger expiry check for the new medicine
@@ -99,14 +100,15 @@ exports.addMedicine = async (req, res) => {
 // PUT /api/medicines/:id
 exports.updateMedicine = async (req, res) => {
     try {
-        const { name, category, batch, price, quantity, expiryDate, status, stockistName, ptr } = req.body;
+        const { name, category, batch, price, quantity, expiryDate, status, stockistName, ptr, hsn, pack, gstRate } = req.body;
 
         const medicine = await Medicine.findByIdAndUpdate(
             req.params.id,
             { 
                 name, category, batch, price: parseFloat(price), 
                 quantity: parseInt(quantity), expiryDate, status,
-                stockistName, ptr: ptr ? parseFloat(ptr) : 0
+                stockistName, ptr: ptr ? parseFloat(ptr) : 0,
+                hsn, pack, gstRate: gstRate ? parseFloat(gstRate) : 5
             },
             { new: true, runValidators: true }
         );

@@ -6,12 +6,13 @@ export default function ProductDetails() {
         selectedMedicineForDetails: med,
         setSelectedMedicineForDetails,
         setEditModalOpen,
-        setDeleteModalOpen
+        setDeleteModalOpen,
+        simulatedDate
     } = usePharmacyStore();
 
     if (!med) return null;
 
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = simulatedDate;
     const daysLeft = calculateDaysDifference(todayStr, med.expiryDate);
 
     // Expiry badge styling
@@ -112,6 +113,21 @@ export default function ProductDetails() {
                             <span className="info-value">
                                 <code className="batch-code">{med.batch}</code>
                             </span>
+                        </div>
+
+                        <div className="info-item">
+                            <span className="info-label">Pack Size</span>
+                            <span className="info-value">{med.pack || '1*10'}</span>
+                        </div>
+
+                        <div className="info-item">
+                            <span className="info-label">HSN Code</span>
+                            <span className="info-value">{med.hsn ? med.hsn : <em className="text-muted">N/A</em>}</span>
+                        </div>
+
+                        <div className="info-item">
+                            <span className="info-label">GST Rate</span>
+                            <span className="info-value">{med.gstRate !== undefined ? `${med.gstRate}% (${med.gstRate/2}% CGST + ${med.gstRate/2}% SGST)` : '5% (2.5% CGST + 2.5% SGST)'}</span>
                         </div>
 
                         <div className="info-item">

@@ -60,6 +60,22 @@ const medicineSchema = new mongoose.Schema({
         min: [0, 'PTR/Purchasing rate cannot be negative'],
         max: [999999, 'PTR seems too high'],
         default: 0
+    },
+    hsn: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    pack: {
+        type: String,
+        trim: true,
+        default: '1*10'
+    },
+    gstRate: {
+        type: Number,
+        min: [0, 'GST Rate cannot be negative'],
+        max: [100, 'GST Rate cannot exceed 100%'],
+        default: 5
     }
 }, {
     timestamps: true,

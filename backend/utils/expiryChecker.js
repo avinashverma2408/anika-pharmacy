@@ -2,7 +2,7 @@ const cron = require('node-cron');
 const Medicine = require('../models/Medicine');
 const Notification = require('../models/Notification');
 let calculateDaysDifference, formatDateDisplay, getExpiryStatus;
-import('../../shared/sharedUtils.js').then(utils => {
+const initPromise = import('../../shared/sharedUtils.js').then(utils => {
     calculateDaysDifference = utils.calculateDaysDifference;
     formatDateDisplay = utils.formatDateDisplay;
     getExpiryStatus = utils.getExpiryStatus;
@@ -49,10 +49,11 @@ function getExpiryAlert(daysLeft, medicine) {
 /**
  * Main expiry checker — called by cron and on-demand
  */
-async function checkAndCreateExpiryAlerts() {
+async function checkAndCreateExpiryAlerts(customDate = null) {
     try {
+        await initPromise;
         const medicines = await Medicine.find({ status: { $ne: 'Inactive' } });
-        const today = new Date();
+        const today = customDate ? new Date(customDate) : new Date();
         today.setHours(0, 0, 0, 0);
 
         let newCount = 0;

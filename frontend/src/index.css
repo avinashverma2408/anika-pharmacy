@@ -249,9 +249,7 @@ body {
 /* Main Content Area Layout */
 .main-content {
     flex-grow: 1;
-    padding: 32px;
-    max-width: 1200px;
-    margin: 0 auto;
+    padding: 32px 32px 80px 32px;
     width: calc(100% - 260px);
 }
 
@@ -2155,5 +2153,465 @@ body {
 .tab-badge.badge-danger { background-color: var(--danger-bg); color: var(--danger); }
 .tab-badge.badge-warning { background-color: var(--warning-bg); color: var(--warning); }
 .tab-badge.badge-info { background-color: var(--primary-glow); color: var(--primary); }
+
+/* --- GST Billing Screen Screen Styling --- */
+.billing-search-results {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    z-index: 100;
+    max-height: 240px;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.billing-search-results li {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+[data-theme="light"] .billing-search-results li {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.billing-search-results li:hover {
+    background-color: var(--bg-card-hover);
+}
+
+.billing-search-results li:last-child {
+    border-bottom: none;
+}
+
+.billing-selected-item-info {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.05), rgba(16, 185, 129, 0.05));
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--primary);
+    padding: 14px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 13px;
+}
+
+/* Print States */
+.print-only {
+    display: none;
+}
+
+/* --- Premium Print Layout Styles (Bionica Pharmacy style) --- */
+@media print {
+    /* Hide screen elements */
+    .no-print, 
+    .sidebar, 
+    .header, 
+    .main-content > .header, 
+    header, 
+    .page-header, 
+    .toast-container,
+    .modal-backdrop {
+        display: none !important;
+    }
+
+    /* Reset page settings for printing */
+    html, body {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        font-family: 'Inter', 'Arial', sans-serif !important;
+        width: 100%;
+        height: 100%;
+        margin: 0 !important;
+        padding: 0 !important;
+        font-size: 12px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .app-container {
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        background: transparent !important;
+    }
+
+    .main-content {
+        padding: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        background: transparent !important;
+    }
+
+    .tab-pane {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .print-only {
+        display: block !important;
+    }
+
+    /* Print receipt wrapper (A4 Portrait format) */
+    .invoice-print-wrapper {
+        width: 210mm;
+        min-height: 297mm;
+        padding: 12mm 15mm;
+        margin: 0 auto;
+        color: #000000 !important;
+        background: #ffffff !important;
+        box-sizing: border-box;
+    }
+
+    /* Header styling matching the uploaded photo */
+    .print-header {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 2px solid #000000;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+    }
+
+    .print-header-left {
+        width: 65%;
+    }
+
+    .print-brand {
+        font-family: 'Outfit', sans-serif;
+        font-size: 20px;
+        font-weight: 800;
+        margin-bottom: 4px;
+        letter-spacing: 0.5px;
+        color: #000000 !important;
+    }
+
+    .print-brand-address {
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1.3;
+        margin-bottom: 2px;
+    }
+
+    .print-brand-contact {
+        font-size: 10px;
+        margin-bottom: 2px;
+    }
+
+    .print-brand-gstin, .print-brand-dl {
+        font-size: 11px;
+        font-weight: 700;
+        margin-top: 4px;
+    }
+
+    .print-header-right {
+        width: 30%;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: flex-start;
+    }
+
+    .print-invoice-title {
+        font-size: 18px;
+        font-weight: 800;
+        border: 2px solid #000000;
+        padding: 6px 12px;
+        margin-bottom: 8px;
+        text-align: center;
+        width: 100%;
+        background-color: #f1f5f9 !important;
+    }
+
+    .print-invoice-copy {
+        font-size: 10px;
+        font-style: italic;
+        font-weight: 600;
+    }
+
+    /* Patient / Doctor Meta Section */
+    .print-meta-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 15px;
+        border: 1px solid #000000;
+        padding: 10px 14px;
+        margin-bottom: 20px;
+        background-color: #f8fafc !important;
+    }
+
+    .meta-col {
+        font-size: 11px;
+        line-height: 1.5;
+    }
+
+    /* Main Table Grid matching Bionica Pharmacy columns */
+    .print-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+    }
+
+    .print-table th, .print-table td {
+        border: 1px solid #000000;
+        padding: 6px 8px;
+        font-size: 11px;
+        line-height: 1.3;
+        color: #000000 !important;
+    }
+
+    .print-table th {
+        font-weight: 700;
+        text-align: center;
+        background-color: #e2e8f0 !important;
+        font-size: 10px;
+        text-transform: uppercase;
+    }
+
+    .print-table tbody tr.empty-row td {
+        height: 22px;
+        border-top: none;
+        border-bottom: none;
+    }
+
+    .print-table tbody tr:last-child td {
+        border-bottom: 1px solid #000000;
+    }
+
+    /* Footer layouts */
+    .print-footer-grid {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 15px;
+        gap: 20px;
+    }
+
+    .print-footer-left {
+        width: 60%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .tax-summary-clause {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 6px;
+        border: 1px dashed #000000;
+        background-color: #f8fafc !important;
+    }
+
+    .print-tc {
+        margin-top: 20px;
+    }
+
+    .print-tc h4 {
+        font-size: 11px;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .print-tc p {
+        font-size: 9px;
+        margin-bottom: 2px;
+        line-height: 1.3;
+    }
+
+    .print-salutation {
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        text-align: center;
+        margin-top: 20px !important;
+        letter-spacing: 2px;
+    }
+
+    .print-footer-right {
+        width: 35%;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        padding: 4px 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .summary-row.grand-total {
+        font-size: 14px;
+        font-weight: 800;
+        border-top: 2px solid #000000;
+        border-bottom: 2px solid #000000;
+        padding: 8px 0;
+        margin-top: 6px;
+    }
+
+    .signature-box {
+        margin-top: 30px;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .signature-line {
+        border-top: 1px solid #000000;
+        width: 150px;
+        text-align: center;
+        font-size: 10px;
+        font-weight: 600;
+        padding-top: 6px;
+        margin-top: 15px;
+    }
+}
+
+/* PDF Generation Override */
+.invoice-print-wrapper.pdf-generation-in-progress {
+    display: block !important;
+    position: relative !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 12mm 15mm !important;
+    box-sizing: border-box !important;
+    margin: 0 auto !important;
+}
+
+.pdf-generation-in-progress .print-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    border-bottom: 2px solid #000000 !important;
+    padding-bottom: 10px !important;
+    margin-bottom: 15px !important;
+}
+.pdf-generation-in-progress .print-header-left {
+    width: 65% !important;
+}
+.pdf-generation-in-progress .print-brand {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 20px !important;
+    font-weight: 800 !important;
+    margin-bottom: 4px !important;
+    letter-spacing: 0.5px !important;
+    color: #000000 !important;
+}
+.pdf-generation-in-progress .print-brand-address {
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    line-height: 1.3 !important;
+    margin-bottom: 2px !important;
+}
+.pdf-generation-in-progress .print-brand-contact {
+    font-size: 10px !important;
+    margin-bottom: 2px !important;
+}
+.pdf-generation-in-progress .print-brand-gstin,
+.pdf-generation-in-progress .print-brand-dl {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    margin-top: 4px !important;
+}
+.pdf-generation-in-progress .print-header-right {
+    width: 30% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    justify-content: flex-start !important;
+}
+.pdf-generation-in-progress .print-invoice-title {
+    font-size: 18px !important;
+    font-weight: 850 !important;
+    border: 2px solid #000000 !important;
+    padding: 5px 12px !important;
+    text-align: center !important;
+    letter-spacing: 1px !important;
+    margin-bottom: 5px !important;
+}
+.pdf-generation-in-progress .print-invoice-copy {
+    font-size: 9px !important;
+    font-weight: 600 !important;
+}
+.pdf-generation-in-progress .print-meta-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    border: 1.5px solid #000000 !important;
+    padding: 8px 10px !important;
+    margin-bottom: 12px !important;
+    font-size: 10.5px !important;
+    line-height: 1.5 !important;
+    background: transparent !important;
+}
+.pdf-generation-in-progress .meta-col {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+}
+.pdf-generation-in-progress .print-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-bottom: 15px !important;
+}
+.pdf-generation-in-progress .print-table th, 
+.pdf-generation-in-progress .print-table td {
+    border: 1.5px solid #000000 !important;
+    padding: 6px 4px !important;
+    font-size: 9px !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+.pdf-generation-in-progress .print-table th {
+    font-weight: 750 !important;
+    background-color: #f0f0f0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+.pdf-generation-in-progress .print-footer-grid {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: stretch !important;
+    margin-top: 10px !important;
+    font-size: 10px !important;
+}
+.pdf-generation-in-progress .print-footer-left {
+    width: 60% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+}
+.pdf-generation-in-progress .print-tc h4 {
+    font-size: 9.5px !important;
+    font-weight: 700 !important;
+    margin-bottom: 3px !important;
+    text-decoration: underline !important;
+}
+.pdf-generation-in-progress .print-tc p {
+    font-size: 8px !important;
+    line-height: 1.3 !important;
+    margin-bottom: 1px !important;
+}
+.pdf-generation-in-progress .print-salutation {
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+    margin-top: auto !important;
+}
+.pdf-generation-in-progress .print-footer-right {
+    width: 35% !important;
+    border: 1.5px solid #000000 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    padding: 8px 10px !important;
+    background: transparent !important;
+}
+
+
 
 

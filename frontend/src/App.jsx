@@ -8,11 +8,12 @@ import InventoryTab from './components/InventoryTab';
 import SimulatorTab from './components/SimulatorTab';
 import AlertLogsTab from './components/AlertLogsTab';
 import SettingsTab from './components/SettingsTab';
+import BillingTab from './components/BillingTab';
 import ProductModals from './components/ProductModals';
 import LogoutModal from './components/LogoutModal';
 import AuthPage from './components/AuthPage';
 
-const DASHBOARD_TABS = ['dashboard', 'inventory', 'simulator', 'notifications-log', 'settings'];
+const DASHBOARD_TABS = ['dashboard', 'inventory', 'billing', 'simulator', 'notifications-log', 'settings'];
 
 export default function App() {
     const {
@@ -69,11 +70,12 @@ export default function App() {
         <div className="app-container">
             <Sidebar />
 
-            <main className="main-content">
+            <main className="main-content" style={{ maxWidth: 'none', margin: '0' }}>
                 <Header />
 
                 {activeTab === 'dashboard'         && <DashboardTab />}
                 {activeTab === 'inventory'         && <InventoryTab />}
+                {activeTab === 'billing'           && <BillingTab />}
                 {activeTab === 'simulator'         && <SimulatorTab />}
                 {activeTab === 'notifications-log' && <AlertLogsTab />}
                 {activeTab === 'settings'          && <SettingsTab />}

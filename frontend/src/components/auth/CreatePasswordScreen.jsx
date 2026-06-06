@@ -61,6 +61,7 @@ export default function CreatePasswordScreen() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             disabled={isLoadingAuth}
+                            autoComplete="new-password"
                         />
                         <button
                             type="button"
@@ -86,6 +87,7 @@ export default function CreatePasswordScreen() {
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             disabled={isLoadingAuth}
+                            autoComplete="new-password"
                         />
                         <button
                             type="button"

@@ -1,9 +1,13 @@
 const Notification = require('../models/Notification');
 const Medicine = require('../models/Medicine');
+const { checkAndCreateExpiryAlerts } = require('../utils/expiryChecker');
 
 // GET /api/notifications
 exports.getNotifications = async (req, res) => {
     try {
+        const simulatedDate = req.headers['x-simulated-date'];
+        await checkAndCreateExpiryAlerts(simulatedDate);
+
         const { severity, read } = req.query;
         const filter = {};
 
@@ -66,7 +70,10 @@ exports.clearAll = async (req, res) => {
 // GET /api/dashboard/stats
 exports.getDashboardStats = async (req, res) => {
     try {
-        const today = new Date();
+        const simulatedDate = req.headers['x-simulated-date'];
+        await checkAndCreateExpiryAlerts(simulatedDate);
+
+        const today = simulatedDate ? new Date(simulatedDate) : new Date();
         today.setHours(0, 0, 0, 0);
         const d7 = new Date(today); d7.setDate(d7.getDate() + 7);
         const d20 = new Date(today); d20.setDate(d20.getDate() + 20);

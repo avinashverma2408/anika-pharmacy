@@ -141,7 +141,7 @@ export default function Header() {
                     <i className="fa-solid fa-calendar-days"></i>
                     <div className="date-details">
                         <span className="date-label">System Date</span>
-                        <span class="date-value" id="current-system-date">{formatDateDisplay(simulatedDate)}</span>
+                        <span className="date-value" id="current-system-date">{formatDateDisplay(simulatedDate)}</span>
                     </div>
                 </div>
             </div>

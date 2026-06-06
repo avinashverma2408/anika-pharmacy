@@ -12,7 +12,8 @@ export default function InventoryTab() {
         updateMedicineStatus,
         globalSearchQuery,
         selectedMedicineForDetails,
-        setSelectedMedicineForDetails
+        setSelectedMedicineForDetails,
+        simulatedDate
     } = usePharmacyStore();
 
     // Local filter and sub-tab states
@@ -23,7 +24,7 @@ export default function InventoryTab() {
         setCategoryFilter('all');
     };
 
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = simulatedDate;
 
     // Compute sub-tab counts
     let activeCount = 0;

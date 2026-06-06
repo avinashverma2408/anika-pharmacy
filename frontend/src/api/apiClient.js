@@ -7,12 +7,16 @@ const api = axios.create({
     headers: { 'Content-Type': 'application/json' }
 });
 
-// ── Request interceptor: attach JWT token ──────────────────────────────────
+// ── Request interceptor: attach JWT token & simulated date ──────────────────
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('anika_token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+        }
+        const simulatedDate = localStorage.getItem('anika_simulated_date');
+        if (simulatedDate) {
+            config.headers['x-simulated-date'] = simulatedDate;
         }
         return config;
     },

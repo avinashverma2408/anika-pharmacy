@@ -102,7 +102,18 @@ const medicineRules = [
         .isLength({ max: 100 }).withMessage('Stockist name cannot exceed 100 characters'),
     body('ptr')
         .optional({ checkFalsy: true })
-        .isFloat({ min: 0, max: 999999 }).withMessage('PTR must be between 0 and 999,999')
+        .isFloat({ min: 0, max: 999999 }).withMessage('PTR must be between 0 and 999,999'),
+    body('hsn')
+        .optional({ checkFalsy: true })
+        .trim()
+        .isLength({ max: 20 }).withMessage('HSN must be 20 characters or less'),
+    body('pack')
+        .optional({ checkFalsy: true })
+        .trim()
+        .isLength({ max: 20 }).withMessage('Pack must be 20 characters or less'),
+    body('gstRate')
+        .optional()
+        .isFloat({ min: 0, max: 100 }).withMessage('GST rate must be a percentage between 0 and 100')
 ];
 
 const statusUpdateRules = [

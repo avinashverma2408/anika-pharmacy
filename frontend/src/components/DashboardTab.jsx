@@ -7,7 +7,8 @@ export default function DashboardTab() {
         dashboardStats,
         isLoadingStats,
         setAddModalOpen,
-        setActiveTab
+        setActiveTab,
+        simulatedDate
     } = usePharmacyStore();
 
     // Use API stats if available, else derive from local medicines
@@ -16,7 +17,7 @@ export default function DashboardTab() {
     const activeSafeCount  = stats?.activeMedicines  ?? medicines.filter(m => m.status === 'Active').length;
     const expiringSoonCount= stats?.expiring20Days  ?? 0;
     const expiredCount = stats?.expiredCount ?? 
-        medicines.filter(m => calculateDaysDifference(new Date().toISOString().slice(0,10), m.expiryDate) < 0).length;
+        medicines.filter(m => calculateDaysDifference(simulatedDate, m.expiryDate) < 0).length;
     const outOfStockCount = stats?.outOfStock ?? 
         medicines.filter(m => m.status === 'Out of Stock' || m.quantity === 0).length;
 
@@ -25,10 +26,10 @@ export default function DashboardTab() {
         ? dashboardStats.expiringSoon.map(m => ({ medicine: m, daysLeft: m.daysUntilExpiry ?? 0 }))
         : medicines
             .filter(m => {
-                const d = calculateDaysDifference(new Date().toISOString().slice(0,10), m.expiryDate);
+                const d = calculateDaysDifference(simulatedDate, m.expiryDate);
                 return d >= 0 && d <= 20;
             })
-            .map(m => ({ medicine: m, daysLeft: calculateDaysDifference(new Date().toISOString().slice(0,10), m.expiryDate) }))
+            .map(m => ({ medicine: m, daysLeft: calculateDaysDifference(simulatedDate, m.expiryDate) }))
             .sort((a, b) => a.daysLeft - b.daysLeft);
 
     const StatValue = ({ val }) => isLoadingStats
