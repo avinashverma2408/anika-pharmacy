@@ -430,9 +430,9 @@ export default function BillingTab() {
               </h3>
               <div
                 className="table-container"
-                style={{ maxHeight: "300px", overflowY: "auto" }}
+                style={{ maxHeight: "300px", overflowY: "auto", overflowX: "auto" }}
               >
-                <table className="data-table">
+                <table className="data-table" style={{ minWidth: "650px" }}>
                   <thead>
                     <tr>
                       <th>Name</th>
