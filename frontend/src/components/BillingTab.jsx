@@ -8,11 +8,9 @@ export default function BillingTab() {
         isSavingMedicine
     } = usePharmacyStore();
 
-    // Patient & Doctor Information
+    // Patient Information
     const [patientName, setPatientName] = useState('');
     const [patientAddress, setPatientAddress] = useState('');
-    const [doctorName, setDoctorName] = useState('');
-    const [doctorReg, setDoctorReg] = useState('');
     const [discountPercent, setDiscountPercent] = useState(5);
 
     // Bill Items state
@@ -150,11 +148,9 @@ export default function BillingTab() {
         setBillDate(now.toISOString().slice(0, 10));
         setBillTime(now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
         
-        // Clear patient and doctor states
+        // Clear patient states
         setPatientName('');
         setPatientAddress('');
-        setDoctorName('');
-        setDoctorReg('');
     };
 
     // Helper to generate PDF using html2canvas and jspdf directly
@@ -267,24 +263,6 @@ export default function BillingTab() {
                                         value={patientAddress} 
                                         onChange={(e) => setPatientAddress(e.target.value)} 
                                         placeholder="Enter Address"
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Dr Name</label>
-                                    <input 
-                                        type="text" 
-                                        value={doctorName} 
-                                        onChange={(e) => setDoctorName(e.target.value)} 
-                                        placeholder="Enter Prescribing Doctor"
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Dr Reg No.</label>
-                                    <input 
-                                        type="text" 
-                                        value={doctorReg} 
-                                        onChange={(e) => setDoctorReg(e.target.value)} 
-                                        placeholder="Dr. Reg Number"
                                     />
                                 </div>
                             </div>
@@ -496,8 +474,8 @@ export default function BillingTab() {
                         <p className="print-brand-address">Sultanpur, UP - 228145</p>
                         <p className="print-brand-contact">Phone : 9795358689, 6386470668</p>
                         <p className="print-brand-contact">E-Mail : vikaskr.verma27@gmail.com</p>
-                        <p className="print-brand-gstin">GSTIN : [GSTIN Number]</p>
-                        <p className="print-brand-dl">D.L.No. : [D.L. Number]</p>
+                        <p className="print-brand-gstin">GST No. : </p>
+                        <p className="print-brand-dl">D.L.No. : UP44200000460, UP44210000461</p>
                     </div>
                     <div className="print-header-right">
                         <div className="print-invoice-title">GST INVOICE</div>
@@ -509,10 +487,6 @@ export default function BillingTab() {
                     <div className="meta-col">
                         <div><strong>Patient Name :</strong> {patientName.toUpperCase()}</div>
                         <div><strong>Patient Address :</strong> {patientAddress}</div>
-                    </div>
-                    <div className="meta-col">
-                        <div><strong>Dr Name :</strong> {doctorName.toUpperCase()}</div>
-                        <div><strong>Dr Reg No. :</strong> {doctorReg}</div>
                     </div>
                     <div className="meta-col text-right">
                         <div><strong>Invoice No. :</strong> {invoiceNo}</div>

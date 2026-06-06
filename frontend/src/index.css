@@ -152,6 +152,16 @@ body {
     filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.5));
 }
 
+.logo-icon-img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    background-color: #ffffff;
+    padding: 1px;
+}
+
 .brand-text h1 {
     font-family: 'Outfit', sans-serif;
     font-size: 18px;
@@ -1503,6 +1513,18 @@ body {
     margin-bottom: 4px;
 }
 
+.auth-logo-img {
+    width: 68px;
+    height: 68px;
+    object-fit: contain;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background-color: #ffffff;
+    padding: 2px;
+    margin-bottom: 12px;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
 .auth-brand h2 {
     font-family: 'Outfit', sans-serif;
     font-size: 24px;
@@ -2337,7 +2359,7 @@ body {
     /* Patient / Doctor Meta Section */
     .print-meta-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: 1.2fr 1fr;
         gap: 15px;
         border: 1px solid #000000;
         padding: 10px 14px;
@@ -2540,7 +2562,7 @@ body {
 }
 .pdf-generation-in-progress .print-meta-grid {
     display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-columns: 1.2fr 1fr !important;
     border: 1.5px solid #000000 !important;
     padding: 8px 10px !important;
     margin-bottom: 12px !important;
@@ -2614,4 +2636,76 @@ body {
 
 
 
+/* ══════════════════════════════════════════════════════════════
+   Pagination Bar
+   ══════════════════════════════════════════════════════════════ */
+.pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 16px 6px;
+    border-top: 1px solid var(--border-color);
+    margin-top: 8px;
+}
+
+.pagination-info {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pagination-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.12s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.pagination-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.pagination-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 34px;
+    color: var(--text-muted);
+    font-size: 14px;
+    user-select: none;
+}
 

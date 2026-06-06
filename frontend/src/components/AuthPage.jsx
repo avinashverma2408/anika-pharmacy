@@ -38,7 +38,7 @@ export default function AuthPage() {
             
             <div className="auth-container">
                 <div className="auth-brand">
-                    <i className="fa-solid fa-prescription-bottle-medical logo-icon"></i>
+                    <img src="/logo.png" alt="Anika Pharmacy Logo" className="auth-logo-img" />
                     <h2>Anika Pharmacy</h2>
                     <span>Store Portal Authentication</span>
                 </div>

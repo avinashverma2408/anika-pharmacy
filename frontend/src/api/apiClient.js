@@ -60,6 +60,9 @@ export const medicineApi = {
     getAll: (params = {}) =>
         api.get('/medicines', { params }),
 
+    getCounts: (params = {}) =>
+        api.get('/medicines/counts', { params }),
+
     add: (data) =>
         api.post('/medicines', data),
 

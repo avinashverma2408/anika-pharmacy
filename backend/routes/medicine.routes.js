@@ -12,6 +12,7 @@ const {
 // All routes require auth
 router.use(protect);
 
+router.get('/counts',   medCtrl.getMedicineCounts);
 router.get('/',         medCtrl.getMedicines);
 router.post('/',        medicineRules,                   validate, medCtrl.addMedicine);
 router.put('/:id',      mongoIdParam('id'), medicineRules, validate, medCtrl.updateMedicine);

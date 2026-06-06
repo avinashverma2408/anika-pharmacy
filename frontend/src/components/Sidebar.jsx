@@ -16,7 +16,7 @@ export default function Sidebar() {
     return (
         <aside className="sidebar">
             <div className="sidebar-brand">
-                <i className="fa-solid fa-prescription-bottle-medical logo-icon"></i>
+                <img src="/logo.png" alt="Anika Pharmacy Logo" className="logo-icon-img" />
                 <div className="brand-text">
                     <h1>Anika Pharmacy</h1>
                     <span>Medical Store Portal</span>

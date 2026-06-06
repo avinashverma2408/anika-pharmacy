@@ -26,10 +26,12 @@ exports.getMedicines = async (req, res) => {
         if (category && category !== 'all') filter.category = category;
         if (status && status !== 'all') filter.status = status;
 
-        // Expiry filter
-        const today = new Date();
+        // Use simulated date if provided (for time-travel testing), otherwise use real today
+        const simulatedDateHeader = req.headers['x-simulated-date'];
+        const today = simulatedDateHeader ? new Date(simulatedDateHeader) : new Date();
         today.setHours(0, 0, 0, 0);
 
+        // Expiry filter
         if (expiry === 'expired') {
             filter.expiryDate = { $lt: today };
         } else if (expiry === 'expires-today') {
@@ -50,21 +52,68 @@ exports.getMedicines = async (req, res) => {
         const sortField = ['name', 'price', 'quantity', 'expiryDate', 'createdAt'].includes(sort) ? sort : 'createdAt';
         sortObj[sortField] = order === 'asc' ? 1 : -1;
 
-        const medicines = await Medicine.find(filter).sort(sortObj).limit(20).lean();
+        // Pagination
+        const page  = Math.max(1, parseInt(req.query.page)  || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
+        const skip  = (page - 1) * limit;
+
+        const [total, medicines] = await Promise.all([
+            Medicine.countDocuments(filter),
+            Medicine.find(filter).sort(sortObj).skip(skip).limit(limit).lean()
+        ]);
 
         // Add daysUntilExpiry to each item
-        const result = medicines.map(m => {
-            return {
-                ...m,
-                id: m._id, // alias for frontend compatibility
-                daysUntilExpiry: calculateDaysDifference(today, m.expiryDate)
-            };
-        });
+        const result = medicines.map(m => ({
+            ...m,
+            id: m._id,
+            daysUntilExpiry: calculateDaysDifference
+                ? calculateDaysDifference(today, m.expiryDate)
+                : null
+        }));
 
-        res.json({ success: true, count: result.length, medicines: result });
+        res.json({
+            success: true,
+            count: result.length,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit),
+            medicines: result
+        });
     } catch (err) {
         console.error('Get medicines error:', err);
         res.status(500).json({ success: false, message: 'Failed to fetch medicines.' });
+    }
+};
+
+// GET /api/medicines/counts — single-call counts for all sub-tabs
+exports.getMedicineCounts = async (req, res) => {
+    try {
+        const { search, category } = req.query;
+
+        const base = {};
+        if (search && search.trim()) {
+            base.$or = [
+                { name: { $regex: search.trim(), $options: 'i' } },
+                { batch: { $regex: search.trim(), $options: 'i' } }
+            ];
+        }
+        if (category && category !== 'all') base.category = category;
+
+        const simulatedDateHeader = req.headers['x-simulated-date'];
+        const today = simulatedDateHeader ? new Date(simulatedDateHeader) : new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const [all, active, expired, outofstock] = await Promise.all([
+            Medicine.countDocuments(base),
+            Medicine.countDocuments({ ...base, status: 'Active' }),
+            Medicine.countDocuments({ ...base, expiryDate: { $lt: today } }),
+            Medicine.countDocuments({ ...base, status: 'Out of Stock' })
+        ]);
+
+        res.json({ success: true, counts: { all, active, expired, outofstock } });
+    } catch (err) {
+        console.error('Get medicine counts error:', err);
+        res.status(500).json({ success: false, message: 'Failed to fetch counts.' });
     }
 };
 

@@ -15,10 +15,15 @@ exports.getNotifications = async (req, res) => {
         if (read === 'true') filter.read = true;
         if (read === 'false') filter.read = false;
 
-        const notifications = await Notification.find(filter)
-            .sort({ createdAt: -1 })
-            .limit(20)
-            .lean();
+        // Pagination
+        const page  = Math.max(1, parseInt(req.query.page)  || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
+        const skip  = (page - 1) * limit;
+
+        const [total, notifications] = await Promise.all([
+            Notification.countDocuments(filter),
+            Notification.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean()
+        ]);
 
         const result = notifications.map(n => ({
             ...n,
@@ -30,9 +35,17 @@ exports.getNotifications = async (req, res) => {
             }) + ')'
         }));
 
-        const unreadCount = result.filter(n => !n.read).length;
+        const unreadCount = await Notification.countDocuments({ read: false });
 
-        res.json({ success: true, count: result.length, unreadCount, notifications: result });
+        res.json({
+            success: true,
+            count: result.length,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit),
+            unreadCount,
+            notifications: result
+        });
     } catch (err) {
         console.error('Get notifications error:', err);
         res.status(500).json({ success: false, message: 'Failed to fetch notifications.' });
