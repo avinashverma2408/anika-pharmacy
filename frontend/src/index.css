@@ -2302,6 +2302,19 @@ body {
 
     .print-header-left {
         width: 65%;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .print-logo {
+        width: 60px;
+        height: 60px;
+        object-fit: contain;
+        border-radius: 50%;
+        border: 1px solid #e2e8f0;
+        padding: 2px;
+        background-color: #ffffff;
     }
 
     .print-brand {
@@ -2340,14 +2353,16 @@ body {
     }
 
     .print-invoice-title {
-        font-size: 18px;
+        font-size: 16px;
         font-weight: 800;
-        border: 2px solid #000000;
+        border: 1.5px solid #000000;
+        border-left: 6px solid #06b6d4;
         padding: 6px 12px;
         margin-bottom: 8px;
         text-align: center;
         width: 100%;
-        background-color: #f1f5f9 !important;
+        letter-spacing: 1.5px;
+        background-color: #f8fafc !important;
     }
 
     .print-invoice-copy {
@@ -2470,10 +2485,11 @@ body {
     .summary-row.grand-total {
         font-size: 14px;
         font-weight: 800;
-        border-top: 2px solid #000000;
-        border-bottom: 2px solid #000000;
-        padding: 8px 0;
+        border: 2px solid #000000;
+        background-color: #f1f5f9 !important;
+        padding: 8px 10px;
         margin-top: 6px;
+        border-radius: 4px;
     }
 
     .signature-box {
@@ -2483,13 +2499,13 @@ body {
     }
 
     .signature-line {
-        border-top: 1px solid #000000;
-        width: 150px;
+        border-top: 1.5px dashed #000000;
+        width: 160px;
         text-align: center;
         font-size: 10px;
-        font-weight: 600;
+        font-weight: 700;
         padding-top: 6px;
-        margin-top: 15px;
+        margin-top: 25px;
     }
 }
 
@@ -2515,6 +2531,18 @@ body {
 }
 .pdf-generation-in-progress .print-header-left {
     width: 65% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 16px !important;
+}
+.pdf-generation-in-progress .print-logo {
+    width: 60px !important;
+    height: 60px !important;
+    object-fit: contain !important;
+    border-radius: 50% !important;
+    border: 1px solid #e2e8f0 !important;
+    padding: 2px !important;
+    background-color: #ffffff !important;
 }
 .pdf-generation-in-progress .print-brand {
     font-family: 'Outfit', sans-serif !important;
@@ -2548,13 +2576,15 @@ body {
     justify-content: flex-start !important;
 }
 .pdf-generation-in-progress .print-invoice-title {
-    font-size: 18px !important;
+    font-size: 16px !important;
     font-weight: 850 !important;
-    border: 2px solid #000000 !important;
+    border: 1.5px solid #000000 !important;
+    border-left: 6px solid #06b6d4 !important;
     padding: 5px 12px !important;
     text-align: center !important;
     letter-spacing: 1px !important;
     margin-bottom: 5px !important;
+    background-color: #f8fafc !important;
 }
 .pdf-generation-in-progress .print-invoice-copy {
     font-size: 9px !important;

@@ -469,13 +469,16 @@ export default function BillingTab() {
             <div className="print-only invoice-print-wrapper">
                 <div className="print-header">
                     <div className="print-header-left">
-                        <h1 className="print-brand">ANIKA PHARMACY</h1>
-                        <p className="print-brand-address">Pandeybaba bazar, Kadipur Road</p>
-                        <p className="print-brand-address">Sultanpur, UP - 228145</p>
-                        <p className="print-brand-contact">Phone : 9795358689, 6386470668</p>
-                        <p className="print-brand-contact">E-Mail : vikaskr.verma27@gmail.com</p>
-                        <p className="print-brand-gstin">GST No. : </p>
-                        <p className="print-brand-dl">D.L.No. : UP44200000460, UP44210000461</p>
+                        <img src="/logo.png" alt="Anika Pharmacy Logo" className="print-logo" />
+                        <div className="print-brand-details">
+                            <h1 className="print-brand">ANIKA PHARMACY</h1>
+                            <p className="print-brand-address">Pandeybaba bazar, Kadipur Road</p>
+                            <p className="print-brand-address">Sultanpur, UP - 228145</p>
+                            <p className="print-brand-contact">Phone : 9795358689, 6386470668</p>
+                            <p className="print-brand-contact">E-Mail : vikaskr.verma27@gmail.com</p>
+                            <p className="print-brand-gstin">GST No. : </p>
+                            <p className="print-brand-dl">D.L.No. : UP44200000460, UP44210000461</p>
+                        </div>
                     </div>
                     <div className="print-header-right">
                         <div className="print-invoice-title">GST INVOICE</div>
@@ -485,31 +488,32 @@ export default function BillingTab() {
 
                 <div className="print-meta-grid">
                     <div className="meta-col">
-                        <div><strong>Patient Name :</strong> {patientName.toUpperCase()}</div>
-                        <div><strong>Patient Address :</strong> {patientAddress}</div>
+                        <div style={{ fontSize: '9px', color: '#555', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>Billed To:</div>
+                        <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#000' }}>{patientName ? patientName.toUpperCase() : 'CASH CUSTOMER'}</div>
+                        {patientAddress && <div style={{ fontSize: '11px', color: '#333', marginTop: '2px' }}>{patientAddress}</div>}
                     </div>
-                    <div className="meta-col text-right">
-                        <div><strong>Invoice No. :</strong> {invoiceNo}</div>
+                    <div className="meta-col text-right" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <div><strong>Invoice No. :</strong> <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 'bold' }}>{invoiceNo}</span></div>
                         <div><strong>Date :</strong> {billDate.split('-').reverse().join('-')}</div>
-                        <div><strong>BILL ISSUE TIME :</strong> {billTime}</div>
+                        <div><strong>Bill Issue Time :</strong> {billTime}</div>
                     </div>
                 </div>
 
                 <table className="print-table">
                     <thead>
                         <tr>
-                            <th style={{ width: '4%' }}>SN</th>
-                            <th style={{ width: '38%' }}>PRODUCT NAME</th>
-                            <th style={{ width: '8%' }}>PACK</th>
-                            <th style={{ width: '10%' }}>HSN</th>
+                            <th style={{ width: '3%' }}>SN</th>
+                            <th style={{ width: '30%' }}>PRODUCT NAME</th>
+                            <th style={{ width: '6%' }}>PACK</th>
+                            <th style={{ width: '8%' }}>HSN</th>
                             <th style={{ width: '10%' }}>BATCH</th>
                             <th style={{ width: '8%' }}>EXP</th>
-                            <th style={{ width: '6%' }}>QTY</th>
-                            <th style={{ width: '8%' }}>MRP</th>
-                            <th style={{ width: '8%' }}>RATE</th>
-                            <th style={{ width: '6%' }}>SGST</th>
-                            <th style={{ width: '6%' }}>CGST</th>
-                            <th style={{ width: '10%' }}>AMOUNT</th>
+                            <th style={{ width: '5%' }}>QTY</th>
+                            <th style={{ width: '7%' }}>MRP</th>
+                            <th style={{ width: '7%' }}>RATE</th>
+                            <th style={{ width: '4%' }}>SGST</th>
+                            <th style={{ width: '4%' }}>CGST</th>
+                            <th style={{ width: '8%' }}>AMOUNT</th>
                         </tr>
                     </thead>
                     <tbody>
