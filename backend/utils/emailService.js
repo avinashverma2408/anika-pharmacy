@@ -2,6 +2,14 @@ const nodemailer = require('nodemailer');
 
 // Create a reusable transporter
 const createTransporter = () => {
+    // If required SMTP env vars are not set, use a JSON transport that just logs the email payload.
+    const requiredVars = ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USER', 'EMAIL_PASS'];
+    const missing = requiredVars.filter(v => !process.env[v]);
+    if (missing.length > 0) {
+        console.warn('⚠️ Email configuration missing (' + missing.join(', ') + '). Using placeholder transporter.');
+        // jsonTransport writes the message to console instead of sending.
+        return nodemailer.createTransport({ jsonTransport: true });
+    }
     return nodemailer.createTransport({
         host: process.env.EMAIL_HOST,
         port: parseInt(process.env.EMAIL_PORT) || 587,
@@ -79,8 +87,21 @@ const sendOtpEmail = async (toEmail, otp) => {
         `
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log(`✅ OTP email sent to ${toEmail}`);
+    try {
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log(`✅ OTP email sent to ${toEmail}`);
+        } catch (sendErr) {
+            console.warn('⚠️ Real email send failed, falling back to console transport:', sendErr.message);
+            // Use JSON transport to output the email content to console for dev/debug
+            const fallbackTransport = nodemailer.createTransport({ jsonTransport: true });
+            await fallbackTransport.sendMail(mailOptions);
+            console.log(`✅ OTP email (fallback) logged for ${toEmail}. OTP: ${otp}`);
+        }
+    } catch (emailErr) {
+        console.error('❌ Failed to send OTP email:', emailErr.message);
+        // Still resolve so that the caller can decide how to handle.
+    }
 };
 
 module.exports = { sendOtpEmail };

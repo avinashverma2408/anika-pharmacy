@@ -87,14 +87,17 @@ async function autoSeedIfNeeded() {
     const userCount = await User.countDocuments();
     if (userCount === 0) {
       console.log("🌱 No users found. Seeding initial admin user...");
-      const ADMIN = {
-        email: "admin@anika.com",
-        passwordHash: "admin123", // will be bcrypt-hashed by pre-save hook
-        role: "admin",
-      };
+      // Seed default admin accounts (email + password will be hashed by pre‑save hook)
+      const DEFAULT_PASSWORD = "admin@123";
 
-      const admin = await User.create(ADMIN);
-      console.log(`👤 Admin created: ${admin.email} (password: admin123)`);
+      const admins = [
+        { email: "admin@anika.yopmail.com", passwordHash: DEFAULT_PASSWORD, role: "admin" },
+        { email: "avinashverma2408@gmail.com", passwordHash: DEFAULT_PASSWORD, role: "admin" },
+      ];
+
+      // Create each admin if not already present (User.countDocuments was 0, so none exist)
+      const createdAdmins = await User.insertMany(admins);
+      createdAdmins.forEach(u => console.log(`👤 Admin created: ${u.email} (password: ${DEFAULT_PASSWORD})`));
     } else {
       console.log(
         "✅ Database already contains user data. Skipping user seeding.",

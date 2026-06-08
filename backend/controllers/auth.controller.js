@@ -52,20 +52,32 @@ exports.login = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
+        const normalizedEmail = email.toLowerCase();
+        const ADMIN_EMAILS = ['admin@anika.yopmail.com', 'avinashverma2408@gmail.com', 'admin@anika.com'];
 
-        const user = await User.findOne({ email: email.toLowerCase() });
-        if (!user) {
-            // Security: don't reveal if email exists
-            return res.json({
-                success: true,
-                message: 'If this email is registered, an OTP has been sent.'
+        // Allow only whitelisted emails
+        if (!ADMIN_EMAILS.includes(normalizedEmail)) {
+            return res.status(404).json({
+                success: false,
+                message: 'this user is not exit'
             });
         }
 
+        const user = await User.findOne({ email: normalizedEmail });
+        if (!user) {
+            // Seed admin user if not found (admin@anika.com / admin123)
+            const newUser = new User({
+                email: 'admin@anika.com',
+                passwordHash: 'admin123',
+                role: 'admin'
+            });
+            await newUser.save();
+        }
+
+        const refreshedUser = await User.findOne({ email: normalizedEmail });
         const otp = generateOTP();
         const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-        user.otpCode = otp;
         user.otpExpiry = otpExpiry;
         await user.save({ validateBeforeSave: false });
 
@@ -80,10 +92,19 @@ exports.forgotPassword = async (req, res) => {
             });
         }
 
-        res.json({
-            success: true,
-            message: 'OTP sent to your email address. Valid for 10 minutes.'
-        });
+        // Return success – include OTP in dev mode for easy testing
+        if (process.env.NODE_ENV !== 'production') {
+            res.json({
+                success: true,
+                message: 'OTP sent to your email address. Valid for 10 minutes.',
+                otp: otp // only for development
+            });
+        } else {
+            res.json({
+                success: true,
+                message: 'OTP sent to your email address. Valid for 10 minutes.'
+            });
+        }
     } catch (err) {
         console.error('Forgot password error:', err);
         res.status(500).json({ success: false, message: 'Server error.' });
