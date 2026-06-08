@@ -59,6 +59,8 @@ async function checkAndCreateExpiryAlerts(customDate = null) {
         let newCount = 0;
 
         for (const med of medicines) {
+            // Skip alerts for out‑of‑stock medicines
+            if (!med.quantity || med.quantity <= 0) continue;
             const daysLeft = calculateDaysDifference(today, med.expiryDate);
 
             const alert = getExpiryAlert(daysLeft, med);

@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { usePharmacyStore, getLocalDateString } from "../store/usePharmacyStore";
+import {
+  usePharmacyStore,
+  getLocalDateString,
+} from "../store/usePharmacyStore";
 
 export default function ProductModals() {
   const {
