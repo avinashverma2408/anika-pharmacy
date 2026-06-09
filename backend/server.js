@@ -96,7 +96,7 @@ async function autoSeedIfNeeded() {
       ];
 
       // Create each admin if not already present (User.countDocuments was 0, so none exist)
-      const createdAdmins = await User.insertMany(admins);
+      const createdAdmins = await User.create(admins);
       createdAdmins.forEach(u => console.log(`👤 Admin created: ${u.email} (password: ${DEFAULT_PASSWORD})`));
     } else {
       console.log(

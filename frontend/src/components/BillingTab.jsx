@@ -202,9 +202,10 @@ export default function BillingTab() {
           })
             .then((canvas) => {
               const imgData = canvas.toDataURL("image/jpeg", 0.95);
-              const pdf = new jsPDF("p", "mm", "a4");
               const imgWidth = 210; // A4 width in mm
               const imgHeight = (canvas.height * imgWidth) / canvas.width;
+              // Dynamically adjust PDF page height to match content height (minimum A4 size 297mm)
+              const pdf = new jsPDF("p", "mm", [210, Math.max(297, imgHeight)]);
 
               pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight);
               pdf.save(`Invoice-${invoiceNo}.pdf`);

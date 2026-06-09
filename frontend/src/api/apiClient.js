@@ -28,10 +28,13 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            localStorage.removeItem('anika_token');
-            localStorage.setItem('anika_auth', 'false');
-            window.location.hash = '/login';
-            window.dispatchEvent(new CustomEvent('unauthorized', { detail: { sessionExpired: true } }));
+            const isLoginRequest = error.config?.url?.includes('/auth/login');
+            if (!isLoginRequest) {
+                localStorage.removeItem('anika_token');
+                localStorage.setItem('anika_auth', 'false');
+                window.location.hash = '/login';
+                window.dispatchEvent(new CustomEvent('unauthorized', { detail: { sessionExpired: true } }));
+            }
         }
         return Promise.reject(error);
     }

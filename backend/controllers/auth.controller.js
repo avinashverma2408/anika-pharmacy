@@ -63,7 +63,7 @@ exports.forgotPassword = async (req, res) => {
             });
         }
 
-        const user = await User.findOne({ email: normalizedEmail });
+        let user = await User.findOne({ email: normalizedEmail });
         if (!user) {
             // Seed admin user if not found (admin@anika.com / admin123)
             const newUser = new User({
@@ -71,13 +71,13 @@ exports.forgotPassword = async (req, res) => {
                 passwordHash: 'admin123',
                 role: 'admin'
             });
-            await newUser.save();
+            user = await newUser.save();
         }
 
-        const refreshedUser = await User.findOne({ email: normalizedEmail });
         const otp = generateOTP();
         const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
+        user.otpCode = otp;
         user.otpExpiry = otpExpiry;
         await user.save({ validateBeforeSave: false });
 
