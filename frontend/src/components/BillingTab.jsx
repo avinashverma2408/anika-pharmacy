@@ -16,7 +16,7 @@ export default function BillingTab() {
     fetchBills,
     fetchBillStats,
     saveBillRecord,
-    deleteBillRecord
+    deleteBillRecord,
   } = usePharmacyStore();
 
   // Tab State
@@ -74,11 +74,19 @@ export default function BillingTab() {
         limit: 10,
         search: historySearch,
         month: filterMonth,
-        year: filterYear
+        year: filterYear,
       });
       fetchBillStats();
     }
-  }, [billingSubTab, historyPage, historySearch, filterMonth, filterYear, fetchBills, fetchBillStats]);
+  }, [
+    billingSubTab,
+    historyPage,
+    historySearch,
+    filterMonth,
+    filterYear,
+    fetchBills,
+    fetchBillStats,
+  ]);
 
   // Filter active & in-stock medicines on search query
   useEffect(() => {
@@ -248,13 +256,13 @@ export default function BillingTab() {
 
               // Cleanup and reset
               element.classList.remove("pdf-generation-in-progress");
-              
+
               if (isPastInvoice) {
                 setSelectedBill(null);
               } else {
                 resetBillForm();
               }
-              
+
               showSimpleToast(
                 "Success",
                 "Invoice downloaded successfully!",
@@ -299,10 +307,10 @@ export default function BillingTab() {
     if (success) {
       const invoiceData = {
         invoiceNo,
-        patientName: patientName || 'CASH CUSTOMER',
+        patientName: patientName || "CASH CUSTOMER",
         patientAddress,
         billDate: new Date(`${billDate}T${billTime}`),
-        items: billItems.map(item => ({
+        items: billItems.map((item) => ({
           medicineId: item.medicine._id || item.medicine.id,
           name: item.medicine.name,
           category: item.medicine.category,
@@ -311,7 +319,7 @@ export default function BillingTab() {
           price: item.rateBilled,
           ptr: item.medicine.ptr || 0,
           gstRate: item.medicine.gstRate || 5,
-          amount: item.amount
+          amount: item.amount,
         })),
         subTotal,
         discountPercent,
@@ -319,7 +327,7 @@ export default function BillingTab() {
         taxableValue: totalTaxableValue,
         cgst: totalCGST,
         sgst: totalSGST,
-        netTotal
+        netTotal,
       };
 
       const dbRes = await saveBillRecord(invoiceData);
@@ -341,61 +349,69 @@ export default function BillingTab() {
   // Helper to normalize items for details display/receipt rendering
   const getNormalizedItems = (invoice) => {
     if (!invoice) return [];
-    
+
     // Check if it is a saved DB invoice (flat schema) or draft billItems array
-    return invoice.items ? invoice.items.map(item => ({
-      name: item.name,
-      pack: item.pack || '1*10',
-      hsn: item.hsn || 'N/A',
-      batch: item.batch,
-      expiryDate: item.expiryDate || '',
-      quantity: item.quantity,
-      price: item.price,
-      gstRate: item.gstRate || 5,
-      amount: item.amount
-    })) : invoice.billItems.map(item => ({
-      name: item.medicine.name,
-      pack: item.medicine.pack || '1*10',
-      hsn: item.medicine.hsn || 'N/A',
-      batch: item.medicine.batch,
-      expiryDate: item.medicine.expiryDate || '',
-      quantity: item.quantityBilled,
-      price: item.rateBilled,
-      gstRate: item.medicine.gstRate || 5,
-      amount: item.amount
-    }));
+    return invoice.items
+      ? invoice.items.map((item) => ({
+          name: item.name,
+          pack: item.pack || "1*10",
+          hsn: item.hsn || "N/A",
+          batch: item.batch,
+          expiryDate: item.expiryDate || "",
+          quantity: item.quantity,
+          price: item.price,
+          gstRate: item.gstRate || 5,
+          amount: item.amount,
+        }))
+      : invoice.billItems.map((item) => ({
+          name: item.medicine.name,
+          pack: item.medicine.pack || "1*10",
+          hsn: item.medicine.hsn || "N/A",
+          batch: item.medicine.batch,
+          expiryDate: item.medicine.expiryDate || "",
+          quantity: item.quantityBilled,
+          price: item.rateBilled,
+          gstRate: item.medicine.gstRate || 5,
+          amount: item.amount,
+        }));
   };
 
   // Unified Print Receipt Object
-  const activePrint = selectedBill ? {
-    invoiceNo: selectedBill.invoiceNo,
-    patientName: selectedBill.patientName,
-    patientAddress: selectedBill.patientAddress,
-    billDate: new Date(selectedBill.billDate).toISOString().slice(0, 10),
-    billTime: new Date(selectedBill.billDate).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }),
-    items: getNormalizedItems({ items: selectedBill.items }),
-    subTotal: selectedBill.subTotal,
-    discountPercent: selectedBill.discountPercent,
-    discountAmount: selectedBill.discountAmount,
-    taxableValue: selectedBill.taxableValue,
-    cgst: selectedBill.cgst,
-    sgst: selectedBill.sgst,
-    netTotal: selectedBill.netTotal
-  } : {
-    invoiceNo,
-    patientName: patientName || 'CASH CUSTOMER',
-    patientAddress,
-    billDate,
-    billTime: billTime || '',
-    items: getNormalizedItems({ billItems }),
-    subTotal,
-    discountPercent,
-    discountAmount,
-    taxableValue: totalTaxableValue,
-    cgst: totalCGST,
-    sgst: totalSGST,
-    netTotal
-  };
+  const activePrint = selectedBill
+    ? {
+        invoiceNo: selectedBill.invoiceNo,
+        patientName: selectedBill.patientName,
+        patientAddress: selectedBill.patientAddress,
+        billDate: new Date(selectedBill.billDate).toISOString().slice(0, 10),
+        billTime: new Date(selectedBill.billDate).toLocaleTimeString("en-US", {
+          hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        items: getNormalizedItems({ items: selectedBill.items }),
+        subTotal: selectedBill.subTotal,
+        discountPercent: selectedBill.discountPercent,
+        discountAmount: selectedBill.discountAmount,
+        taxableValue: selectedBill.taxableValue,
+        cgst: selectedBill.cgst,
+        sgst: selectedBill.sgst,
+        netTotal: selectedBill.netTotal,
+      }
+    : {
+        invoiceNo,
+        patientName: patientName || "CASH CUSTOMER",
+        patientAddress,
+        billDate,
+        billTime: billTime || "",
+        items: getNormalizedItems({ billItems }),
+        subTotal,
+        discountPercent,
+        discountAmount,
+        taxableValue: totalTaxableValue,
+        cgst: totalCGST,
+        sgst: totalSGST,
+        netTotal,
+      };
 
   // Handler to print historical bill
   const handlePrintPastInvoice = (bill) => {
@@ -430,34 +446,45 @@ export default function BillingTab() {
       "Discount Amt (Rs)",
       "CGST (Rs)",
       "SGST (Rs)",
-      "Grand Total (Rs)"
+      "Grand Total (Rs)",
     ];
 
-    const rows = bills.map(bill => [
+    const rows = bills.map((bill) => [
       bill.invoiceNo,
-      new Date(bill.billDate).toLocaleDateString('en-GB'),
+      new Date(bill.billDate).toLocaleDateString("en-GB"),
       bill.patientName,
-      bill.patientAddress || 'N/A',
+      bill.patientAddress || "N/A",
       bill.subTotal.toFixed(2),
       bill.discountPercent,
       bill.discountAmount.toFixed(2),
       bill.cgst.toFixed(2),
       bill.sgst.toFixed(2),
-      bill.netTotal.toFixed(2)
+      bill.netTotal.toFixed(2),
     ]);
 
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + [headers.join(","), ...rows.map(e => e.map(val => `"${val}"`).join(","))].join("\n");
-    
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [
+        headers.join(","),
+        ...rows.map((e) => e.map((val) => `"${val}"`).join(",")),
+      ].join("\n");
+
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Revenue_Report_${filterMonth ? 'Month_' + filterMonth : 'All'}_${filterYear || 'All'}.csv`);
+    link.setAttribute(
+      "download",
+      `Revenue_Report_${filterMonth ? "Month_" + filterMonth : "All"}_${filterYear || "All"}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
-    showSimpleToast("Export Success", "CSV report downloaded successfully!", "success");
+
+    showSimpleToast(
+      "Export Success",
+      "CSV report downloaded successfully!",
+      "success",
+    );
   };
 
   return (
@@ -468,7 +495,8 @@ export default function BillingTab() {
           <div>
             <h2>GST Billing &amp; Invoicing</h2>
             <p className="subtitle">
-              Search medicines, compile invoices, check monthly revenue, and print receipts.
+              Search medicines, compile invoices, check monthly revenue, and
+              print receipts.
             </p>
           </div>
         </div>
@@ -488,7 +516,8 @@ export default function BillingTab() {
               setHistoryPage(1);
             }}
           >
-            <i className="fa-solid fa-clock-rotate-left"></i> Billing History &amp; Revenue Reports
+            <i className="fa-solid fa-clock-rotate-left"></i> Billing History
+            &amp; Revenue Reports
           </button>
         </div>
 
@@ -548,7 +577,8 @@ export default function BillingTab() {
                 className="analytics-section-title"
                 style={{ marginTop: "20px" }}
               >
-                <i className="fa-solid fa-cart-plus"></i> Search &amp; Add Medicines
+                <i className="fa-solid fa-cart-plus"></i> Search &amp; Add
+                Medicines
               </h3>
               <div
                 className="form-group"
@@ -571,7 +601,10 @@ export default function BillingTab() {
                       >
                         <div style={{ fontWeight: "600" }}>{med.name}</div>
                         <div
-                          style={{ fontSize: "11px", color: "var(--text-muted)" }}
+                          style={{
+                            fontSize: "11px",
+                            color: "var(--text-muted)",
+                          }}
                         >
                           Batch: {med.batch} | Exp:{" "}
                           {formatDateDisplay(med.expiryDate)} | Price: ₹
@@ -591,7 +624,9 @@ export default function BillingTab() {
                 >
                   <div className="billing-selected-item-info">
                     <strong>Selected:</strong> {selectedMed.name}{" "}
-                    <span className="category-label">{selectedMed.category}</span>
+                    <span className="category-label">
+                      {selectedMed.category}
+                    </span>
                     <div
                       className="timeline-desc-text"
                       style={{ marginTop: "4px" }}
@@ -644,7 +679,11 @@ export default function BillingTab() {
                 </h3>
                 <div
                   className="table-container"
-                  style={{ maxHeight: "300px", overflowY: "auto", overflowX: "auto" }}
+                  style={{
+                    maxHeight: "300px",
+                    overflowY: "auto",
+                    overflowX: "auto",
+                  }}
                 >
                   <table className="data-table" style={{ minWidth: "650px" }}>
                     <thead>
@@ -709,9 +748,14 @@ export default function BillingTab() {
                 <div className="valuation-stats-list">
                   <div className="val-stat-item">
                     <span className="val-stat-label">Subtotal</span>
-                    <span className="val-stat-value">₹{subTotal.toFixed(2)}</span>
+                    <span className="val-stat-value">
+                      ₹{subTotal.toFixed(2)}
+                    </span>
                   </div>
-                  <div className="val-stat-item" style={{ alignItems: "center" }}>
+                  <div
+                    className="val-stat-item"
+                    style={{ alignItems: "center" }}
+                  >
                     <span className="val-stat-label">Discount (%)</span>
                     <input
                       type="number"
@@ -779,7 +823,8 @@ export default function BillingTab() {
                   >
                     {isSavingMedicine ? (
                       <>
-                        <i className="fa-solid fa-spinner fa-spin"></i> Saving...
+                        <i className="fa-solid fa-spinner fa-spin"></i>{" "}
+                        Saving...
                       </>
                     ) : (
                       <>
@@ -797,7 +842,8 @@ export default function BillingTab() {
                   >
                     {isSavingMedicine ? (
                       <>
-                        <i className="fa-solid fa-spinner fa-spin"></i> Saving...
+                        <i className="fa-solid fa-spinner fa-spin"></i>{" "}
+                        Saving...
                       </>
                     ) : (
                       <>
@@ -817,61 +863,132 @@ export default function BillingTab() {
             {/* Revenue Analytics Cards */}
             <div className="stats-grid" style={{ marginBottom: "24px" }}>
               <div className="stat-card border-success">
-                <div className="stat-icon bg-success"><i className="fa-solid fa-indian-rupee-sign"></i></div>
+                <div className="stat-icon bg-success">
+                  <i className="fa-solid fa-indian-rupee-sign"></i>
+                </div>
                 <div className="stat-info">
                   <span className="stat-label">Lifetime Revenue</span>
-                  <h3 className="stat-value">₹{(billStats?.lifetimeRevenue || 0).toFixed(2)}</h3>
+                  <h3 className="stat-value">
+                    ₹{(billStats?.lifetimeRevenue || 0).toFixed(2)}
+                  </h3>
                 </div>
               </div>
               <div className="stat-card border-success">
-                <div className="stat-icon bg-primary"><i className="fa-solid fa-chart-line"></i></div>
+                <div className="stat-icon bg-primary">
+                  <i className="fa-solid fa-chart-line"></i>
+                </div>
                 <div className="stat-info">
                   <span className="stat-label">Current Month Revenue</span>
-                  <h3 className="stat-value">₹{(billStats?.currentMonthRevenue || 0).toFixed(2)}</h3>
+                  <h3 className="stat-value">
+                    ₹{(billStats?.currentMonthRevenue || 0).toFixed(2)}
+                  </h3>
                 </div>
               </div>
               <div className="stat-card border-warning">
-                <div className="stat-icon bg-warning text-dark"><i className="fa-solid fa-file-invoice-dollar"></i></div>
+                <div className="stat-icon bg-warning text-dark">
+                  <i className="fa-solid fa-file-invoice-dollar"></i>
+                </div>
                 <div className="stat-info">
                   <span className="stat-label">Total Bills Generated</span>
-                  <h3 className="stat-value">{billStats?.lifetimeBills || 0}</h3>
+                  <h3 className="stat-value">
+                    {billStats?.lifetimeBills || 0}
+                  </h3>
                 </div>
               </div>
             </div>
 
             {/* Split Dashboard */}
-            <div className="dashboard-split" style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: "24px" }}>
+            <div
+              className="dashboard-split"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1.6fr 1fr",
+                gap: "24px",
+              }}
+            >
               {/* Left Column: Bills Log */}
               <div className="split-left card-panel">
-                <div className="panel-header flex-header" style={{ borderBottom: "none", marginBottom: "16px", paddingBottom: 0 }}>
+                <div
+                  className="panel-header flex-header"
+                  style={{
+                    borderBottom: "none",
+                    marginBottom: "16px",
+                    paddingBottom: 0,
+                  }}
+                >
                   <div className="panel-title-group">
-                    <i className="fa-solid fa-receipt panel-icon text-primary-color" style={{ color: "var(--primary)" }}></i>
+                    <i
+                      className="fa-solid fa-receipt panel-icon text-primary-color"
+                      style={{ color: "var(--primary)" }}
+                    ></i>
                     <h3>Past Invoices</h3>
                   </div>
-                  <button className="btn btn-secondary btn-icon" onClick={handleDownloadCSV}>
+                  <button
+                    className="btn btn-secondary btn-icon"
+                    onClick={handleDownloadCSV}
+                  >
                     <i className="fa-solid fa-file-csv"></i> Download CSV
                   </button>
                 </div>
 
                 {/* Filter Toolbar */}
-                <div className="filter-toolbar card-panel" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "12px", background: "var(--bg-card-hover)", padding: "16px", marginBottom: "20px" }}>
+                <div
+                  className="filter-toolbar card-panel"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+                    gap: "12px",
+                    background: "var(--bg-card-hover)",
+                    padding: "16px",
+                    marginBottom: "20px",
+                  }}
+                >
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label style={{ fontSize: "11px", marginBottom: "4px", fontWeight: "600" }}>Search Invoice / Patient</label>
-                    <input 
-                      type="text" 
-                      value={historySearch} 
-                      onChange={(e) => { setHistorySearch(e.target.value); setHistoryPage(1); }} 
-                      placeholder="Type query..." 
+                    <label
+                      style={{
+                        fontSize: "11px",
+                        marginBottom: "4px",
+                        fontWeight: "600",
+                      }}
+                    >
+                      Search Invoice / Patient
+                    </label>
+                    <input
+                      type="text"
+                      value={historySearch}
+                      onChange={(e) => {
+                        setHistorySearch(e.target.value);
+                        setHistoryPage(1);
+                      }}
+                      placeholder="Type query..."
                       style={{ padding: "8px 12px", fontSize: "13px" }}
                     />
                   </div>
-                  
+
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label style={{ fontSize: "11px", marginBottom: "4px", fontWeight: "600" }}>Month</label>
-                    <select 
-                      value={filterMonth} 
-                      onChange={(e) => { setFilterMonth(e.target.value); setHistoryPage(1); }}
-                      style={{ padding: "8px 12px", fontSize: "13px", background: "var(--bg-input)", color: "var(--text-primary)", border: "1px solid var(--border-color)", borderRadius: "6px" }}
+                    <label
+                      style={{
+                        fontSize: "11px",
+                        marginBottom: "4px",
+                        fontWeight: "600",
+                      }}
+                    >
+                      Month
+                    </label>
+                    <select
+                      value={filterMonth}
+                      onChange={(e) => {
+                        setFilterMonth(e.target.value);
+                        setHistoryPage(1);
+                      }}
+                      style={{
+                        padding: "8px 12px",
+                        fontSize: "13px",
+                        background: "var(--bg-input)",
+                        color: "var(--text-primary)",
+                        border: "1px solid var(--border-color)",
+                        borderRadius: "6px",
+                      }}
                     >
                       <option value="">All Months</option>
                       <option value="1">January</option>
@@ -890,11 +1007,29 @@ export default function BillingTab() {
                   </div>
 
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label style={{ fontSize: "11px", marginBottom: "4px", fontWeight: "600" }}>Year</label>
-                    <select 
-                      value={filterYear} 
-                      onChange={(e) => { setFilterYear(e.target.value); setHistoryPage(1); }}
-                      style={{ padding: "8px 12px", fontSize: "13px", background: "var(--bg-input)", color: "var(--text-primary)", border: "1px solid var(--border-color)", borderRadius: "6px" }}
+                    <label
+                      style={{
+                        fontSize: "11px",
+                        marginBottom: "4px",
+                        fontWeight: "600",
+                      }}
+                    >
+                      Year
+                    </label>
+                    <select
+                      value={filterYear}
+                      onChange={(e) => {
+                        setFilterYear(e.target.value);
+                        setHistoryPage(1);
+                      }}
+                      style={{
+                        padding: "8px 12px",
+                        fontSize: "13px",
+                        background: "var(--bg-input)",
+                        color: "var(--text-primary)",
+                        border: "1px solid var(--border-color)",
+                        borderRadius: "6px",
+                      }}
                     >
                       <option value="">All Years</option>
                       <option value="2026">2026</option>
@@ -923,39 +1058,103 @@ export default function BillingTab() {
                           <tr key={i}>
                             {Array.from({ length: 6 }).map((_, j) => (
                               <td key={j}>
-                                <span style={{ display: 'inline-block', width: '80%', height: 14, background: 'var(--bg-input)', borderRadius: 4, animation: 'pulse 1.5s infinite' }}></span>
+                                <span
+                                  style={{
+                                    display: "inline-block",
+                                    width: "80%",
+                                    height: 14,
+                                    background: "var(--bg-input)",
+                                    borderRadius: 4,
+                                    animation: "pulse 1.5s infinite",
+                                  }}
+                                ></span>
                               </td>
                             ))}
                           </tr>
                         ))
                       ) : !bills || bills.length === 0 ? (
                         <tr>
-                          <td colSpan="6" style={{ textAlign: "center", padding: "20px", color: "var(--text-muted)" }}>
+                          <td
+                            colSpan="6"
+                            style={{
+                              textAlign: "center",
+                              padding: "20px",
+                              color: "var(--text-muted)",
+                            }}
+                          >
                             No invoices matched criteria.
                           </td>
                         </tr>
                       ) : (
-                        bills.map(bill => (
+                        bills.map((bill) => (
                           <tr key={bill._id || bill.id}>
-                            <td>{new Date(bill.billDate).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-                            <td><code style={{ background: 'var(--bg-input)', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>{bill.invoiceNo}</code></td>
-                            <td><strong>{bill.patientName}</strong></td>
+                            <td>
+                              {new Date(bill.billDate).toLocaleString("en-GB", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </td>
+                            <td>
+                              <code
+                                style={{
+                                  background: "var(--bg-input)",
+                                  padding: "2px 6px",
+                                  borderRadius: "4px",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                {bill.invoiceNo}
+                              </code>
+                            </td>
+                            <td>
+                              <strong>{bill.patientName}</strong>
+                            </td>
                             <td>{bill.items?.length || 0} meds</td>
-                            <td><strong>₹{bill.netTotal.toFixed(2)}</strong></td>
+                            <td>
+                              <strong>₹{bill.netTotal.toFixed(2)}</strong>
+                            </td>
                             <td className="text-right">
                               <div className="action-btn-group">
-                                <button className="btn-icon-only view" title="View Details" onClick={() => { setSelectedBill(bill); setIsDetailsOpen(true); }}>
+                                <button
+                                  className="btn-icon-only view"
+                                  title="View Details"
+                                  onClick={() => {
+                                    setSelectedBill(bill);
+                                    setIsDetailsOpen(true);
+                                  }}
+                                >
                                   <i className="fa-solid fa-eye"></i>
                                 </button>
-                                <button className="btn-icon-only view" style={{ color: "var(--primary)", marginLeft: "4px" }} title="Download Invoice" onClick={() => handleDownloadPastInvoice(bill)}>
+                                <button
+                                  className="btn-icon-only view"
+                                  style={{
+                                    color: "var(--primary)",
+                                    marginLeft: "4px",
+                                  }}
+                                  title="Download Invoice"
+                                  onClick={() =>
+                                    handleDownloadPastInvoice(bill)
+                                  }
+                                >
                                   <i className="fa-solid fa-file-pdf"></i>
                                 </button>
-                                <button className="btn-icon-only edit" style={{ color: "var(--success)", marginLeft: "4px" }} title="Print Receipt" onClick={() => handlePrintPastInvoice(bill)}>
+                                <button
+                                  className="btn-icon-only edit"
+                                  style={{
+                                    color: "var(--success)",
+                                    marginLeft: "4px",
+                                  }}
+                                  title="Print Receipt"
+                                  onClick={() => handlePrintPastInvoice(bill)}
+                                >
                                   <i className="fa-solid fa-print"></i>
                                 </button>
-                                <button className="btn-icon-only delete" style={{ marginLeft: "4px" }} title="Delete Invoice" onClick={() => { if (confirm("Are you sure you want to delete this invoice?")) deleteBillRecord(bill._id || bill.id); }}>
+                                {/* <button className="btn-icon-only delete" style={{ marginLeft: "4px" }} title="Delete Invoice" onClick={() => { if (confirm("Are you sure you want to delete this invoice?")) deleteBillRecord(bill._id || bill.id); }}>
                                   <i className="fa-solid fa-trash-can"></i>
-                                </button>
+                                </button> */}
                               </div>
                             </td>
                           </tr>
@@ -968,14 +1167,22 @@ export default function BillingTab() {
                 {/* Pagination Controls */}
                 {bills && bills.length > 0 && (
                   <div className="pagination-bar" style={{ marginTop: "16px" }}>
-                    <span className="pagination-info">
-                      Page {historyPage}
-                    </span>
+                    <span className="pagination-info">Page {historyPage}</span>
                     <div className="pagination-controls">
-                      <button className="pagination-btn" onClick={() => setHistoryPage(p => Math.max(1, p - 1))} disabled={historyPage === 1}>
+                      <button
+                        className="pagination-btn"
+                        onClick={() =>
+                          setHistoryPage((p) => Math.max(1, p - 1))
+                        }
+                        disabled={historyPage === 1}
+                      >
                         <i className="fa-solid fa-chevron-left"></i> Prev
                       </button>
-                      <button className="pagination-btn" onClick={() => setHistoryPage(p => p + 1)} disabled={bills.length < 10}>
+                      <button
+                        className="pagination-btn"
+                        onClick={() => setHistoryPage((p) => p + 1)}
+                        disabled={bills.length < 10}
+                      >
                         Next <i className="fa-solid fa-chevron-right"></i>
                       </button>
                     </div>
@@ -985,26 +1192,77 @@ export default function BillingTab() {
 
               {/* Right Column: Month-wise Revenue Summary */}
               <div className="split-right card-panel">
-                <div className="panel-header" style={{ borderBottom: "none", marginBottom: "12px", paddingBottom: 0 }}>
+                <div
+                  className="panel-header"
+                  style={{
+                    borderBottom: "none",
+                    marginBottom: "12px",
+                    paddingBottom: 0,
+                  }}
+                >
                   <div className="panel-title-group">
-                    <i className="fa-solid fa-calendar-days panel-icon text-primary-color" style={{ color: "var(--primary)" }}></i>
+                    <i
+                      className="fa-solid fa-calendar-days panel-icon text-primary-color"
+                      style={{ color: "var(--primary)" }}
+                    ></i>
                     <h3>Month-wise Revenue</h3>
                   </div>
                 </div>
-                <p className="subtitle" style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>Monthly sales summaries and bill counts.</p>
+                <p
+                  className="subtitle"
+                  style={{
+                    fontSize: "12px",
+                    color: "var(--text-muted)",
+                    marginBottom: "16px",
+                  }}
+                >
+                  Monthly sales summaries and bill counts.
+                </p>
 
-                <div className="valuation-stats-list" style={{ maxHeight: "350px", overflowY: "auto" }}>
-                  {!billStats?.monthlyBreakdown || billStats.monthlyBreakdown.length === 0 ? (
+                <div
+                  className="valuation-stats-list"
+                  style={{ maxHeight: "350px", overflowY: "auto" }}
+                >
+                  {!billStats?.monthlyBreakdown ||
+                  billStats.monthlyBreakdown.length === 0 ? (
                     <div className="empty-state" style={{ padding: "10px" }}>
-                      <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>No billing logs recorded yet.</p>
+                      <p
+                        style={{ fontSize: "12px", color: "var(--text-muted)" }}
+                      >
+                        No billing logs recorded yet.
+                      </p>
                     </div>
                   ) : (
-                    billStats.monthlyBreakdown.map(item => (
-                      <div key={item.label} className="val-stat-item" style={{ padding: "12px 0", borderBottom: "1px solid var(--border-color)" }}>
-                        <span className="val-stat-label" style={{ fontWeight: "600" }}>{item.label}</span>
+                    billStats.monthlyBreakdown.map((item) => (
+                      <div
+                        key={item.label}
+                        className="val-stat-item"
+                        style={{
+                          padding: "12px 0",
+                          borderBottom: "1px solid var(--border-color)",
+                        }}
+                      >
+                        <span
+                          className="val-stat-label"
+                          style={{ fontWeight: "600" }}
+                        >
+                          {item.label}
+                        </span>
                         <div style={{ textAlign: "right" }}>
-                          <div className="val-stat-value text-primary-color" style={{ fontWeight: "700" }}>₹{item.revenue.toFixed(2)}</div>
-                          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>{item.count} bills</span>
+                          <div
+                            className="val-stat-value text-primary-color"
+                            style={{ fontWeight: "700" }}
+                          >
+                            ₹{item.revenue.toFixed(2)}
+                          </div>
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              color: "var(--text-muted)",
+                            }}
+                          >
+                            {item.count} bills
+                          </span>
                         </div>
                       </div>
                     ))
@@ -1018,82 +1276,352 @@ export default function BillingTab() {
 
       {/* ── BILL DETAILS MODAL ────────────────────────────────────────────── */}
       {isDetailsOpen && selectedBill && (
-        <div className="modal-backdrop show" style={{ display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.5)" }}>
-          <div className="modal-content card-panel" style={{ width: "90%", maxWidth: "800px", maxHeight: "90vh", overflowY: "auto", border: "1px solid var(--border-color)", background: "var(--bg-card)" }}>
-            <div className="modal-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-              <h3 style={{ fontSize: "18px", fontWeight: "bold" }}>Invoice Detail View</h3>
-              <button 
-                style={{ background: "none", border: "none", fontSize: "28px", cursor: "pointer", color: "var(--text-secondary)" }} 
-                onClick={() => { setIsDetailsOpen(false); setSelectedBill(null); }}
+        <div
+          className="modal-backdrop show"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "rgba(0,0,0,0.5)",
+          }}
+        >
+          <div
+            className="modal-content card-panel"
+            style={{
+              width: "90%",
+              maxWidth: "800px",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              border: "1px solid var(--border-color)",
+              background: "var(--bg-card)",
+            }}
+          >
+            <div
+              className="modal-header"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "20px",
+              }}
+            >
+              <h3 style={{ fontSize: "18px", fontWeight: "bold" }}>
+                Invoice Detail View
+              </h3>
+              <button
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "28px",
+                  cursor: "pointer",
+                  color: "var(--text-secondary)",
+                }}
+                onClick={() => {
+                  setIsDetailsOpen(false);
+                  setSelectedBill(null);
+                }}
               >
                 &times;
               </button>
             </div>
-            
+
             {/* Modal Body: Styled Invoice Receipt */}
-            <div style={{ background: "#ffffff", color: "#000000", padding: "24px", borderRadius: "8px", border: "1px solid #cccccc", fontFamily: "monospace" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "2px solid #000000", paddingBottom: "12px", marginBottom: "12px" }}>
+            <div
+              style={{
+                background: "#ffffff",
+                color: "#000000",
+                padding: "24px",
+                borderRadius: "8px",
+                border: "1px solid #cccccc",
+                fontFamily: "monospace",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  borderBottom: "2px solid #000000",
+                  paddingBottom: "12px",
+                  marginBottom: "12px",
+                }}
+              >
                 <div>
-                  <h2 style={{ fontSize: "20px", fontWeight: "bold", color: "#000000", margin: 0 }}>ANIKA PHARMACY</h2>
-                  <p style={{ fontSize: "12px", margin: "2px 0", color: "#333333" }}>Pandeybaba bazar, Kadipur Road, Sultanpur, UP</p>
-                  <p style={{ fontSize: "12px", margin: "2px 0", color: "#333333" }}>Phone : 9795358689, 6386470668</p>
-                  <p style={{ fontSize: "12px", margin: "2px 0", color: "#333333" }}>D.L.No. : UP44200000460, UP44210000461</p>
+                  <h2
+                    style={{
+                      fontSize: "20px",
+                      fontWeight: "bold",
+                      color: "#000000",
+                      margin: 0,
+                    }}
+                  >
+                    ANIKA PHARMACY
+                  </h2>
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      margin: "2px 0",
+                      color: "#333333",
+                    }}
+                  >
+                    Pandeybaba bazar, Kadipur Road, Sultanpur, UP
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      margin: "2px 0",
+                      color: "#333333",
+                    }}
+                  >
+                    Phone : 9795358689, 6386470668
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      margin: "2px 0",
+                      color: "#333333",
+                    }}
+                  >
+                    D.L.No. : UP44200000460, UP44210000461
+                  </p>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: "16px", fontWeight: "bold", color: "#000000" }}>GST INVOICE</div>
-                  <div style={{ fontSize: "11px", color: "#555555" }}>Invoice: {selectedBill.invoiceNo}</div>
-                  <div style={{ fontSize: "11px", color: "#555555" }}>Date: {new Date(selectedBill.billDate).toLocaleString("en-GB")}</div>
+                  <div
+                    style={{
+                      fontSize: "16px",
+                      fontWeight: "bold",
+                      color: "#000000",
+                    }}
+                  >
+                    GST INVOICE
+                  </div>
+                  <div style={{ fontSize: "11px", color: "#555555" }}>
+                    Invoice: {selectedBill.invoiceNo}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "#555555" }}>
+                    Date:{" "}
+                    {new Date(selectedBill.billDate).toLocaleString("en-GB")}
+                  </div>
                 </div>
               </div>
 
-              <div style={{ marginBottom: "12px", fontSize: "12px", color: "#000000" }}>
-                <strong>Billed To:</strong> {selectedBill.patientName?.toUpperCase()}<br />
-                {selectedBill.patientAddress && <><strong>Address:</strong> {selectedBill.patientAddress}</>}
+              <div
+                style={{
+                  marginBottom: "12px",
+                  fontSize: "12px",
+                  color: "#000000",
+                }}
+              >
+                <strong>Billed To:</strong>{" "}
+                {selectedBill.patientName?.toUpperCase()}
+                <br />
+                {selectedBill.patientAddress && (
+                  <>
+                    <strong>Address:</strong> {selectedBill.patientAddress}
+                  </>
+                )}
               </div>
 
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", marginBottom: "12px", color: "#000000" }}>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  fontSize: "11px",
+                  marginBottom: "12px",
+                  color: "#000000",
+                }}
+              >
                 <thead>
-                  <tr style={{ borderBottom: "1px solid #000000", background: "#f0f0f0" }}>
-                    <th style={{ textAlign: "left", padding: "6px", color: "#000000" }}>Product</th>
-                    <th style={{ textAlign: "center", padding: "6px", color: "#000000" }}>Batch</th>
-                    <th style={{ textAlign: "center", padding: "6px", color: "#000000" }}>Pack</th>
-                    <th style={{ textAlign: "center", padding: "6px", color: "#000000" }}>Qty</th>
-                    <th style={{ textAlign: "right", padding: "6px", color: "#000000" }}>Rate</th>
-                    <th style={{ textAlign: "center", padding: "6px", color: "#000000" }}>GST</th>
-                    <th style={{ textAlign: "right", padding: "6px", color: "#000000" }}>Amount</th>
+                  <tr
+                    style={{
+                      borderBottom: "1px solid #000000",
+                      background: "#f0f0f0",
+                    }}
+                  >
+                    <th
+                      style={{
+                        textAlign: "left",
+                        padding: "6px",
+                        color: "#000000",
+                      }}
+                    >
+                      Product
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "center",
+                        padding: "6px",
+                        color: "#000000",
+                      }}
+                    >
+                      Batch
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "center",
+                        padding: "6px",
+                        color: "#000000",
+                      }}
+                    >
+                      Pack
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "center",
+                        padding: "6px",
+                        color: "#000000",
+                      }}
+                    >
+                      Qty
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "right",
+                        padding: "6px",
+                        color: "#000000",
+                      }}
+                    >
+                      Rate
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "center",
+                        padding: "6px",
+                        color: "#000000",
+                      }}
+                    >
+                      GST
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "right",
+                        padding: "6px",
+                        color: "#000000",
+                      }}
+                    >
+                      Amount
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {selectedBill.items?.map((item, idx) => (
                     <tr key={idx} style={{ borderBottom: "1px solid #eeeeee" }}>
-                      <td style={{ padding: "6px", color: "#000000" }}><strong>{item.name?.toUpperCase()}</strong></td>
-                      <td style={{ textAlign: "center", padding: "6px", color: "#000000" }}>{item.batch}</td>
-                      <td style={{ textAlign: "center", padding: "6px", color: "#000000" }}>{item.pack || "1*10"}</td>
-                      <td style={{ textAlign: "center", padding: "6px", color: "#000000" }}>{item.quantity}</td>
-                      <td style={{ textAlign: "right", padding: "6px", color: "#000000" }}>₹{item.price?.toFixed(2)}</td>
-                      <td style={{ textAlign: "center", padding: "6px", color: "#000000" }}>{item.gstRate || 5}%</td>
-                      <td style={{ textAlign: "right", padding: "6px", color: "#000000" }}>₹{item.amount?.toFixed(2)}</td>
+                      <td style={{ padding: "6px", color: "#000000" }}>
+                        <strong>{item.name?.toUpperCase()}</strong>
+                      </td>
+                      <td
+                        style={{
+                          textAlign: "center",
+                          padding: "6px",
+                          color: "#000000",
+                        }}
+                      >
+                        {item.batch}
+                      </td>
+                      <td
+                        style={{
+                          textAlign: "center",
+                          padding: "6px",
+                          color: "#000000",
+                        }}
+                      >
+                        {item.pack || "1*10"}
+                      </td>
+                      <td
+                        style={{
+                          textAlign: "center",
+                          padding: "6px",
+                          color: "#000000",
+                        }}
+                      >
+                        {item.quantity}
+                      </td>
+                      <td
+                        style={{
+                          textAlign: "right",
+                          padding: "6px",
+                          color: "#000000",
+                        }}
+                      >
+                        ₹{item.price?.toFixed(2)}
+                      </td>
+                      <td
+                        style={{
+                          textAlign: "center",
+                          padding: "6px",
+                          color: "#000000",
+                        }}
+                      >
+                        {item.gstRate || 5}%
+                      </td>
+                      <td
+                        style={{
+                          textAlign: "right",
+                          padding: "6px",
+                          color: "#000000",
+                        }}
+                      >
+                        ₹{item.amount?.toFixed(2)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
 
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", paddingTop: "10px", borderTop: "1px solid #000000", color: "#000000" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: "11px",
+                  paddingTop: "10px",
+                  borderTop: "1px solid #000000",
+                  color: "#000000",
+                }}
+              >
                 <div>
-                  <strong>Tax Breakdown:</strong><br />
-                  Taxable Value: ₹{selectedBill.taxableValue?.toFixed(2)}<br />
-                  CGST: ₹{selectedBill.cgst?.toFixed(2)} | SGST: ₹{selectedBill.sgst?.toFixed(2)}
+                  <strong>Tax Breakdown:</strong>
+                  <br />
+                  Taxable Value: ₹{selectedBill.taxableValue?.toFixed(2)}
+                  <br />
+                  CGST: ₹{selectedBill.cgst?.toFixed(2)} | SGST: ₹
+                  {selectedBill.sgst?.toFixed(2)}
                 </div>
                 <div style={{ textAlign: "right", width: "220px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", margin: "2px 0" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      margin: "2px 0",
+                    }}
+                  >
                     <span>Subtotal:</span>
                     <span>₹{selectedBill.subTotal?.toFixed(2)}</span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", margin: "2px 0" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      margin: "2px 0",
+                    }}
+                  >
                     <span>Discount ({selectedBill.discountPercent}%):</span>
                     <span>₹{selectedBill.discountAmount?.toFixed(2)}</span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", margin: "2px 0", borderTop: "1px solid #000000", paddingTop: "4px", fontWeight: "bold" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      margin: "2px 0",
+                      borderTop: "1px solid #000000",
+                      paddingTop: "4px",
+                      fontWeight: "bold",
+                    }}
+                  >
                     <span>Grand Total:</span>
                     <span>₹{selectedBill.netTotal?.toFixed(2)}</span>
                   </div>
@@ -1101,11 +1629,28 @@ export default function BillingTab() {
               </div>
             </div>
 
-            <div className="modal-footer" style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "20px" }}>
-              <button className="btn btn-secondary" onClick={() => { setIsDetailsOpen(false); setSelectedBill(null); }}>
+            <div
+              className="modal-footer"
+              style={{
+                display: "flex",
+                gap: "12px",
+                justifyContent: "flex-end",
+                marginTop: "20px",
+              }}
+            >
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setIsDetailsOpen(false);
+                  setSelectedBill(null);
+                }}
+              >
                 Close
               </button>
-              <button className="btn btn-primary" onClick={() => handlePrintPastInvoice(selectedBill)}>
+              <button
+                className="btn btn-primary"
+                onClick={() => handlePrintPastInvoice(selectedBill)}
+              >
                 <i className="fa-solid fa-print"></i> Print Receipt
               </button>
             </div>
@@ -1124,12 +1669,20 @@ export default function BillingTab() {
             />
             <div className="print-brand-details">
               <h1 className="print-brand">ANIKA PHARMACY</h1>
-              <p className="print-brand-address">Pandeybaba bazar, Kadipur Road</p>
+              <p className="print-brand-address">
+                Pandeybaba bazar, Kadipur Road
+              </p>
               <p className="print-brand-address">Sultanpur, UP - 228145</p>
-              <p className="print-brand-contact">Phone : 9795358689, 6386470668</p>
-              <p className="print-brand-contact">E-Mail : vikaskr.verma27@gmail.com</p>
+              <p className="print-brand-contact">
+                Phone : 9795358689, 6386470668
+              </p>
+              <p className="print-brand-contact">
+                E-Mail : vikaskr.verma27@gmail.com
+              </p>
               <p className="print-brand-gstin">GST No. : N/A</p>
-              <p className="print-brand-dl">D.L.No. : UP44200000460, UP44210000461</p>
+              <p className="print-brand-dl">
+                D.L.No. : UP44200000460, UP44210000461
+              </p>
             </div>
           </div>
           <div className="print-header-right">
@@ -1151,11 +1704,17 @@ export default function BillingTab() {
             >
               Billed To:
             </div>
-            <div style={{ fontSize: "13px", fontWeight: "bold", color: "#000" }}>
-              {activePrint.patientName ? activePrint.patientName.toUpperCase() : "CASH CUSTOMER"}
+            <div
+              style={{ fontSize: "13px", fontWeight: "bold", color: "#000" }}
+            >
+              {activePrint.patientName
+                ? activePrint.patientName.toUpperCase()
+                : "CASH CUSTOMER"}
             </div>
             {activePrint.patientAddress && (
-              <div style={{ fontSize: "11px", color: "#333", marginTop: "2px" }}>
+              <div
+                style={{ fontSize: "11px", color: "#333", marginTop: "2px" }}
+              >
                 {activePrint.patientAddress}
               </div>
             )}
@@ -1181,7 +1740,8 @@ export default function BillingTab() {
               </span>
             </div>
             <div>
-              <strong>Date :</strong> {activePrint.billDate.split("-").reverse().join("-")}
+              <strong>Date :</strong>{" "}
+              {activePrint.billDate.split("-").reverse().join("-")}
             </div>
             <div>
               <strong>Bill Issue Time :</strong> {activePrint.billTime}
@@ -1209,7 +1769,8 @@ export default function BillingTab() {
           <tbody>
             {activePrint.items.map((item, idx) => {
               const rate = item.gstRate;
-              const itemDiscount = item.amount * (activePrint.discountPercent / 100);
+              const itemDiscount =
+                item.amount * (activePrint.discountPercent / 100);
               const itemNet = item.amount - itemDiscount;
               const taxable = itemNet / (1 + rate / 100);
               const gstBreakdownPercent = rate / 2;
@@ -1234,49 +1795,61 @@ export default function BillingTab() {
                       : ""}
                   </td>
                   <td style={{ textAlign: "center" }}>{item.quantity}</td>
-                  <td style={{ textAlign: "right" }}>{item.price.toFixed(2)}</td>
-                  <td style={{ textAlign: "right" }}>{item.price.toFixed(2)}</td>
-                  <td style={{ textAlign: "center" }}>{gstBreakdownPercent.toFixed(2)}%</td>
-                  <td style={{ textAlign: "center" }}>{gstBreakdownPercent.toFixed(2)}%</td>
-                  <td style={{ textAlign: "right" }}>{item.amount.toFixed(2)}</td>
+                  <td style={{ textAlign: "right" }}>
+                    {item.price.toFixed(2)}
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    {item.price.toFixed(2)}
+                  </td>
+                  <td style={{ textAlign: "center" }}>
+                    {gstBreakdownPercent.toFixed(2)}%
+                  </td>
+                  <td style={{ textAlign: "center" }}>
+                    {gstBreakdownPercent.toFixed(2)}%
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    {item.amount.toFixed(2)}
+                  </td>
                 </tr>
               );
             })}
             {/* Empty padding rows to match receipt size */}
-            {Array.from({ length: Math.max(0, 10 - activePrint.items.length) }).map(
-              (_, i) => (
-                <tr key={i} className="empty-row">
-                  <td>&nbsp;</td>
-                  <td>&nbsp;</td>
-                  <td>&nbsp;</td>
-                  <td>&nbsp;</td>
-                  <td>&nbsp;</td>
-                  <td>&nbsp;</td>
-                  <td>&nbsp;</td>
-                  <td>&nbsp;</td>
-                  <td>&nbsp;</td>
-                  <td>&nbsp;</td>
-                  <td>&nbsp;</td>
-                  <td>&nbsp;</td>
-                </tr>
-              ),
-            )}
+            {Array.from({
+              length: Math.max(0, 10 - activePrint.items.length),
+            }).map((_, i) => (
+              <tr key={i} className="empty-row">
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+              </tr>
+            ))}
           </tbody>
         </table>
 
         <div className="print-footer-grid">
           <div className="print-footer-left">
             <div className="tax-summary-clause">
-              GST {activePrint.taxableValue.toFixed(2)} * {activePrint.discountPercent.toFixed(0)}%
-              = {activePrint.discountAmount.toFixed(2)} Discount
+              GST {activePrint.taxableValue.toFixed(2)} *{" "}
+              {activePrint.discountPercent.toFixed(0)}% ={" "}
+              {activePrint.discountAmount.toFixed(2)} Discount
             </div>
             <div
               className="tax-summary-clause"
               style={{ marginTop: "4px", textTransform: "uppercase" }}
             >
               GST INCLUSIVE BREAKDOWN: Taxable Value: ₹
-              {activePrint.taxableValue.toFixed(2)} | SGST: ₹{activePrint.sgst.toFixed(2)} |
-              CGST: ₹{activePrint.cgst.toFixed(2)}
+              {activePrint.taxableValue.toFixed(2)} | SGST: ₹
+              {activePrint.sgst.toFixed(2)} | CGST: ₹
+              {activePrint.cgst.toFixed(2)}
             </div>
             <div className="print-tc">
               <h4>Terms &amp; Conditions</h4>
