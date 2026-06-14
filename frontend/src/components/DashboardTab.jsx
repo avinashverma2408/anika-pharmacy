@@ -21,6 +21,7 @@ export default function DashboardTab() {
         medicines.filter(m => m.status !== 'Inactive' && calculateDaysDifference(simulatedDate, m.expiryDate) < 0).length;
     const outOfStockCount = stats?.outOfStock ?? 
         medicines.filter(m => m.status !== 'Inactive' && (m.status === 'Out of Stock' || m.quantity === 0) && calculateDaysDifference(simulatedDate, m.expiryDate) >= 0).length;
+    const inactiveCount = stats?.inactiveCount ?? medicines.filter(m => m.status === 'Inactive').length;
 
     // Expiring soon list from API or local compute
     const expiringSoonItems = dashboardStats?.expiringSoon
@@ -88,6 +89,14 @@ export default function DashboardTab() {
                     <div className="stat-info">
                         <span className="stat-label">Out of Stock</span>
                         <StatValue val={outOfStockCount} />
+                    </div>
+                </div>
+
+                <div className="stat-card border-inactive" style={{ cursor: 'pointer' }} onClick={() => handleStatCardClick('inactive')}>
+                    <div className="stat-icon bg-inactive"><i className="fa-solid fa-box-archive"></i></div>
+                    <div className="stat-info">
+                        <span className="stat-label">Inactive Stock</span>
+                        <StatValue val={inactiveCount} />
                     </div>
                 </div>
             </div>

@@ -99,6 +99,7 @@ exports.getDashboardStats = async (req, res) => {
             expiring20Days,
             expiring7Days,
             expiringToday,
+            inactiveCount,
             unreadNotifications
         ] = await Promise.all([
             Medicine.countDocuments({ status: { $ne: 'Inactive' } }),
@@ -108,6 +109,7 @@ exports.getDashboardStats = async (req, res) => {
             Medicine.countDocuments({ status: 'Active', expiryDate: { $gte: today, $lte: d20 }, quantity: { $gt: 0 } }),
             Medicine.countDocuments({ status: 'Active', expiryDate: { $gte: today, $lte: d7 }, quantity: { $gt: 0 } }),
             Medicine.countDocuments({ status: 'Active', expiryDate: { $gte: today, $lt: new Date(today.getTime() + 86400000) }, quantity: { $gt: 0 } }),
+            Medicine.countDocuments({ status: 'Inactive' }),
             Notification.countDocuments({ read: false })
         ]);
 
@@ -134,6 +136,7 @@ exports.getDashboardStats = async (req, res) => {
                 expiring20Days,
                 expiring7Days,
                 expiringToday,
+                inactiveCount,
                 unreadNotifications
             },
             recentAlerts: recentAlerts.map(n => ({ ...n, id: n._id })),

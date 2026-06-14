@@ -576,6 +576,7 @@ body {
 .stat-card.border-warning { border-left: 4px solid var(--warning); }
 .stat-card.border-orange { border-left: 4px solid var(--orange); }
 .stat-card.border-danger { border-left: 4px solid var(--danger); }
+.stat-card.border-inactive { border-left: 4px solid var(--text-muted); }
 
 .stat-icon {
     width: 48px;
@@ -594,6 +595,7 @@ body {
 .bg-warning { background-color: var(--warning); }
 .bg-orange { background-color: var(--orange); }
 .bg-danger { background-color: var(--danger); }
+.bg-inactive { background-color: var(--text-muted); }
 
 .stat-info {
     display: flex;
