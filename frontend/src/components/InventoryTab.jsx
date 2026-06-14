@@ -19,10 +19,11 @@ export default function InventoryTab() {
         medicines: storeMedicines,   // used for add/edit/delete optimistic updates
         inventorySubTab: subTab,
         setInventorySubTab: setSubTab,
+        inventoryCategoryFilter: categoryFilter,
+        setInventoryCategoryFilter: setCategoryFilter,
     } = usePharmacyStore();
 
     // ── Local state ───────────────────────────────────────────────────────────
-    const [categoryFilter, setCategoryFilter] = useState('all');
     const [currentPage, setCurrentPage]   = useState(1);
 
     // Server-fetched page data
@@ -92,6 +93,12 @@ export default function InventoryTab() {
     }, []);
 
     // ── Re-fetch whenever filters / page / simulatedDate / medicines change ───────
+    const [prevSearchQuery, setPrevSearchQuery] = useState(globalSearchQuery);
+    if (globalSearchQuery !== prevSearchQuery) {
+        setPrevSearchQuery(globalSearchQuery);
+        setCurrentPage(1);
+    }
+
     useEffect(() => {
         fetchPage(currentPage, subTab, categoryFilter, globalSearchQuery);
     }, [currentPage, subTab, categoryFilter, globalSearchQuery, simulatedDate, storeMedicines, fetchPage]);

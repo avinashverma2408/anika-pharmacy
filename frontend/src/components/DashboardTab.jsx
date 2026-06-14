@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { usePharmacyStore, calculateDaysDifference, formatDateDisplay, getExpiryStatus } from '../store/usePharmacyStore';
 
 export default function DashboardTab() {
@@ -9,8 +9,142 @@ export default function DashboardTab() {
         setAddModalOpen,
         setActiveTab,
         setInventorySubTab,
-        simulatedDate
+        setInventoryCategoryFilter,
+        simulatedDate,
+        billStats,
+        fetchBillStats
     } = usePharmacyStore();
+
+    useEffect(() => {
+        fetchBillStats();
+    }, [fetchBillStats]);
+
+    // ── Seasonal Forecaster Logic ─────────────────────────────────────────────
+    const getForecastData = () => {
+        if (!simulatedDate) return null;
+        const dateObj = new Date(simulatedDate);
+        const month = dateObj.getMonth(); // 0-11
+        
+        let currentSeason = '';
+        let upcomingSeason = '';
+        let recommendedCategories = [];
+        let primaryCategory = '';
+        let expectedIncrease = '';
+        let seasonalMonths = '';
+        let targetQty = 150;
+        let seasonIcon = 'fa-sun';
+        let seasonColor = '#06b6d4';
+        
+        if (month >= 5 && month <= 8) { // June - Sept
+            currentSeason = 'Monsoon';
+            upcomingSeason = 'Winter';
+            recommendedCategories = ['Syrup', 'Injection'];
+            primaryCategory = 'Syrup';
+            expectedIncrease = '45%';
+            seasonalMonths = 'Oct - Jan';
+            targetQty = 180;
+            seasonIcon = 'fa-snowflake';
+            seasonColor = '#8b5cf6'; // purple
+        } else if (month >= 9 || month === 0) { // Oct - Jan
+            currentSeason = 'Winter';
+            upcomingSeason = 'Summer/Spring';
+            recommendedCategories = ['Ointment', 'Other'];
+            primaryCategory = 'Ointment';
+            expectedIncrease = '30%';
+            seasonalMonths = 'Feb - May';
+            targetQty = 120;
+            seasonIcon = 'fa-leaf';
+            seasonColor = '#f59e0b'; // amber
+        } else { // Feb - May
+            currentSeason = 'Summer/Spring';
+            upcomingSeason = 'Monsoon';
+            recommendedCategories = ['Vaccine', 'Tablet'];
+            primaryCategory = 'Vaccine';
+            expectedIncrease = '50%';
+            seasonalMonths = 'Jun - Sep';
+            targetQty = 100;
+            seasonIcon = 'fa-cloud-showers-heavy';
+            seasonColor = '#06b6d4'; // cyan
+        }
+        
+        const primaryMeds = medicines.filter(m => m.status !== 'Inactive' && m.category === primaryCategory);
+        const primaryStock = primaryMeds.reduce((sum, m) => sum + m.quantity, 0);
+        const restockNeeded = Math.max(0, targetQty - primaryStock);
+        
+        return {
+            currentSeason,
+            upcomingSeason,
+            recommendedCategories,
+            primaryCategory,
+            expectedIncrease,
+            seasonalMonths,
+            targetQty,
+            seasonIcon,
+            seasonColor,
+            primaryStock,
+            restockNeeded
+        };
+    };
+
+    const getForecastChartData = (upcomingSeason) => {
+        if (upcomingSeason === 'Winter') {
+            return {
+                labels: ['Aug', 'Sep', 'Oct (Soon)', 'Nov (Peak)'],
+                lastYear: [85, 90, 110, 140],
+                expected: [90, 95, 130, 210]
+            };
+        } else if (upcomingSeason === 'Summer/Spring') {
+            return {
+                labels: ['Dec', 'Jan', 'Feb (Soon)', 'Mar (Peak)'],
+                lastYear: [60, 55, 75, 95],
+                expected: [65, 58, 90, 140]
+            };
+        } else {
+            return {
+                labels: ['Apr', 'May', 'Jun (Soon)', 'Jul (Peak)'],
+                lastYear: [70, 75, 120, 150],
+                expected: [72, 80, 150, 230]
+            };
+        }
+    };
+
+    const forecast = getForecastData();
+    const forecastChart = forecast ? getForecastChartData(forecast.upcomingSeason) : null;
+
+    let lastYearPath = '';
+    let expectedPath = '';
+    let expectedAreaPath = '';
+    const points = [];
+
+    if (forecast && forecastChart) {
+        const cWidth = 330;
+        const cHeight = 110;
+        const pLeft = 30;
+        const pRight = 10;
+        const pTop = 15;
+        const pBot = 20;
+        const gWidth = cWidth - pLeft - pRight;
+        const gHeight = cHeight - pTop - pBot;
+        const maxVal = 250;
+
+        for (let i = 0; i < 4; i++) {
+            const x = pLeft + i * (gWidth / 3);
+            const yLY = pTop + gHeight - (forecastChart.lastYear[i] / maxVal) * gHeight;
+            const yEx = pTop + gHeight - (forecastChart.expected[i] / maxVal) * gHeight;
+            points.push({ x, yLY, yEx, valLY: forecastChart.lastYear[i], valEx: forecastChart.expected[i], label: forecastChart.labels[i] });
+        }
+
+        lastYearPath = `M ${points[0].x} ${points[0].yLY} L ${points[1].x} ${points[1].yLY} L ${points[2].x} ${points[2].yLY} L ${points[3].x} ${points[3].yLY}`;
+        expectedPath = `M ${points[0].x} ${points[0].yEx} L ${points[1].x} ${points[1].yEx} L ${points[2].x} ${points[2].yEx} L ${points[3].x} ${points[3].yEx}`;
+        expectedAreaPath = `M ${points[0].x} ${pTop + gHeight} L ${points[0].x} ${points[0].yEx} L ${points[1].x} ${points[1].yEx} L ${points[2].x} ${points[2].yEx} L ${points[3].x} ${points[3].yEx} L ${points[3].x} ${pTop + gHeight} Z`;
+    }
+
+    const handleForecastAction = () => {
+        if (!forecast) return;
+        setInventorySubTab('all');
+        setInventoryCategoryFilter(forecast.primaryCategory);
+        setActiveTab('inventory');
+    };
 
     // Use API stats if available, else derive from local medicines
     const stats = dashboardStats?.stats;
@@ -42,6 +176,79 @@ export default function DashboardTab() {
     const StatValue = ({ val }) => isLoadingStats
         ? <span style={{ display:'inline-block', width:32, height:20, background:'var(--bg-input)', borderRadius:4, animation:'pulse 1.5s infinite' }}></span>
         : <h3 className="stat-value">{val}</h3>;
+
+    // Calculate category distribution
+    const categoryCounts = medicines.reduce((acc, curr) => {
+        if (curr.status !== 'Inactive') {
+            const cat = curr.category || 'Other';
+            acc[cat] = (acc[cat] || 0) + 1;
+        }
+        return acc;
+    }, {});
+    const totalActiveMeds = Object.values(categoryCounts).reduce((a, b) => a + b, 0) || 1;
+
+    const categoriesList = ['Tablet', 'Syrup', 'Injection', 'Vaccine', 'Ointment', 'Other'].map(cat => ({
+        name: cat,
+        count: categoryCounts[cat] || 0,
+        percentage: Math.round(((categoryCounts[cat] || 0) / totalActiveMeds) * 100)
+    }));
+
+    // Monthly Breakdown Data from stats or fallback to demo
+    const rawBreakdown = billStats?.monthlyBreakdown || [];
+    const isDemo = rawBreakdown.length === 0;
+    const monthlyBreakdown = isDemo ? [
+        { label: 'Jan 2026', revenue: 45000, count: 32 },
+        { label: 'Feb 2026', revenue: 52000, count: 38 },
+        { label: 'Mar 2026', revenue: 49000, count: 35 },
+        { label: 'Apr 2026', revenue: 68000, count: 48 },
+        { label: 'May 2026', revenue: 75000, count: 54 },
+        { label: 'Jun 2026', revenue: 89000, count: 62 },
+    ] : [...rawBreakdown].reverse().slice(-6);
+
+    const maxRevenue = Math.max(...monthlyBreakdown.map(d => d.revenue), 1);
+    
+    // SVG Bar Chart Dimensions
+    const chartWidth = 500;
+    const chartHeight = 280;
+    const paddingLeft = 50;
+    const paddingRight = 20;
+    const paddingTop = 20;
+    const paddingBottom = 30;
+    
+    const graphWidth = chartWidth - paddingLeft - paddingRight;
+    const graphHeight = chartHeight - paddingTop - paddingBottom;
+    const barWidth = 24;
+    const numBars = monthlyBreakdown.length;
+    const barGap = numBars > 1 ? (graphWidth - (barWidth * numBars)) / (numBars - 1) : 0;
+
+    const lifetimeRevenue = billStats?.lifetimeRevenue || 0;
+    const lifetimeBills = billStats?.lifetimeBills || 0;
+    const currentMonthRevenue = billStats?.currentMonthRevenue || 0;
+
+    // Calculate line coordinates overlay on the bar chart
+    const trendLinePoints = monthlyBreakdown.map((item, i) => {
+        const x = paddingLeft + i * (barWidth + barGap) + barWidth / 2;
+        const barHeight = (item.revenue / maxRevenue) * graphHeight;
+        const y = paddingTop + graphHeight - barHeight;
+        return { x, y };
+    });
+
+    let splinePath = '';
+    let splineAreaPath = '';
+    if (trendLinePoints.length > 0) {
+        splinePath = `M ${trendLinePoints[0].x} ${trendLinePoints[0].y}`;
+        for (let i = 0; i < trendLinePoints.length - 1; i++) {
+            const p0 = trendLinePoints[i];
+            const p1 = trendLinePoints[i+1];
+            const cp1_x = p0.x + (p1.x - p0.x) / 2;
+            const cp1_y = p0.y;
+            const cp2_x = p0.x + (p1.x - p0.x) / 2;
+            const cp2_y = p1.y;
+            splinePath += ` C ${cp1_x} ${cp1_y}, ${cp2_x} ${cp2_y}, ${p1.x} ${p1.y}`;
+        }
+        
+        splineAreaPath = splinePath + ` L ${trendLinePoints[trendLinePoints.length - 1].x} ${paddingTop + graphHeight} L ${trendLinePoints[0].x} ${paddingTop + graphHeight} Z`;
+    }
 
     return (
         <section id="tab-dashboard" className="tab-pane active">
@@ -100,6 +307,254 @@ export default function DashboardTab() {
                     </div>
                 </div>
             </div>
+            <div className="dashboard-analytics-section">
+                {/* Left Panel: Revenue Chart */}
+                <div className="analytics-card card-panel">
+                    <div className="analytics-card-header">
+                        <div className="panel-title-group">
+                            <i className="fa-solid fa-chart-column panel-icon" style={{ color: 'var(--primary)' }}></i>
+                            <h3>Monthly Sales &amp; Revenue Trend</h3>
+                        </div>
+                        {isDemo && (
+                            <span className="badge badge-warning">Demo Preview Data</span>
+                        )}
+                    </div>
+                    
+                    <div className="chart-container" style={{ position: 'relative', height: chartHeight }}>
+                        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="analytics-svg-chart">
+                            <defs>
+                                <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.85" />
+                                    <stop offset="100%" stopColor="var(--primary-hover)" stopOpacity="0.95" />
+                                </linearGradient>
+                                <linearGradient id="trendLineGrad" x1="0" y1="0" x2="1" y2="0">
+                                    <stop offset="0%" stopColor="#d946ef" />
+                                    <stop offset="100%" stopColor="#06b6d4" />
+                                </linearGradient>
+                                <linearGradient id="chartAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#d946ef" stopOpacity="0.22" />
+                                    <stop offset="100%" stopColor="#d946ef" stopOpacity="0.0" />
+                                </linearGradient>
+                                <filter id="barShadow" x="-20%" y="-10%" width="140%" height="120%">
+                                    <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="var(--primary)" floodOpacity="0.25" />
+                                </filter>
+                                <filter id="lineGlow" x="-20%" y="-20%" width="140%" height="140%">
+                                    <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#ec4899" floodOpacity="0.4" />
+                                </filter>
+                            </defs>
+
+                            {/* Glowing Spline Area under Trend */}
+                            {splineAreaPath && (
+                                <path 
+                                    d={splineAreaPath} 
+                                    fill="url(#chartAreaGrad)" 
+                                    style={{ pointerEvents: 'none' }}
+                                />
+                            )}
+                            
+                            {/* Grid Lines */}
+                            {[0, 0.25, 0.5, 0.75, 1].map((pct, idx) => {
+                                const y = paddingTop + graphHeight * (1 - pct);
+                                const val = Math.round(maxRevenue * pct);
+                                return (
+                                    <g key={idx} className="chart-grid-line-group">
+                                        <line 
+                                            x1={paddingLeft} 
+                                            y1={y} 
+                                            x2={chartWidth - paddingRight} 
+                                            y2={y} 
+                                            stroke="var(--border-color)" 
+                                            strokeDasharray="4 4" 
+                                            strokeWidth="1"
+                                        />
+                                        <text 
+                                            x={paddingLeft - 8} 
+                                            y={y + 4} 
+                                            textAnchor="end" 
+                                            fill="var(--text-muted)" 
+                                            fontSize="10"
+                                        >
+                                            ₹{val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+                                        </text>
+                                    </g>
+                                );
+                            })}
+                            
+                            {/* Chart Bars */}
+                            {monthlyBreakdown.map((item, i) => {
+                                const x = paddingLeft + i * (barWidth + barGap);
+                                const barHeight = (item.revenue / maxRevenue) * graphHeight;
+                                const y = paddingTop + graphHeight - barHeight;
+                                
+                                return (
+                                    <g key={i} className="chart-bar-group">
+                                        {/* Bar Track Background */}
+                                        <rect 
+                                            x={x} 
+                                            y={paddingTop} 
+                                            width={barWidth} 
+                                            height={graphHeight} 
+                                            rx="4" 
+                                            fill="var(--bg-input)" 
+                                            opacity="0.1" 
+                                        />
+                                        
+                                        {/* Actual Value Bar */}
+                                        <rect 
+                                            x={x} 
+                                            y={y} 
+                                            width={barWidth} 
+                                            height={barHeight} 
+                                            rx="4" 
+                                            fill="url(#barGradient)" 
+                                            className="chart-bar"
+                                            filter="url(#barShadow)"
+                                            opacity="0.85"
+                                        />
+                                        
+                                        {/* Glowing Top Cap */}
+                                        {barHeight > 6 && (
+                                            <rect 
+                                                x={x} 
+                                                y={y} 
+                                                width={barWidth} 
+                                                height="4" 
+                                                rx="2" 
+                                                fill="#38bdf8" 
+                                                opacity="0.85"
+                                            />
+                                        )}
+                                        
+                                        <text 
+                                            x={x + barWidth / 2} 
+                                            y={chartHeight - 8} 
+                                            textAnchor="middle" 
+                                            fill="var(--text-secondary)" 
+                                            fontSize="10"
+                                            fontWeight="600"
+                                        >
+                                            {item.label}
+                                        </text>
+                                        
+                                        {/* Pure SVG Tooltip on Hover */}
+                                        <g className="chart-tooltip">
+                                            <rect 
+                                                x={x + barWidth / 2 - 60} 
+                                                y={y - 45} 
+                                                width={120} 
+                                                height={38} 
+                                                rx="6" 
+                                                fill="var(--bg-card-hover)" 
+                                                stroke="var(--primary)" 
+                                                strokeWidth="1"
+                                                style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
+                                            />
+                                            <text 
+                                                x={x + barWidth / 2} 
+                                                y={y - 32} 
+                                                textAnchor="middle" 
+                                                fill="var(--text-primary)" 
+                                                fontSize="10" 
+                                                fontWeight="bold"
+                                            >
+                                                ₹{item.revenue.toLocaleString('en-IN')}
+                                            </text>
+                                            <text 
+                                                x={x + barWidth / 2} 
+                                                y={y - 20} 
+                                                textAnchor="middle" 
+                                                fill="var(--text-muted)" 
+                                                fontSize="9"
+                                            >
+                                                {item.count} Invoices
+                                            </text>
+                                        </g>
+                                    </g>
+                                );
+                            })}
+
+                            {/* Glowing Spline Trend Line */}
+                            {splinePath && (
+                                <path 
+                                    d={splinePath} 
+                                    fill="none" 
+                                    stroke="url(#trendLineGrad)" 
+                                    strokeWidth="3.5" 
+                                    filter="url(#lineGlow)"
+                                    style={{ pointerEvents: 'none' }}
+                                    className="analytics-trend-line"
+                                />
+                            )}
+                        </svg>
+                    </div>
+                </div>
+ 
+                {/* Right Panel: Category & Stock Metrics */}
+                <div className="analytics-card card-panel">
+                    <div className="analytics-card-header">
+                        <div className="panel-title-group">
+                            <i className="fa-solid fa-chart-pie panel-icon" style={{ color: 'var(--success)' }}></i>
+                            <h3>Category &amp; Revenue Metrics</h3>
+                        </div>
+                    </div>
+                    
+                    <div className="category-distribution-list">
+                        {categoriesList.map(cat => {
+                            let gradient = 'linear-gradient(90deg, var(--primary) 0%, var(--primary-hover) 100%)';
+                            let glowColor = 'var(--primary)';
+                            if (cat.name === 'Tablet') { gradient = 'linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%)'; glowColor = '#3b82f6'; }
+                            else if (cat.name === 'Syrup') { gradient = 'linear-gradient(90deg, #10b981 0%, #34d399 100%)'; glowColor = '#10b981'; }
+                            else if (cat.name === 'Injection') { gradient = 'linear-gradient(90deg, #ec4899 0%, #f472b6 100%)'; glowColor = '#ec4899'; }
+                            else if (cat.name === 'Vaccine') { gradient = 'linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%)'; glowColor = '#8b5cf6'; }
+                            else if (cat.name === 'Ointment') { gradient = 'linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)'; glowColor = '#f59e0b'; }
+                            else if (cat.name === 'Other') { gradient = 'linear-gradient(90deg, #64748b 0%, #94a3b8 100%)'; glowColor = '#64748b'; }
+ 
+                            return (
+                                <div key={cat.name} className="category-progress-item">
+                                    <div className="category-progress-meta">
+                                        <span className="category-name" style={{ fontWeight: '600' }}>{cat.name}s</span>
+                                        <span className="category-count">{cat.count} meds ({cat.percentage}%)</span>
+                                    </div>
+                                    <div className="progress-bar-bg">
+                                        <div 
+                                            className="progress-bar-fill" 
+                                            style={{ 
+                                                width: `${cat.percentage}%`, 
+                                                background: gradient,
+                                                boxShadow: `0 0 6px ${glowColor}33`
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    
+                    <div className="analytics-financial-summary">
+                        <div className="financial-card card-month">
+                            <div className="fin-card-header">
+                                <span className="fin-label">Current Month Sales</span>
+                                <div className="fin-icon-wrap bg-primary-glow"><i className="fa-solid fa-calendar-days text-primary-color"></i></div>
+                            </div>
+                            <h4 className="fin-value">₹{currentMonthRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h4>
+                        </div>
+                        <div className="financial-card card-lifetime">
+                            <div className="fin-card-header">
+                                <span className="fin-label">Lifetime Revenue</span>
+                                <div className="fin-icon-wrap bg-success-glow"><i className="fa-solid fa-sack-dollar text-success-color"></i></div>
+                            </div>
+                            <h4 className="fin-value">₹{lifetimeRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h4>
+                        </div>
+                        <div className="financial-card card-invoices">
+                            <div className="fin-card-header">
+                                <span className="fin-label">Invoices Saved</span>
+                                <div className="fin-icon-wrap bg-warning-glow"><i className="fa-solid fa-file-invoice text-warning-color"></i></div>
+                            </div>
+                            <h4 className="fin-value">{lifetimeBills}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* Dashboard Split Layout */}
             <div className="dashboard-split">
@@ -149,6 +604,116 @@ export default function DashboardTab() {
 
                 {/* Right: Fast Actions & Summary */}
                 <div className="split-right">
+                    {/* Seasonal Demand Forecaster Widget */}
+                    {forecast && (
+                        <div className="card-panel forecaster-card" style={{ borderLeft: `4px solid ${forecast.seasonColor}` }}>
+                            <div className="forecaster-header">
+                                <div className="forecaster-title-group" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                    <i className={`fa-solid ${forecast.seasonIcon} forecaster-icon`} style={{ color: forecast.seasonColor, fontSize: '22px' }}></i>
+                                    <div>
+                                        <h3 style={{ fontSize: '16px', fontWeight: '600' }}>Seasonal Demand Forecaster</h3>
+                                        <span className="forecast-season-badge" style={{ backgroundColor: `${forecast.seasonColor}22`, color: forecast.seasonColor, fontSize: '11px', padding: '2px 8px', borderRadius: '12px', fontWeight: '600', display: 'inline-block', marginTop: '2px' }}>
+                                            Upcoming: {forecast.upcomingSeason} ({forecast.seasonalMonths})
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="forecaster-body" style={{ marginTop: '16px' }}>
+                                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                                    Current season is <strong>{forecast.currentSeason}</strong>. Based on sales analytics, demand for <strong>{forecast.primaryCategory}s</strong> will spike by <span style={{ color: forecast.seasonColor, fontWeight: '700' }}>{forecast.expectedIncrease}</span> during <strong>{forecast.upcomingSeason}</strong>.
+                                </p>
+                                
+                                <div className="forecast-alert-box" style={{ background: 'var(--bg-card-hover)', padding: '12px', borderRadius: '8px', marginTop: '12px', border: '1px solid var(--border-color)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-muted)' }}>
+                                        <span>Current Stock:</span>
+                                        <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{forecast.primaryStock} units</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                        <span>Target Stock:</span>
+                                        <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{forecast.targetQty} units</span>
+                                    </div>
+                                    {forecast.restockNeeded > 0 ? (
+                                        <div style={{ marginTop: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '8px', color: 'var(--warning)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <i className="fa-solid fa-circle-exclamation"></i>
+                                            <span><strong>Restock Suggestion:</strong> Add {forecast.restockNeeded} units of {forecast.primaryCategory}s.</span>
+                                        </div>
+                                    ) : (
+                                        <div style={{ marginTop: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '8px', color: 'var(--success)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <i className="fa-solid fa-circle-check"></i>
+                                            <span><strong>Stock Adequate:</strong> No immediate restock needed.</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Predictive Forecast Chart */}
+                                <div className="forecast-chart-container" style={{ marginTop: '16px', background: 'var(--bg-card-hover)', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                        <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-secondary)' }}>PREDICTIVE SALES TREND</span>
+                                        <div style={{ display: 'flex', gap: '8px', fontSize: '9px' }}>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'var(--text-muted)' }}>
+                                                <span style={{ display: 'inline-block', width: '8px', height: '0px', borderTop: '1.5px dashed var(--text-muted)' }}></span> Last Year
+                                            </span>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: forecast.seasonColor, fontWeight: '600' }}>
+                                                <span style={{ display: 'inline-block', width: '8px', height: '2px', backgroundColor: forecast.seasonColor }}></span> Expected
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <svg viewBox="0 0 330 110" className="forecast-svg-chart" style={{ width: '100%', height: 'auto', display: 'block' }}>
+                                        <defs>
+                                            <linearGradient id={`forecastAreaGrad-${forecast.upcomingSeason}`} x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor={forecast.seasonColor} stopOpacity="0.3" />
+                                                <stop offset="100%" stopColor={forecast.seasonColor} stopOpacity="0.0" />
+                                            </linearGradient>
+                                        </defs>
+                                        
+                                        {/* Grid Lines */}
+                                        {[0, 0.5, 1].map((pct, idx) => {
+                                            const y = 15 + 75 * (1 - pct);
+                                            const val = Math.round(250 * pct);
+                                            return (
+                                                <g key={idx}>
+                                                    <line x1="30" y1={y} x2="320" y2={y} stroke="var(--border-color)" strokeDasharray="3 3" strokeWidth="0.75" />
+                                                    <text x="25" y={y + 3} textAnchor="end" fill="var(--text-muted)" fontSize="8">{val}</text>
+                                                </g>
+                                            );
+                                        })}
+                                        
+                                        {/* X Axis Labels */}
+                                        {points.map((pt, idx) => (
+                                            <text key={idx} x={pt.x} y="105" textAnchor="middle" fill="var(--text-secondary)" fontSize="8" fontWeight="500">
+                                                {pt.label}
+                                            </text>
+                                        ))}
+                                        
+                                        {/* Area under Expected Sales */}
+                                        <path d={expectedAreaPath} fill={`url(#forecastAreaGrad-${forecast.upcomingSeason})`} />
+                                        
+                                        {/* Paths */}
+                                        <path d={lastYearPath} fill="none" stroke="var(--text-muted)" strokeWidth="1.25" strokeDasharray="3 3" />
+                                        <path d={expectedPath} fill="none" stroke={forecast.seasonColor} strokeWidth="2.25" className="forecast-expected-path" />
+                                        
+                                        {/* Node Dots for Expected Sales */}
+                                        {points.map((pt, idx) => (
+                                            <g key={idx}>
+                                                <circle cx={pt.x} cy={pt.yEx} r="3" fill="var(--bg-card)" stroke={forecast.seasonColor} strokeWidth="1.5" />
+                                                {idx === 3 && (
+                                                    <circle cx={pt.x} cy={pt.yEx} r="6" fill={forecast.seasonColor} opacity="0.3" className="pulse-dot" />
+                                                )}
+                                                <title>{`Month: ${pt.label}\nExpected: ${pt.valEx} sales\nLast Year: ${pt.valLY} sales`}</title>
+                                            </g>
+                                        ))}
+                                    </svg>
+                                </div>
+
+                                <button className="btn btn-outline w-full btn-icon" onClick={handleForecastAction} style={{ marginTop: '16px', borderColor: forecast.seasonColor, color: forecast.seasonColor, background: 'transparent' }}>
+                                    <i className="fa-solid fa-magnifying-glass-chart"></i> View {forecast.primaryCategory} Stock
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="card-panel quick-actions-panel">
                         <h3>Quick Actions</h3>
                         <div className="actions-buttons-grid">

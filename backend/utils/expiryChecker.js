@@ -94,15 +94,61 @@ async function checkAndCreateExpiryAlerts(customDate = null) {
             }
         }
 
+        // ── Stock Level Checks ─────────────────────────────────────────
+        for (const med of medicines) {
+            let alertType = null;
+            let severity = 'warning';
+            let message = '';
+            let hindiMessage = '';
+
+            if (med.quantity === 0 || med.status === 'Out of Stock') {
+                alertType = 'out-of-stock';
+                severity = 'orange';
+                message = `⚠️ OUT OF STOCK: "${med.name}" (Batch #${med.batch}) is out of stock! Reorder immediately.`;
+                hindiMessage = `स्टॉक समाप्त: "${med.name}" (Batch #${med.batch}) का स्टॉक समाप्त हो गया है! तुरंत पुनः ऑर्डर करें।`;
+            } else if (med.quantity > 0 && med.quantity <= 10) {
+                alertType = 'low-stock';
+                severity = 'warning';
+                message = `🔔 LOW STOCK: "${med.name}" (Batch #${med.batch}) is running low! Only ${med.quantity} unit(s) left.`;
+                hindiMessage = `कम स्टॉक: "${med.name}" (Batch #${med.batch}) का स्टॉक कम है! केवल ${med.quantity} यूनिट बची हैं।`;
+            }
+
+            if (alertType) {
+                const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+                const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+
+                const existing = await Notification.findOne({
+                    medicineId: med._id,
+                    type: alertType,
+                    createdAt: { $gte: todayStart, $lte: todayEnd }
+                });
+
+                if (!existing) {
+                    await Notification.create({
+                        medicineId: med._id,
+                        medicineName: med.name,
+                        batch: med.batch,
+                        type: alertType,
+                        severity,
+                        message,
+                        hindiMessage,
+                        read: false
+                    });
+                    newCount++;
+                    console.log(`🔔 Alert created: ${alertType} for "${med.name}"`);
+                }
+            }
+        }
+
         if (newCount > 0) {
-            console.log(`✅ Expiry check: ${newCount} new alert(s) created`);
+            console.log(`✅ System check: ${newCount} new alert(s) created`);
         } else {
-            console.log('✅ Expiry check: No new alerts needed');
+            console.log('✅ System check: No new alerts needed');
         }
 
         return newCount;
     } catch (err) {
-        console.error('❌ Expiry check error:', err.message);
+        console.error('❌ System check error:', err.message);
         throw err;
     }
 }

@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import DashboardTab from './components/DashboardTab';
 import InventoryTab from './components/InventoryTab';
+import CalendarTab from './components/CalendarTab';
 import SimulatorTab from './components/SimulatorTab';
 import AlertLogsTab from './components/AlertLogsTab';
 import SettingsTab from './components/SettingsTab';
@@ -13,7 +14,7 @@ import ProductModals from './components/ProductModals';
 import LogoutModal from './components/LogoutModal';
 import AuthPage from './components/AuthPage';
 
-const DASHBOARD_TABS = ['dashboard', 'inventory', 'billing', 'simulator', 'notifications-log', 'settings'];
+const DASHBOARD_TABS = ['dashboard', 'inventory', 'calendar', 'billing', 'simulator', 'notifications-log', 'settings'];
 
 export default function App() {
     const {
@@ -22,7 +23,8 @@ export default function App() {
         syncTabWithHash,
         fetchMedicines,
         fetchNotifications,
-        fetchDashboardStats
+        fetchDashboardStats,
+        fetchBillStats
     } = usePharmacyStore();
 
     // ── On authenticated: fetch initial data ──────────────────────────────
@@ -33,6 +35,7 @@ export default function App() {
         fetchMedicines();
         fetchNotifications();
         fetchDashboardStats();
+        fetchBillStats();
 
         // Poll notifications every 60 seconds
         const pollInterval = setInterval(() => {
@@ -75,6 +78,7 @@ export default function App() {
 
                 {activeTab === 'dashboard'         && <DashboardTab />}
                 {activeTab === 'inventory'         && <InventoryTab />}
+                {activeTab === 'calendar'          && <CalendarTab />}
                 {activeTab === 'billing'           && <BillingTab />}
                 {activeTab === 'simulator'         && <SimulatorTab />}
                 {activeTab === 'notifications-log' && <AlertLogsTab />}

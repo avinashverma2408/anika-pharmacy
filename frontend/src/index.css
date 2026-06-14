@@ -2602,3 +2602,708 @@ body {
     user-select: none;
 }
 
+/* --- Dashboard Analytics Section --- */
+.dashboard-analytics-section {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 24px;
+    margin-bottom: 28px;
+}
+
+@media (max-width: 1024px) {
+    .dashboard-analytics-section {
+        grid-template-columns: 1fr;
+    }
+}
+
+.analytics-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 12px;
+}
+
+.analytics-card-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.analytics-svg-chart {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+/* Chart Grid and Axis Label styling */
+.chart-grid-line-group line {
+    stroke: var(--border-color);
+    opacity: 0.5;
+}
+
+.chart-grid-line-group text {
+    fill: var(--text-muted);
+}
+
+.chart-axis-label {
+    fill: var(--text-secondary);
+}
+
+/* Hover and bar animations */
+.chart-bar {
+    transition: transform 0.3s ease, fill-opacity 0.2s;
+    transform-origin: bottom;
+    cursor: pointer;
+}
+
+.chart-bar:hover {
+    fill-opacity: 1;
+}
+
+.chart-bar-group {
+    position: relative;
+}
+
+.chart-bar-group .chart-tooltip {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.chart-bar-group:hover .chart-tooltip {
+    opacity: 1;
+}
+
+/* Category Distribution Progress Bars */
+.category-distribution-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.category-progress-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.category-progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.category-name {
+    color: var(--text-primary);
+}
+
+.category-count {
+    color: var(--text-secondary);
+}
+
+.progress-bar-bg {
+    width: 100%;
+    height: 8px;
+    background-color: var(--bg-input);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Financial summary bottom section */
+.analytics-financial-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 16px;
+    margin-top: 8px;
+}
+
+.financial-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.financial-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.financial-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* --- Expiry Calendar Layout --- */
+.calendar-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.calendar-header-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(21, 29, 48, 0.75) 100%);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 16px 24px;
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(8px);
+}
+
+.calendar-nav-buttons {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.calendar-title-display {
+    font-size: 20px;
+    font-weight: 700;
+    font-family: 'Outfit', sans-serif;
+    color: var(--text-primary);
+    min-width: 180px;
+    text-align: center;
+    text-shadow: 0 0 8px rgba(6, 182, 212, 0.25);
+}
+
+.calendar-grid-container {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+.calendar-weekdays-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+}
+
+/* Highlight weekend headers */
+.calendar-weekdays-header div:nth-child(1),
+.calendar-weekdays-header div:nth-child(7) {
+    color: #f43f5e;
+}
+
+.calendar-days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: minmax(115px, 125px);
+    gap: 10px;
+}
+
+.calendar-day-cell {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.01);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 115px;
+    overflow: hidden;
+    position: relative;
+}
+
+.calendar-day-cell:hover {
+    background-color: var(--bg-card-hover);
+    border-color: var(--text-muted);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.calendar-day-cell.outside-month {
+    opacity: 0.3;
+    background-color: transparent;
+    pointer-events: none;
+}
+
+/* Highlight Saturday/Sunday cells */
+.calendar-days-grid .calendar-day-cell:nth-child(7n+1),
+.calendar-days-grid .calendar-day-cell:nth-child(7n) {
+    background-color: rgba(244, 63, 94, 0.015);
+}
+
+.calendar-days-grid .calendar-day-cell:nth-child(7n+1):hover,
+.calendar-days-grid .calendar-day-cell:nth-child(7n):hover {
+    background-color: rgba(244, 63, 94, 0.04);
+}
+
+.calendar-days-grid .calendar-day-cell:nth-child(7n+1) .calendar-day-number,
+.calendar-days-grid .calendar-day-cell:nth-child(7n) .calendar-day-number {
+    color: #f43f5e;
+}
+
+/* Today indicator */
+.calendar-day-cell.is-today {
+    background-color: rgba(6, 182, 212, 0.06) !important;
+    border-color: var(--primary);
+    box-shadow: inset 0 0 6px var(--primary-glow), 0 0 10px var(--primary-glow);
+}
+
+.calendar-day-number {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text-secondary);
+}
+
+.calendar-day-cell.is-today .calendar-day-number {
+    color: var(--primary);
+}
+
+/* Severity Cell Gradients and Glows */
+.calendar-day-cell.cell-expired {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.03) 0%, rgba(239, 68, 68, 0.06) 100%) !important;
+    border-color: rgba(239, 68, 68, 0.3);
+    box-shadow: inset 0 0 6px rgba(239, 68, 68, 0.04);
+}
+.calendar-day-cell.cell-expired:hover {
+    border-color: var(--danger);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
+
+.calendar-day-cell.cell-expiring-soon {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.03) 0%, rgba(245, 158, 11, 0.06) 100%) !important;
+    border-color: rgba(245, 158, 11, 0.3);
+    box-shadow: inset 0 0 6px rgba(245, 158, 11, 0.04);
+}
+.calendar-day-cell.cell-expiring-soon:hover {
+    border-color: var(--warning);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+}
+
+.calendar-day-cell.cell-safe {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.02) 0%, rgba(6, 182, 212, 0.05) 100%) !important;
+    border-color: rgba(6, 182, 212, 0.22);
+    box-shadow: inset 0 0 6px rgba(6, 182, 212, 0.02);
+}
+.calendar-day-cell.cell-safe:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15);
+}
+
+.calendar-expiries-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    overflow-y: auto;
+    flex-grow: 1;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+}
+
+.calendar-expiries-list::-webkit-scrollbar {
+    display: none;
+}
+
+/* Beautiful Pill-shape Tag styling */
+.calendar-expiry-item {
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: all 0.18s ease-in-out;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.calendar-expiry-item i {
+    font-size: 9px;
+}
+
+.calendar-expiry-item:hover {
+    transform: translateY(-1px) scale(1.03);
+}
+
+/* Category item states */
+.calendar-expiry-item.expired {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.25) 100%);
+    color: #ef4444;
+    border: 1.5px solid rgba(239, 68, 68, 0.35);
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.12);
+}
+.calendar-expiry-item.expired:hover {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(239, 68, 68, 0.35) 100%);
+}
+
+.calendar-expiry-item.expiring-soon {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.25) 100%);
+    color: #f59e0b;
+    border: 1.5px solid rgba(245, 158, 11, 0.35);
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.12);
+}
+.calendar-expiry-item.expiring-soon:hover {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0.35) 100%);
+}
+
+.calendar-expiry-item.safe {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(6, 182, 212, 0.22) 100%);
+    color: var(--primary);
+    border: 1.5px solid rgba(6, 182, 212, 0.3);
+    box-shadow: 0 2px 4px rgba(6, 182, 212, 0.1);
+}
+.calendar-expiry-item.safe:hover {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.22) 0%, rgba(6, 182, 212, 0.32) 100%);
+}
+
+/* Expiry Legend panel */
+.calendar-legend-bar {
+    display: flex;
+    gap: 24px;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 24px;
+    font-size: 13px;
+    box-shadow: var(--shadow-sm);
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.legend-color-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 5px;
+}
+
+.legend-color-dot.expired { background-color: var(--danger); box-shadow: 0 0 6px var(--danger); }
+.legend-color-dot.expiring-soon { background-color: var(--warning); box-shadow: 0 0 6px var(--warning); }
+.legend-color-dot.safe { background-color: var(--primary); box-shadow: 0 0 6px var(--primary); }
+
+/* Quick View Modal styling - Glassmorphic */
+.calendar-quick-view-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(11, 15, 25, 0.65);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+}
+
+.quick-view-card {
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(21, 29, 48, 0.95) 100%);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 480px;
+    padding: 28px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    animation: scaleIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) ease;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Glow highlights for Quick view top border */
+.quick-view-card.border-expired {
+    border-top: 6px solid var(--danger);
+}
+.quick-view-card.border-expiring-soon {
+    border-top: 6px solid var(--warning);
+}
+.quick-view-card.border-safe {
+    border-top: 6px solid var(--primary);
+}
+
+.quick-view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 14px;
+}
+
+.quick-view-header h3 {
+    font-size: 20px;
+    font-weight: 800;
+    font-family: 'Outfit', sans-serif;
+    color: var(--text-primary);
+}
+
+.quick-view-close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-muted);
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.18s;
+}
+
+.quick-view-close-btn:hover {
+    color: var(--text-primary);
+}
+
+.quick-view-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.quick-view-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 10px;
+}
+
+.quick-view-row span:first-child {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.quick-view-row span:last-child {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.quick-view-row span code {
+    background: var(--bg-input);
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.quick-view-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* --- Seasonal Demand Forecaster --- */
+.forecaster-card {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(30, 41, 59, 0.4) 100%);
+    backdrop-filter: blur(12px);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+.forecaster-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.4);
+}
+
+.forecast-svg-chart {
+    overflow: visible;
+}
+
+.forecast-expected-path {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: drawLine 2s forwards ease-in-out;
+}
+
+@keyframes drawLine {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.pulse-dot {
+    transform-origin: center;
+    animation: pulseGlow 2s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.2;
+    }
+    50% {
+        transform: scale(1.6);
+        opacity: 0.6;
+    }
+}
+
+.forecast-season-badge {
+    transition: all 0.2s ease;
+}
+
+.forecast-season-badge:hover {
+    filter: brightness(1.2);
+}
+
+/* --- Analytics Sales Chart Hover & Glow --- */
+.chart-bar {
+    transition: fill 0.22s ease, filter 0.22s ease, opacity 0.22s ease;
+    cursor: pointer;
+}
+
+.chart-bar:hover {
+    filter: brightness(1.15) drop-shadow(0 0 6px rgba(6, 182, 212, 0.4)) !important;
+}
+
+.chart-tooltip {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(6px);
+    transform-origin: bottom;
+}
+
+.chart-bar-group:hover .chart-tooltip {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* --- Category Distribution Progress Bars --- */
+.category-progress-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 0;
+}
+
+.category-progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.progress-bar-bg {
+    width: 100%;
+    height: 8px;
+    background-color: var(--bg-input);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+    position: relative;
+}
+
+/* --- Financial Micro-Cards Styling --- */
+.analytics-financial-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 16px;
+    margin-top: 16px;
+}
+
+.financial-card {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.financial-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+
+.financial-card.card-month:hover { border-color: var(--primary); }
+.financial-card.card-lifetime:hover { border-color: var(--success); }
+.financial-card.card-invoices:hover { border-color: var(--warning); }
+
+.fin-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.fin-label {
+    font-size: 9px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.fin-icon-wrap {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+}
+
+.fin-icon-wrap.bg-primary-glow { background-color: var(--primary-glow); color: var(--primary); }
+.fin-icon-wrap.bg-success-glow { background-color: var(--success-bg); color: var(--success); }
+.fin-icon-wrap.bg-warning-glow { background-color: var(--warning-bg); color: var(--warning); }
+
+.fin-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+/* --- Analytics Trend Line Animations --- */
+.analytics-trend-line {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: drawTrendLine 2.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes drawTrendLine {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+
+
+

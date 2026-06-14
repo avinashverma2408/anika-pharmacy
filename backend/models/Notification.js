@@ -10,7 +10,7 @@ const notificationSchema = new mongoose.Schema({
     batch: { type: String, required: true },
     type: {
         type: String,
-        enum: ['expired', 'expiry', '7days', '20days'],
+        enum: ['expired', 'expiry', '7days', '20days', 'low-stock', 'out-of-stock'],
         required: true
     },
     severity: {

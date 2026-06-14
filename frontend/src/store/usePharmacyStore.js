@@ -167,6 +167,7 @@ const loadInitialState = () => {
     theme: storedTheme,
     activeTab: "dashboard",
     inventorySubTab: "active",
+    inventoryCategoryFilter: "all",
     editingProduct: null,
     deletingProduct: null,
     isAddModalOpen: false,
@@ -396,11 +397,20 @@ export const usePharmacyStore = create((set, get) => ({
   // ── Navigation ────────────────────────────────────────────────────────────
   setActiveTab: (tab) => {
     window.location.hash = "/" + tab;
-    set({ activeTab: tab });
+    const updates = { activeTab: tab };
+    if (tab !== "inventory") {
+      updates.globalSearchQuery = "";
+      updates.inventoryCategoryFilter = "all";
+    }
+    set(updates);
   },
 
   setInventorySubTab: (tab) => {
     set({ inventorySubTab: tab });
+  },
+
+  setInventoryCategoryFilter: (category) => {
+    set({ inventoryCategoryFilter: category });
   },
 
   syncTabWithHash: () => {
@@ -408,17 +418,32 @@ export const usePharmacyStore = create((set, get) => ({
     const validTabs = [
       "dashboard",
       "inventory",
+      "calendar",
       "billing",
       "simulator",
       "notifications-log",
       "settings",
     ];
     if (hash && validTabs.includes(hash) && hash !== get().activeTab) {
-      set({ activeTab: hash });
+      const updates = { activeTab: hash };
+      if (hash !== "inventory") {
+        updates.globalSearchQuery = "";
+        updates.inventoryCategoryFilter = "all";
+      }
+      set(updates);
     }
   },
 
-  setGlobalSearchQuery: (query) => set({ globalSearchQuery: query }),
+  setGlobalSearchQuery: (query) => {
+    const updates = { globalSearchQuery: query };
+    if (query && get().activeTab !== "inventory") {
+      updates.activeTab = "inventory";
+      updates.inventorySubTab = "all";
+      updates.inventoryCategoryFilter = "all";
+      window.location.hash = "/inventory";
+    }
+    set(updates);
+  },
 
   // ── Bills / Revenue Actions ────────────────────────────────────────────────
   fetchBills: async (params = {}) => {
