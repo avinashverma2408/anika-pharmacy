@@ -30,7 +30,7 @@ export default function InventoryTab() {
     const [isLoading, setIsLoading]       = useState(false);
 
     // Sub-tab counts (fetched separately — all docs, no page limit)
-    const [tabCounts, setTabCounts]       = useState({ active: 0, expiring: 0, expired: 0, outofstock: 0, all: 0 });
+    const [tabCounts, setTabCounts]       = useState({ active: 0, expiring: 0, expired: 0, outofstock: 0, inactive: 0, all: 0 });
 
     const todayStr = simulatedDate;
 
@@ -55,6 +55,8 @@ export default function InventoryTab() {
             } else if (tab === 'outofstock') {
                 params.status = 'Out of Stock';
                 params.expiry = 'not-expired';
+            } else if (tab === 'inactive') {
+                params.status = 'Inactive';
             } else if (tab === 'all') {
                 params.status = 'all';
             }
@@ -147,6 +149,7 @@ export default function InventoryTab() {
                             { key: 'expiring',   label: 'Expiring Soon',  badgeClass: 'badge-warning' },
                             { key: 'expired',    label: 'Expired Stock',  badgeClass: 'badge-danger' },
                             { key: 'outofstock', label: 'Out of Stock',   badgeClass: 'badge-orange' },
+                            { key: 'inactive',   label: 'Inactive Stock', badgeClass: 'badge-inactive' },
                             { key: 'all',        label: 'All Catalog',    badgeClass: 'badge-info' },
                         ].map(({ key, label, badgeClass }) => (
                             <button

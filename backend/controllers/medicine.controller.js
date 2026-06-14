@@ -122,15 +122,16 @@ exports.getMedicineCounts = async (req, res) => {
         const d20 = new Date(today);
         d20.setDate(d20.getDate() + 20);
 
-        const [all, active, expired, outofstock, expiring] = await Promise.all([
+        const [all, active, expired, outofstock, expiring, inactive] = await Promise.all([
             Medicine.countDocuments({ ...base, status: { $ne: 'Inactive' } }),
             Medicine.countDocuments({ ...base, status: 'Active', expiryDate: { $gt: d20 }, quantity: { $gt: 0 } }),
             Medicine.countDocuments({ ...base, status: { $ne: 'Inactive' }, expiryDate: { $lt: today } }),
             Medicine.countDocuments({ ...base, status: { $ne: 'Inactive' }, $or: [{ status: 'Out of Stock' }, { quantity: 0 }], expiryDate: { $gte: today } }),
-            Medicine.countDocuments({ ...base, status: 'Active', expiryDate: { $gte: today, $lte: d20 }, quantity: { $gt: 0 } })
+            Medicine.countDocuments({ ...base, status: 'Active', expiryDate: { $gte: today, $lte: d20 }, quantity: { $gt: 0 } }),
+            Medicine.countDocuments({ ...base, status: 'Inactive' })
         ]);
 
-        res.json({ success: true, counts: { all, active, expired, outofstock, expiring } });
+        res.json({ success: true, counts: { all, active, expired, outofstock, expiring, inactive } });
     } catch (err) {
         console.error('Get medicine counts error:', err);
         res.status(500).json({ success: false, message: 'Failed to fetch counts.' });

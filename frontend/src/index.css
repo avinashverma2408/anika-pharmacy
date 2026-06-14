@@ -2181,6 +2181,7 @@ body {
 .tab-badge.badge-danger { background-color: var(--danger-bg); color: var(--danger); }
 .tab-badge.badge-warning { background-color: var(--warning-bg); color: var(--warning); }
 .tab-badge.badge-info { background-color: var(--primary-glow); color: var(--primary); }
+.tab-badge.badge-inactive { background-color: var(--bg-input); color: var(--text-muted); }
 
 /* --- GST Billing Screen Screen Styling --- */
 .billing-search-results {
