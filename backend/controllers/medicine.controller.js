@@ -24,7 +24,21 @@ exports.getMedicines = async (req, res) => {
         }
 
         if (category && category !== 'all') filter.category = category;
-        if (status && status !== 'all') filter.status = status;
+        if (status && status !== 'all') {
+            if (status === 'Active') {
+                filter.status = 'Active';
+                filter.quantity = { $gt: 0 };
+            } else if (status === 'Out of Stock') {
+                filter.$and = filter.$and || [];
+                filter.$and.push({ status: { $ne: 'Inactive' } });
+                filter.$and.push({ $or: [{ status: 'Out of Stock' }, { quantity: 0 }] });
+            } else {
+                filter.status = status;
+            }
+        } else {
+            // Default: exclude Inactive medicines
+            filter.status = { $ne: 'Inactive' };
+        }
 
         // Use simulated date if provided (for time-travel testing), otherwise use real today
         const simulatedDateHeader = req.headers['x-simulated-date'];
@@ -34,6 +48,8 @@ exports.getMedicines = async (req, res) => {
         // Expiry filter
         if (expiry === 'expired') {
             filter.expiryDate = { $lt: today };
+        } else if (expiry === 'not-expired') {
+            filter.expiryDate = { $gte: today };
         } else if (expiry === 'expires-today') {
             const tmrw = new Date(today); tmrw.setDate(tmrw.getDate() + 1);
             filter.expiryDate = { $gte: today, $lt: tmrw };
@@ -107,11 +123,11 @@ exports.getMedicineCounts = async (req, res) => {
         d20.setDate(d20.getDate() + 20);
 
         const [all, active, expired, outofstock, expiring] = await Promise.all([
-            Medicine.countDocuments(base),
-            Medicine.countDocuments({ ...base, status: 'Active' }),
-            Medicine.countDocuments({ ...base, expiryDate: { $lt: today } }),
-            Medicine.countDocuments({ ...base, status: 'Out of Stock' }),
-            Medicine.countDocuments({ ...base, expiryDate: { $gte: today, $lte: d20 } })
+            Medicine.countDocuments({ ...base, status: { $ne: 'Inactive' } }),
+            Medicine.countDocuments({ ...base, status: 'Active', expiryDate: { $gt: d20 }, quantity: { $gt: 0 } }),
+            Medicine.countDocuments({ ...base, status: { $ne: 'Inactive' }, expiryDate: { $lt: today } }),
+            Medicine.countDocuments({ ...base, status: { $ne: 'Inactive' }, $or: [{ status: 'Out of Stock' }, { quantity: 0 }], expiryDate: { $gte: today } }),
+            Medicine.countDocuments({ ...base, status: 'Active', expiryDate: { $gte: today, $lte: d20 }, quantity: { $gt: 0 } })
         ]);
 
         res.json({ success: true, counts: { all, active, expired, outofstock, expiring } });

@@ -45,14 +45,18 @@ export default function InventoryTab() {
 
             if (tab === 'active') {
                 params.status = 'Active';
-                // Don't apply expiry filter here — let InventoryTab show all Active meds
-                // (expired ones are auto-status-changed by the backend cron anyway)
+                params.expiry = 'safe';
             } else if (tab === 'expiring') {
+                params.status = 'Active';
                 params.expiry = 'expires-20';
             } else if (tab === 'expired') {
+                params.status = 'all';
                 params.expiry = 'expired';
             } else if (tab === 'outofstock') {
                 params.status = 'Out of Stock';
+                params.expiry = 'not-expired';
+            } else if (tab === 'all') {
+                params.status = 'all';
             }
             // 'all' — no extra filter
 

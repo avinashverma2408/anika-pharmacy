@@ -14,13 +14,13 @@ export default function DashboardTab() {
 
     // Use API stats if available, else derive from local medicines
     const stats = dashboardStats?.stats;
-    const totalCount       = stats?.totalMedicines  ?? medicines.length;
-    const activeSafeCount  = stats?.activeMedicines  ?? medicines.filter(m => m.status === 'Active').length;
-    const expiringSoonCount= stats?.expiring20Days  ?? 0;
+    const totalCount       = stats?.totalMedicines  ?? medicines.filter(m => m.status !== 'Inactive').length;
+    const activeSafeCount  = stats?.activeMedicines  ?? medicines.filter(m => m.status === 'Active' && calculateDaysDifference(simulatedDate, m.expiryDate) > 20 && m.quantity > 0).length;
+    const expiringSoonCount= stats?.expiring20Days  ?? medicines.filter(m => m.status === 'Active' && m.quantity > 0 && calculateDaysDifference(simulatedDate, m.expiryDate) >= 0 && calculateDaysDifference(simulatedDate, m.expiryDate) <= 20).length;
     const expiredCount = stats?.expiredCount ?? 
-        medicines.filter(m => calculateDaysDifference(simulatedDate, m.expiryDate) < 0).length;
+        medicines.filter(m => m.status !== 'Inactive' && calculateDaysDifference(simulatedDate, m.expiryDate) < 0).length;
     const outOfStockCount = stats?.outOfStock ?? 
-        medicines.filter(m => m.status === 'Out of Stock' || m.quantity === 0).length;
+        medicines.filter(m => m.status !== 'Inactive' && (m.status === 'Out of Stock' || m.quantity === 0) && calculateDaysDifference(simulatedDate, m.expiryDate) >= 0).length;
 
     // Expiring soon list from API or local compute
     const expiringSoonItems = dashboardStats?.expiringSoon
@@ -28,7 +28,7 @@ export default function DashboardTab() {
         : medicines
             .filter(m => {
                 const d = calculateDaysDifference(simulatedDate, m.expiryDate);
-                return d >= 0 && d <= 20;
+                return m.status === 'Active' && m.quantity > 0 && d >= 0 && d <= 20;
             })
             .map(m => ({ medicine: m, daysLeft: calculateDaysDifference(simulatedDate, m.expiryDate) }))
             .sort((a, b) => a.daysLeft - b.daysLeft);

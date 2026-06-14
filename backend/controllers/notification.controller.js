@@ -93,7 +93,7 @@ exports.getDashboardStats = async (req, res) => {
 
         const [
             totalMedicines,
-            activeMedicines,
+            activeMedicines, // Active & Safe (expiry > 20 days)
             outOfStock,
             expiredCount,
             expiring20Days,
@@ -101,13 +101,13 @@ exports.getDashboardStats = async (req, res) => {
             expiringToday,
             unreadNotifications
         ] = await Promise.all([
-            Medicine.countDocuments(),
-            Medicine.countDocuments({ status: 'Active' }),
-            Medicine.countDocuments({ status: 'Out of Stock' }),
-            Medicine.countDocuments({ expiryDate: { $lt: today } }),
-            Medicine.countDocuments({ expiryDate: { $gte: today, $lte: d20 } }),
-            Medicine.countDocuments({ expiryDate: { $gte: today, $lte: d7 } }),
-            Medicine.countDocuments({ expiryDate: { $gte: today, $lt: new Date(today.getTime() + 86400000) } }),
+            Medicine.countDocuments({ status: { $ne: 'Inactive' } }),
+            Medicine.countDocuments({ status: 'Active', expiryDate: { $gt: d20 }, quantity: { $gt: 0 } }),
+            Medicine.countDocuments({ status: { $ne: 'Inactive' }, $or: [{ status: 'Out of Stock' }, { quantity: 0 }], expiryDate: { $gte: today } }),
+            Medicine.countDocuments({ status: { $ne: 'Inactive' }, expiryDate: { $lt: today } }),
+            Medicine.countDocuments({ status: 'Active', expiryDate: { $gte: today, $lte: d20 }, quantity: { $gt: 0 } }),
+            Medicine.countDocuments({ status: 'Active', expiryDate: { $gte: today, $lte: d7 }, quantity: { $gt: 0 } }),
+            Medicine.countDocuments({ status: 'Active', expiryDate: { $gte: today, $lt: new Date(today.getTime() + 86400000) }, quantity: { $gt: 0 } }),
             Notification.countDocuments({ read: false })
         ]);
 
@@ -119,6 +119,8 @@ exports.getDashboardStats = async (req, res) => {
 
         // Medicines expiring soon (next 20 days)
         const expiringSoon = await Medicine.find({
+            status: 'Active',
+            quantity: { $gt: 0 },
             expiryDate: { $gte: today, $lte: d20 }
         }).sort({ expiryDate: 1 }).limit(5).lean();
 
