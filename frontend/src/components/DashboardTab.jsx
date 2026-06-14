@@ -193,17 +193,38 @@ export default function DashboardTab() {
         percentage: Math.round(((categoryCounts[cat] || 0) / totalActiveMeds) * 100)
     }));
 
-    // Monthly Breakdown Data from stats or fallback to demo
+    // Monthly Breakdown Data dynamically generated based on simulatedDate
     const rawBreakdown = billStats?.monthlyBreakdown || [];
-    const isDemo = rawBreakdown.length === 0;
-    const monthlyBreakdown = isDemo ? [
-        { label: 'Jan 2026', revenue: 45000, count: 32 },
-        { label: 'Feb 2026', revenue: 52000, count: 38 },
-        { label: 'Mar 2026', revenue: 49000, count: 35 },
-        { label: 'Apr 2026', revenue: 68000, count: 48 },
-        { label: 'May 2026', revenue: 75000, count: 54 },
-        { label: 'Jun 2026', revenue: 89000, count: 62 },
-    ] : [...rawBreakdown].reverse().slice(-6);
+    const getDynamicMonthlyBreakdown = () => {
+        const breakdown = [];
+        const monthNames = [
+            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+        
+        const baseDate = simulatedDate ? new Date(simulatedDate) : new Date();
+        
+        // Generate last 6 months sliding window ending with simulatedDate
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(baseDate.getFullYear(), baseDate.getMonth() - i, 1);
+            const year = d.getFullYear();
+            const monthNum = d.getMonth() + 1; // 1-indexed (1-12)
+            const label = `${monthNames[d.getMonth()]} ${year}`;
+            
+            const matchedDbMonth = rawBreakdown.find(entry => 
+                entry.year === year && entry.month === monthNum
+            );
+            
+            breakdown.push({
+                label,
+                revenue: matchedDbMonth ? matchedDbMonth.revenue : 0,
+                count: matchedDbMonth ? matchedDbMonth.count : 0
+            });
+        }
+        return breakdown;
+    };
+
+    const monthlyBreakdown = getDynamicMonthlyBreakdown();
 
     const maxRevenue = Math.max(...monthlyBreakdown.map(d => d.revenue), 1);
     
@@ -315,9 +336,6 @@ export default function DashboardTab() {
                             <i className="fa-solid fa-chart-column panel-icon" style={{ color: 'var(--primary)' }}></i>
                             <h3>Monthly Sales &amp; Revenue Trend</h3>
                         </div>
-                        {isDemo && (
-                            <span className="badge badge-warning">Demo Preview Data</span>
-                        )}
                     </div>
                     
                     <div className="chart-container" style={{ position: 'relative', height: chartHeight }}>
