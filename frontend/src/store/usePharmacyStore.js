@@ -4,6 +4,7 @@ import {
   medicineApi,
   notificationApi,
   dashboardApi,
+  billApi,
 } from "../api/apiClient";
 
 // ── Auth Screen <-> Hash Route Map ──────────────────────────────────────────
@@ -165,6 +166,7 @@ const loadInitialState = () => {
     // UI state
     theme: storedTheme,
     activeTab: "dashboard",
+    inventorySubTab: "active",
     editingProduct: null,
     deletingProduct: null,
     isAddModalOpen: false,
@@ -173,6 +175,10 @@ const loadInitialState = () => {
     selectedMedicineForDetails: null,
     globalSearchQuery: "",
 
+    // Bills state
+    bills: [],
+    billStats: null,
+
     // Loading states
     isLoadingMedicines: false,
     isLoadingNotifications: false,
@@ -180,6 +186,7 @@ const loadInitialState = () => {
     isLoadingAuth: false,
     isSavingMedicine: false,
     isDeletingMedicine: false,
+    isLoadingBills: false,
   };
 };
 
@@ -392,11 +399,16 @@ export const usePharmacyStore = create((set, get) => ({
     set({ activeTab: tab });
   },
 
+  setInventorySubTab: (tab) => {
+    set({ inventorySubTab: tab });
+  },
+
   syncTabWithHash: () => {
     const hash = window.location.hash.replace("#/", "");
     const validTabs = [
       "dashboard",
       "inventory",
+      "billing",
       "simulator",
       "notifications-log",
       "settings",
@@ -407,6 +419,66 @@ export const usePharmacyStore = create((set, get) => ({
   },
 
   setGlobalSearchQuery: (query) => set({ globalSearchQuery: query }),
+
+  // ── Bills / Revenue Actions ────────────────────────────────────────────────
+  fetchBills: async (params = {}) => {
+    set({ isLoadingBills: true });
+    try {
+      const { data } = await billApi.getAll(params);
+      if (data.success) {
+        set({ bills: data.bills, isLoadingBills: false });
+      } else {
+        set({ isLoadingBills: false });
+      }
+    } catch (err) {
+      set({ isLoadingBills: false });
+      showSimpleToast("Error", "Failed to load billing history.", "danger");
+    }
+  },
+
+  fetchBillStats: async () => {
+    try {
+      const { data } = await billApi.getStats();
+      if (data.success) {
+        set({ billStats: data.stats });
+      }
+    } catch (err) {
+      console.error("Failed to load bill stats:", err);
+    }
+  },
+
+  saveBillRecord: async (billData) => {
+    try {
+      const { data } = await billApi.create(billData);
+      if (data.success) {
+        // Refresh stats and history
+        get().fetchBillStats();
+        return { success: true, bill: data.bill };
+      }
+      return { success: false, message: data.message };
+    } catch (err) {
+      const msg = err.response?.data?.message || "Failed to save invoice record.";
+      showSimpleToast("Database Save Error", msg, "danger");
+      return { success: false, message: msg };
+    }
+  },
+
+  deleteBillRecord: async (id) => {
+    try {
+      const { data } = await billApi.delete(id);
+      if (data.success) {
+        // Refresh list & stats
+        get().fetchBills();
+        get().fetchBillStats();
+        showSimpleToast("Success", "Invoice deleted successfully.", "success");
+        return true;
+      }
+      return false;
+    } catch (err) {
+      showSimpleToast("Error", "Failed to delete invoice.", "danger");
+      return false;
+    }
+  },
 
   // ── Modal Toggles ─────────────────────────────────────────────────────────
   setAddModalOpen: (isOpen) => set({ isAddModalOpen: isOpen }),

@@ -17,10 +17,11 @@ export default function InventoryTab() {
         setSelectedMedicineForDetails,
         simulatedDate,
         medicines: storeMedicines,   // used for add/edit/delete optimistic updates
+        inventorySubTab: subTab,
+        setInventorySubTab: setSubTab,
     } = usePharmacyStore();
 
     // ── Local state ───────────────────────────────────────────────────────────
-    const [subTab, setSubTab]             = useState('active');
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [currentPage, setCurrentPage]   = useState(1);
 
@@ -29,7 +30,7 @@ export default function InventoryTab() {
     const [isLoading, setIsLoading]       = useState(false);
 
     // Sub-tab counts (fetched separately — all docs, no page limit)
-    const [tabCounts, setTabCounts]       = useState({ active: 0, expired: 0, outofstock: 0, all: 0 });
+    const [tabCounts, setTabCounts]       = useState({ active: 0, expiring: 0, expired: 0, outofstock: 0, all: 0 });
 
     const todayStr = simulatedDate;
 
@@ -46,6 +47,8 @@ export default function InventoryTab() {
                 params.status = 'Active';
                 // Don't apply expiry filter here — let InventoryTab show all Active meds
                 // (expired ones are auto-status-changed by the backend cron anyway)
+            } else if (tab === 'expiring') {
+                params.expiry = 'expires-20';
             } else if (tab === 'expired') {
                 params.expiry = 'expired';
             } else if (tab === 'outofstock') {
@@ -137,8 +140,9 @@ export default function InventoryTab() {
                     <div className="sub-tabs-container">
                         {[
                             { key: 'active',     label: 'Active Stock',   badgeClass: 'badge-safe' },
+                            { key: 'expiring',   label: 'Expiring Soon',  badgeClass: 'badge-warning' },
                             { key: 'expired',    label: 'Expired Stock',  badgeClass: 'badge-danger' },
-                            { key: 'outofstock', label: 'Out of Stock',   badgeClass: 'badge-warning' },
+                            { key: 'outofstock', label: 'Out of Stock',   badgeClass: 'badge-orange' },
                             { key: 'all',        label: 'All Catalog',    badgeClass: 'badge-info' },
                         ].map(({ key, label, badgeClass }) => (
                             <button
@@ -146,7 +150,7 @@ export default function InventoryTab() {
                                 className={`sub-tab-btn ${subTab === key ? 'active' : ''}`}
                                 onClick={() => handleSubTabChange(key)}
                             >
-                                {label} <span className={`tab-badge ${badgeClass}`}>{tabCounts[key]}</span>
+                                {label} <span className={`tab-badge ${badgeClass}`}>{tabCounts[key] ?? 0}</span>
                             </button>
                         ))}
                     </div>

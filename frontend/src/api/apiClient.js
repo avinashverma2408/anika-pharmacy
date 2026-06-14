@@ -97,4 +97,16 @@ export const dashboardApi = {
         api.get('/dashboard/stats')
 };
 
+// ── Bill API ──────────────────────────────────────────────────────────────────
+export const billApi = {
+    create: (data) =>
+        api.post('/bills', data),
+    getAll: (params = {}) =>
+        api.get('/bills', { params }),
+    getStats: () =>
+        api.get('/bills/stats'),
+    delete: (id) =>
+        api.delete(`/bills/${id}`)
+};
+
 export default api;

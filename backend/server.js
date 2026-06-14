@@ -49,6 +49,7 @@ app.use("/api/medicines", require("./routes/medicine.routes"));
 app.use("/api/notifications", require("./routes/notification.routes"));
 // Dashboard stats reuse notification controller under a separate prefix
 app.use("/api/dashboard", require("./routes/notification.routes"));
+app.use("/api/bills", require("./routes/bill.routes"));
 
 // Health check
 app.get("/api/health", (req, res) => {

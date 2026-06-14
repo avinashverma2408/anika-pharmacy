@@ -1,0 +1,207 @@
+const Bill = require('../models/Bill');
+
+// POST /api/bills - Save a new invoice
+exports.createBill = async (req, res) => {
+    try {
+        const {
+            invoiceNo,
+            patientName,
+            patientAddress,
+            billDate,
+            items,
+            subTotal,
+            discountPercent,
+            discountAmount,
+            taxableValue,
+            cgst,
+            sgst,
+            netTotal
+        } = req.body;
+
+        // Verify if invoice number already exists
+        const existing = await Bill.findOne({ invoiceNo });
+        if (existing) {
+            return res.status(400).json({ success: false, message: `Invoice number ${invoiceNo} already exists.` });
+        }
+
+        const newBill = await Bill.create({
+            invoiceNo,
+            patientName: patientName || 'CASH CUSTOMER',
+            patientAddress,
+            billDate: billDate ? new Date(billDate) : new Date(),
+            items,
+            subTotal,
+            discountPercent,
+            discountAmount,
+            taxableValue,
+            cgst,
+            sgst,
+            netTotal
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Invoice saved successfully.',
+            bill: newBill
+        });
+    } catch (err) {
+        console.error('Create bill error:', err);
+        res.status(500).json({ success: false, message: 'Failed to save invoice.' });
+    }
+};
+
+// GET /api/bills - Get list of bills with filters
+exports.getBills = async (req, res) => {
+    try {
+        const { search, month, year, page = 1, limit = 10 } = req.query;
+
+        const filter = {};
+
+        // Search text on patientName, invoiceNo, or item name
+        if (search && search.trim()) {
+            const regex = new RegExp(search.trim(), 'i');
+            filter.$or = [
+                { invoiceNo: regex },
+                { patientName: regex },
+                { 'items.name': regex }
+            ];
+        }
+
+        // Filter by month & year
+        if (year) {
+            const y = parseInt(year);
+            if (month) {
+                const m = parseInt(month) - 1; // JS month is 0-indexed
+                const startDate = new Date(y, m, 1);
+                const endDate = new Date(y, m + 1, 1);
+                filter.billDate = { $gte: startDate, $lt: endDate };
+            } else {
+                const startDate = new Date(y, 0, 1);
+                const endDate = new Date(y + 1, 0, 1);
+                filter.billDate = { $gte: startDate, $lt: endDate };
+            }
+        }
+
+        const skip = (Math.max(1, parseInt(page)) - 1) * Math.max(1, parseInt(limit));
+
+        const [total, bills] = await Promise.all([
+            Bill.countDocuments(filter),
+            Bill.find(filter).sort({ billDate: -1 }).skip(skip).limit(parseInt(limit)).lean()
+        ]);
+
+        res.json({
+            success: true,
+            total,
+            page: parseInt(page),
+            totalPages: Math.ceil(total / parseInt(limit)),
+            bills
+        });
+    } catch (err) {
+        console.error('Get bills error:', err);
+        res.status(500).json({ success: false, message: 'Failed to fetch bills.' });
+    }
+};
+
+// GET /api/bills/stats - Aggregate revenue stats
+exports.getBillStats = async (req, res) => {
+    try {
+        const today = new Date();
+        const startOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+        // Overall stats
+        const overallResult = await Bill.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: '$netTotal' },
+                    totalBills: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Current Month stats
+        const currentMonthResult = await Bill.aggregate([
+            {
+                $match: {
+                    billDate: { $gte: startOfCurrentMonth }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    monthlyRevenue: { $sum: '$netTotal' },
+                    monthlyCount: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Month-wise group stats
+        const monthlyGroups = await Bill.aggregate([
+            {
+                $group: {
+                    _id: {
+                        year: { $year: '$billDate' },
+                        month: { $month: '$billDate' }
+                    },
+                    revenue: { $sum: '$netTotal' },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $sort: {
+                    '_id.year': -1,
+                    '_id.month': -1
+                }
+            }
+        ]);
+
+        // Map monthly groups to format labels
+        const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+
+        const formattedMonthlyGroups = monthlyGroups.map(group => {
+            const m = group._id.month;
+            const y = group._id.year;
+            return {
+                year: y,
+                month: m,
+                label: `${monthNames[m - 1]} ${y}`,
+                revenue: group.revenue,
+                count: group.count
+            };
+        });
+
+        const lifetimeRevenue = overallResult[0]?.totalRevenue || 0;
+        const lifetimeBills = overallResult[0]?.totalBills || 0;
+        const currentMonthRevenue = currentMonthResult[0]?.monthlyRevenue || 0;
+
+        res.json({
+            success: true,
+            stats: {
+                lifetimeRevenue,
+                lifetimeBills,
+                currentMonthRevenue,
+                monthlyBreakdown: formattedMonthlyGroups
+            }
+        });
+    } catch (err) {
+        console.error('Get bill stats error:', err);
+        res.status(500).json({ success: false, message: 'Failed to fetch billing statistics.' });
+    }
+};
+
+// DELETE /api/bills/:id - Delete an invoice
+exports.deleteBill = async (req, res) => {
+    try {
+        const bill = await Bill.findByIdAndDelete(req.params.id);
+        if (!bill) {
+            return res.status(404).json({ success: false, message: 'Invoice not found.' });
+        }
+        res.json({ success: true, message: 'Invoice deleted successfully.' });
+    } catch (err) {
+        console.error('Delete bill error:', err);
+        res.status(500).json({ success: false, message: 'Failed to delete invoice.' });
+    }
+};

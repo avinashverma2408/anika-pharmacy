@@ -8,6 +8,7 @@ export default function DashboardTab() {
         isLoadingStats,
         setAddModalOpen,
         setActiveTab,
+        setInventorySubTab,
         simulatedDate
     } = usePharmacyStore();
 
@@ -32,6 +33,11 @@ export default function DashboardTab() {
             .map(m => ({ medicine: m, daysLeft: calculateDaysDifference(simulatedDate, m.expiryDate) }))
             .sort((a, b) => a.daysLeft - b.daysLeft);
 
+    const handleStatCardClick = (subTab) => {
+        setInventorySubTab(subTab);
+        setActiveTab('inventory');
+    };
+
     const StatValue = ({ val }) => isLoadingStats
         ? <span style={{ display:'inline-block', width:32, height:20, background:'var(--bg-input)', borderRadius:4, animation:'pulse 1.5s infinite' }}></span>
         : <h3 className="stat-value">{val}</h3>;
@@ -45,7 +51,7 @@ export default function DashboardTab() {
 
             {/* Stats Grid */}
             <div className="stats-grid">
-                <div className="stat-card">
+                <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => handleStatCardClick('all')}>
                     <div className="stat-icon bg-primary"><i className="fa-solid fa-pills"></i></div>
                     <div className="stat-info">
                         <span className="stat-label">Total Medicines</span>
@@ -53,7 +59,7 @@ export default function DashboardTab() {
                     </div>
                 </div>
 
-                <div className="stat-card border-success">
+                <div className="stat-card border-success" style={{ cursor: 'pointer' }} onClick={() => handleStatCardClick('active')}>
                     <div className="stat-icon bg-success"><i className="fa-solid fa-circle-check"></i></div>
                     <div className="stat-info">
                         <span className="stat-label">Active &amp; Safe</span>
@@ -61,7 +67,7 @@ export default function DashboardTab() {
                     </div>
                 </div>
 
-                <div className="stat-card border-warning">
+                <div className="stat-card border-warning" style={{ cursor: 'pointer' }} onClick={() => handleStatCardClick('expiring')}>
                     <div className="stat-icon bg-warning text-dark"><i className="fa-solid fa-triangle-exclamation"></i></div>
                     <div className="stat-info">
                         <span className="stat-label">Expiring Soon (20d)</span>
@@ -69,7 +75,7 @@ export default function DashboardTab() {
                     </div>
                 </div>
 
-                <div className="stat-card border-danger">
+                <div className="stat-card border-danger" style={{ cursor: 'pointer' }} onClick={() => handleStatCardClick('expired')}>
                     <div className="stat-icon bg-danger"><i className="fa-solid fa-circle-xmark"></i></div>
                     <div className="stat-info">
                         <span className="stat-label">Expired Medicines</span>
@@ -77,7 +83,7 @@ export default function DashboardTab() {
                     </div>
                 </div>
 
-                <div className="stat-card border-orange">
+                <div className="stat-card border-orange" style={{ cursor: 'pointer' }} onClick={() => handleStatCardClick('outofstock')}>
                     <div className="stat-icon bg-orange"><i className="fa-solid fa-boxes-stacked"></i></div>
                     <div className="stat-info">
                         <span className="stat-label">Out of Stock</span>
