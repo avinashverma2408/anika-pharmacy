@@ -78,7 +78,7 @@ const medicineRules = [
         .isLength({ min: 2, max: 150 }).withMessage('Name must be 2-150 characters'),
     body('category')
         .trim().notEmpty().withMessage('Category is required')
-        .isIn(['Tablet', 'Syrup', 'Injection', 'Vaccine', 'Ointment', 'Other'])
+        .isIn(['Tablet', 'Capsule', 'Syrup', 'Injection', 'Vaccine', 'Ointment', 'Other'])
         .withMessage('Invalid category'),
     body('batch')
         .trim().notEmpty().withMessage('Batch number is required')

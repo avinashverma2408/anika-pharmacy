@@ -12,8 +12,8 @@ const medicineSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Category is required'],
         enum: {
-            values: ['Tablet', 'Syrup', 'Injection', 'Vaccine', 'Ointment', 'Other'],
-            message: 'Category must be one of: Tablet, Syrup, Injection, Vaccine, Ointment, Other'
+            values: ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Vaccine', 'Ointment', 'Other'],
+            message: 'Category must be one of: Tablet, Capsule, Syrup, Injection, Vaccine, Ointment, Other'
         }
     },
     batch: {

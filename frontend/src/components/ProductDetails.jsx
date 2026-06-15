@@ -54,6 +54,7 @@ export default function ProductDetails() {
     const getCategoryIcon = (category) => {
         switch (category) {
             case 'Tablet': return 'fa-capsules';
+            case 'Capsule': return 'fa-capsules';
             case 'Syrup': return 'fa-prescription-bottle';
             case 'Injection': return 'fa-syringe';
             case 'Vaccine': return 'fa-shield-virus';

@@ -180,6 +180,7 @@ export default function InventoryTab() {
                             >
                                 <option value="all">All Categories</option>
                                 <option value="Tablet">Tablets</option>
+                                <option value="Capsule">Capsules</option>
                                 <option value="Syrup">Syrups</option>
                                 <option value="Injection">Injections</option>
                                 <option value="Vaccine">Vaccines</option>

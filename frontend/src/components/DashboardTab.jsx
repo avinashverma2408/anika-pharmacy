@@ -187,7 +187,7 @@ export default function DashboardTab() {
     }, {});
     const totalActiveMeds = Object.values(categoryCounts).reduce((a, b) => a + b, 0) || 1;
 
-    const categoriesList = ['Tablet', 'Syrup', 'Injection', 'Vaccine', 'Ointment', 'Other'].map(cat => ({
+    const categoriesList = ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Vaccine', 'Ointment', 'Other'].map(cat => ({
         name: cat,
         count: categoryCounts[cat] || 0,
         percentage: Math.round(((categoryCounts[cat] || 0) / totalActiveMeds) * 100)
@@ -521,6 +521,7 @@ export default function DashboardTab() {
                             let gradient = 'linear-gradient(90deg, var(--primary) 0%, var(--primary-hover) 100%)';
                             let glowColor = 'var(--primary)';
                             if (cat.name === 'Tablet') { gradient = 'linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%)'; glowColor = '#3b82f6'; }
+                            else if (cat.name === 'Capsule') { gradient = 'linear-gradient(90deg, #d946ef 0%, #f472b6 100%)'; glowColor = '#d946ef'; }
                             else if (cat.name === 'Syrup') { gradient = 'linear-gradient(90deg, #10b981 0%, #34d399 100%)'; glowColor = '#10b981'; }
                             else if (cat.name === 'Injection') { gradient = 'linear-gradient(90deg, #ec4899 0%, #f472b6 100%)'; glowColor = '#ec4899'; }
                             else if (cat.name === 'Vaccine') { gradient = 'linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%)'; glowColor = '#8b5cf6'; }

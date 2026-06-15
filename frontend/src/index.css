@@ -1839,6 +1839,7 @@ body {
 
 /* Category Specific Color Gradients */
 .profile-icon-wrapper.tablet { background: linear-gradient(135deg, #ec4899, #be185d); color: white; }
+.profile-icon-wrapper.capsule { background: linear-gradient(135deg, #d946ef, #a21caf); color: white; }
 .profile-icon-wrapper.syrup { background: linear-gradient(135deg, #06b6d4, #0891b2); color: white; }
 .profile-icon-wrapper.injection { background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; }
 .profile-icon-wrapper.vaccine { background: linear-gradient(135deg, #10b981, #047857); color: white; }

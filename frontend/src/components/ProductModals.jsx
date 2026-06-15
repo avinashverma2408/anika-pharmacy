@@ -174,6 +174,7 @@ export default function ProductModals() {
                     Select Category
                   </option>
                   <option value="Tablet">Tablet</option>
+                  <option value="Capsule">Capsule</option>
                   <option value="Syrup">Syrup</option>
                   <option value="Injection">Injection</option>
                   <option value="Vaccine">Vaccine</option>
@@ -383,6 +384,7 @@ export default function ProductModals() {
                   onChange={(e) => setEditCategory(e.target.value)}
                 >
                   <option value="Tablet">Tablet</option>
+                  <option value="Capsule">Capsule</option>
                   <option value="Syrup">Syrup</option>
                   <option value="Injection">Injection</option>
                   <option value="Vaccine">Vaccine</option>
