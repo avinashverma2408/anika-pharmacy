@@ -13,8 +13,9 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:4173",
   "https://stirring-queijadas-445b92.netlify.app",
+  "https://anika-pharmacy.vercel.app",
 ];
-// In production, also allow any netlify.app subdomain
+// In production, also allow any netlify.app or vercel.app subdomain
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -23,6 +24,7 @@ app.use(
       if (
         allowedOrigins.includes(origin) ||
         /\.netlify\.app$/.test(origin) ||
+        /\.vercel\.app$/.test(origin) ||
         process.env.NODE_ENV !== "production"
       ) {
         return callback(null, true);
