@@ -2,8 +2,10 @@ import React, { useState, useEffect } from "react";
 import {
   usePharmacyStore,
   formatDateDisplay,
+  formatDateTimeDisplay,
   showSimpleToast,
 } from "../store/usePharmacyStore";
+import { billApi, medicineApi } from "../api/apiClient";
 
 export default function BillingTab() {
   const {
@@ -24,11 +26,115 @@ export default function BillingTab() {
 
   // Patient Information
   const [patientName, setPatientName] = useState("");
+  const [patientMobile, setPatientMobile] = useState("");
   const [patientAddress, setPatientAddress] = useState("");
+  const [paymentMode, setPaymentMode] = useState("Cash");
   const [discountPercent, setDiscountPercent] = useState(5);
+
+  // Patient History States
+  const [patientHistoryModalOpen, setPatientHistoryModalOpen] = useState(false);
+  const [patientHistoryBills, setPatientHistoryBills] = useState([]);
+  const [isFetchingHistory, setIsFetchingHistory] = useState(false);
+  const [autoHistoryFound, setAutoHistoryFound] = useState(false);
 
   // Bill Items state
   const [billItems, setBillItems] = useState([]);
+
+  // Day-End Settlement states
+  const { simulatedDate } = usePharmacyStore();
+  const [settlementBills, setSettlementBills] = useState([]);
+  const [isLoadingSettlement, setIsLoadingSettlement] = useState(false);
+  const [openingFloat, setOpeningFloat] = useState(1000);
+  const [countedCash, setCountedCash] = useState(1000);
+  const [checklistSearch, setChecklistSearch] = useState("");
+
+  const fetchSettlementBills = async () => {
+    setIsLoadingSettlement(true);
+    try {
+      const { data } = await billApi.getAll({ date: simulatedDate, limit: 100 });
+      if (data.success) {
+        setSettlementBills(data.bills || []);
+      }
+    } catch (err) {
+      console.error("Failed to load settlement bills:", err);
+      showSimpleToast("Error", "Failed to load settlement details.", "danger");
+    } finally {
+      setIsLoadingSettlement(false);
+    }
+  };
+
+  useEffect(() => {
+    if (billingSubTab === "settlement") {
+      fetchSettlementBills();
+    }
+  }, [billingSubTab, simulatedDate]);
+
+  const generateSettlementPDF = () => {
+    const element = document.querySelector(".settlement-print-wrapper");
+    if (!element) return;
+
+    showSimpleToast("Generating PDF", "Compiling settlement report...", "success");
+    
+    // Add override class for rendering hidden div
+    element.classList.add("pdf-generation-in-progress");
+
+    setTimeout(() => {
+      Promise.all([import("html2canvas"), import("jspdf")])
+        .then(([html2canvasModule, jsPDFModule]) => {
+          const html2canvas = html2canvasModule.default || html2canvasModule;
+          const jsPDF = jsPDFModule.jsPDF || jsPDFModule.default || jsPDFModule;
+
+          html2canvas(element, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: "#ffffff",
+          })
+            .then((canvas) => {
+              const imgData = canvas.toDataURL("image/jpeg", 0.95);
+              const imgWidth = 210; // A4 width in mm
+              const imgHeight = (canvas.height * imgWidth) / canvas.width;
+              const pdf = new jsPDF("p", "mm", [210, Math.max(297, imgHeight)]);
+
+              pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight);
+              pdf.save(`Day_End_Settlement_${simulatedDate}.pdf`);
+              
+              element.classList.remove("pdf-generation-in-progress");
+              showSimpleToast("Success", "Settlement PDF downloaded successfully!", "success");
+            })
+            .catch((err) => {
+              console.error("Canvas capture failed:", err);
+              element.classList.remove("pdf-generation-in-progress");
+              showSimpleToast("PDF Error", "Failed to capture settlement report.", "danger");
+            });
+        })
+        .catch((err) => {
+          console.error("Failed to load PDF libraries:", err);
+          element.classList.remove("pdf-generation-in-progress");
+          showSimpleToast("Library Error", "Failed to load PDF libraries.", "danger");
+        });
+    }, 150);
+  };
+
+  const floatVal = parseFloat(openingFloat) || 0;
+  const countVal = parseFloat(countedCash) || 0;
+  const totalSales = settlementBills.reduce((sum, b) => sum + (b.netTotal || 0), 0);
+  const cashCollected = settlementBills.reduce((sum, b) => (b.paymentMode || "Cash") === "Cash" ? sum + (b.netTotal || 0) : sum, 0);
+  const cardCollected = settlementBills.reduce((sum, b) => b.paymentMode === "Card" ? sum + (b.netTotal || 0) : sum, 0);
+  const upiCollected = settlementBills.reduce((sum, b) => b.paymentMode === "UPI" ? sum + (b.netTotal || 0) : sum, 0);
+  const expectedCash = floatVal + cashCollected;
+  const discrepancy = countVal - expectedCash;
+
+  const filteredSettlementBills = settlementBills.filter((b) => {
+    const term = checklistSearch.toLowerCase().trim();
+    if (!term) return true;
+    return (
+      (b.invoiceNo && b.invoiceNo.toLowerCase().includes(term)) ||
+      (b.patientName && b.patientName.toLowerCase().includes(term)) ||
+      (b.paymentMode && b.paymentMode.toLowerCase().includes(term)) ||
+      (b.patientMobile && b.patientMobile.includes(term))
+    );
+  });
 
   // Auto-generated Bill Info
   const [invoiceNo, setInvoiceNo] = useState("");
@@ -41,6 +147,11 @@ export default function BillingTab() {
   const [selectedMed, setSelectedMed] = useState(null);
   const [billQty, setBillQty] = useState(1);
   const [billRate, setBillRate] = useState("");
+
+  // Smart Substitute states
+  const [substituteQuery, setSubstituteQuery] = useState("");
+  const [substituteResults, setSubstituteResults] = useState([]);
+  const [isSearchingSubstitutes, setIsSearchingSubstitutes] = useState(false);
 
   // History filters & pagination state
   const [historyPage, setHistoryPage] = useState(1);
@@ -113,6 +224,134 @@ export default function BillingTab() {
     setBillQty(1);
     setSearchQuery("");
     setSearchResults([]);
+  };
+
+  // Handle Smart Substitute search
+  const handleFindSubstitutes = async (e) => {
+    if (e) e.preventDefault();
+    if (!substituteQuery.trim()) {
+      setSubstituteResults([]);
+      return;
+    }
+    setIsSearchingSubstitutes(true);
+    try {
+      const { data } = await medicineApi.getAll({
+        composition: substituteQuery.trim(),
+        status: "Active",
+        limit: 20,
+      });
+      if (data.success) {
+        const inStockSubstitutes = (data.medicines || []).filter(
+          (m) => m.status === "Active" && m.quantity > 0
+        );
+        setSubstituteResults(inStockSubstitutes);
+        if (inStockSubstitutes.length === 0) {
+          showSimpleToast("No Substitutes", "No active in-stock substitutes found for this salt composition.", "warning");
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching substitutes:", err);
+      showSimpleToast("Error", "Failed to search for substitutes.", "danger");
+    } finally {
+      setIsSearchingSubstitutes(false);
+    }
+  };
+
+  // Auto-fetch patient purchase history when mobile number reaches 10 digits
+  useEffect(() => {
+    const fetchPatientHistory = async () => {
+      const trimmedMobile = patientMobile.trim();
+      if (trimmedMobile.length === 10) {
+        setIsFetchingHistory(true);
+        try {
+          const { data } = await billApi.getAll({ search: trimmedMobile, limit: 50 });
+          if (data.success) {
+            const filteredBills = data.bills || [];
+            setPatientHistoryBills(filteredBills);
+            setAutoHistoryFound(filteredBills.length > 0);
+          }
+        } catch (err) {
+          console.error("Failed to fetch patient history:", err);
+        } finally {
+          setIsFetchingHistory(false);
+        }
+      } else {
+        setAutoHistoryFound(false);
+        setPatientHistoryBills([]);
+      }
+    };
+    fetchPatientHistory();
+  }, [patientMobile]);
+
+  // Handle Repeat Bill loading
+  const handleRepeatBill = (pastBill) => {
+    if (!pastBill || !pastBill.items || pastBill.items.length === 0) return;
+
+    if (billItems.length > 0) {
+      if (!window.confirm("This will overwrite your current billing calculator draft. Do you want to continue?")) {
+        return;
+      }
+    }
+
+    const repeatedItems = [];
+    const missingMeds = [];
+    const stockShortages = [];
+
+    pastBill.items.forEach((pastItem) => {
+      const currentMed = medicines.find(
+        (m) =>
+          (m._id && m._id === pastItem.medicineId) ||
+          (m.id && m.id === pastItem.medicineId) ||
+          (m.name === pastItem.name && m.batch === pastItem.batch)
+      );
+
+      if (!currentMed || currentMed.status !== "Active" || currentMed.quantity === 0) {
+        missingMeds.push(pastItem.name);
+      } else {
+        const qtyToBill = Math.min(pastItem.quantity, currentMed.quantity);
+        if (qtyToBill < pastItem.quantity) {
+          stockShortages.push(`${pastItem.name} (Billed ${qtyToBill}/${pastItem.quantity} due to stock limits)`);
+        }
+
+        repeatedItems.push({
+          medicine: currentMed,
+          quantityBilled: qtyToBill,
+          rateBilled: currentMed.price,
+          amount: qtyToBill * currentMed.price,
+        });
+      }
+    });
+
+    if (repeatedItems.length > 0) {
+      setBillItems(repeatedItems);
+      setPatientHistoryModalOpen(false);
+
+      if (!patientName || patientName === "CASH CUSTOMER") setPatientName(pastBill.patientName);
+      if (!patientAddress) setPatientAddress(pastBill.patientAddress || "");
+
+      showSimpleToast(
+        "Repeat Bill Loaded",
+        `Successfully loaded ${repeatedItems.length} items from past invoice.`,
+        "success"
+      );
+
+      if (missingMeds.length > 0 || stockShortages.length > 0) {
+        const warnings = [];
+        if (missingMeds.length > 0) {
+          warnings.push(`Unavailable: ${missingMeds.join(", ")}`);
+        }
+        if (stockShortages.length > 0) {
+          warnings.push(`Stock limited: ${stockShortages.join(", ")}`);
+        }
+        showSimpleToast("Stock Warning", warnings.join(" | "), "warning");
+      }
+    } else {
+      showSimpleToast(
+        "Cannot Repeat Bill",
+        "All medications from this past bill are currently out of stock or inactive.",
+        "danger"
+      );
+    }
   };
 
   // Add selected item to the bill list
@@ -220,7 +459,10 @@ export default function BillingTab() {
 
     // Clear patient states
     setPatientName("");
+    setPatientMobile("");
     setPatientAddress("");
+    setPaymentMode("Cash");
+    setAutoHistoryFound(false);
   };
 
   // Helper to generate PDF using html2canvas and jspdf directly
@@ -308,7 +550,9 @@ export default function BillingTab() {
       const invoiceData = {
         invoiceNo,
         patientName: patientName || "CASH CUSTOMER",
+        patientMobile: patientMobile || "",
         patientAddress,
+        paymentMode,
         billDate: new Date(`${billDate}T${billTime}`),
         items: billItems.map((item) => ({
           medicineId: item.medicine._id || item.medicine.id,
@@ -519,6 +763,12 @@ export default function BillingTab() {
             <i className="fa-solid fa-clock-rotate-left"></i> Billing History
             &amp; Revenue Reports
           </button>
+          <button
+            className={`sub-tab-btn ${billingSubTab === "settlement" ? "active" : ""}`}
+            onClick={() => setBillingSubTab("settlement")}
+          >
+            <i className="fa-solid fa-cash-register"></i> Day-End Settlement
+          </button>
         </div>
 
         {/* ── SUB-TAB: NEW CALCULATOR ────────────────────────────────────────── */}
@@ -526,9 +776,42 @@ export default function BillingTab() {
           <div className="details-grid">
             {/* Left Panel: Invoice metadata */}
             <div className="details-card card-panel">
-              <h3 className="analytics-section-title">
-                <i className="fa-solid fa-file-invoice"></i> Invoice Details
-              </h3>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <h3 className="analytics-section-title" style={{ margin: 0 }}>
+                  <i className="fa-solid fa-file-invoice"></i> Invoice Details
+                </h3>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-small"
+                  style={{
+                    fontSize: "11px",
+                    padding: "4px 10px",
+                    height: "26px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    cursor: "pointer"
+                  }}
+                  onClick={async () => {
+                    setIsFetchingHistory(true);
+                    setPatientHistoryModalOpen(true);
+                    try {
+                      const { data } = await billApi.getAll({ search: patientMobile || patientName || "", limit: 50 });
+                      if (data.success) {
+                        setPatientHistoryBills(data.bills || []);
+                      }
+                    } catch (err) {
+                      console.error("Failed to query patient history:", err);
+                    } finally {
+                      setIsFetchingHistory(false);
+                    }
+                  }}
+                >
+                  <i className="fa-solid fa-history"></i>
+                  Patient History
+                </button>
+              </div>
+              
               <div className="modal-form" style={{ padding: 0 }}>
                 <div className="form-grid" style={{ marginBottom: "16px" }}>
                   <div className="form-group">
@@ -558,6 +841,35 @@ export default function BillingTab() {
                       placeholder="Enter Patient Name"
                     />
                   </div>
+                  <div className="form-group" style={{ position: "relative" }}>
+                    <label>Patient Mobile Number</label>
+                    <input
+                      type="text"
+                      value={patientMobile}
+                      onChange={(e) => setPatientMobile(e.target.value.replace(/\D/g, ""))}
+                      placeholder="Enter 10-digit Mobile"
+                      maxLength="10"
+                    />
+                    {autoHistoryFound && (
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          color: "var(--primary)",
+                          marginTop: "4px",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          fontWeight: "600"
+                        }}
+                        onClick={() => setPatientHistoryModalOpen(true)}
+                        title="Click to view purchase logs"
+                      >
+                        <i className="fa-solid fa-circle-info"></i>
+                        {patientHistoryBills.length} past purchases found. View History
+                      </span>
+                    )}
+                  </div>
                   <div className="form-group">
                     <label>Patient Address</label>
                     <input
@@ -566,6 +878,27 @@ export default function BillingTab() {
                       onChange={(e) => setPatientAddress(e.target.value)}
                       placeholder="Enter Address"
                     />
+                  </div>
+                  <div className="form-group">
+                    <label>Payment Mode</label>
+                    <select
+                      value={paymentMode}
+                      onChange={(e) => setPaymentMode(e.target.value)}
+                      style={{
+                        backgroundColor: "var(--bg-input)",
+                        color: "var(--text-primary)",
+                        border: "1px solid var(--border-color)",
+                        borderRadius: "6px",
+                        padding: "8px 12px",
+                        fontSize: "13px",
+                        width: "100%",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <option value="Cash">Cash</option>
+                      <option value="Card">Card</option>
+                      <option value="UPI">UPI</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -668,6 +1001,108 @@ export default function BillingTab() {
                     <i className="fa-solid fa-plus"></i> Add Item to Bill
                   </button>
                 </form>
+              )}
+
+              <hr className="details-divider" />
+
+              {/* Smart Substitute Finder */}
+              <h3
+                className="analytics-section-title"
+                style={{ marginTop: "20px" }}
+              >
+                <i className="fa-solid fa-wand-magic-sparkles text-primary-color" style={{ color: "var(--primary)" }}></i> Smart Substitute Finder
+              </h3>
+              <p className="subtitle" style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "12px" }}>
+                Find equivalent in-stock medicines by chemical composition (salt) when a drug is out of stock.
+              </p>
+              
+              <div
+                className="form-group"
+                style={{ position: "relative", marginBottom: "16px" }}
+              >
+                <label>Search by Salt / Composition</label>
+                <form onSubmit={handleFindSubstitutes} style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                  <input
+                    type="text"
+                    value={substituteQuery}
+                    onChange={(e) => setSubstituteQuery(e.target.value)}
+                    placeholder="Enter composition salt (e.g., Paracetamol)..."
+                    style={{ paddingRight: substituteQuery ? "65px" : "35px" }}
+                  />
+                  {substituteQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSubstituteQuery("");
+                        setSubstituteResults([]);
+                      }}
+                      style={{
+                        position: "absolute",
+                        right: "35px",
+                        background: "none",
+                        border: "none",
+                        color: "var(--text-secondary)",
+                        cursor: "pointer",
+                        fontSize: "16px",
+                        padding: "4px",
+                        zIndex: 5
+                      }}
+                      title="Clear search"
+                    >
+                      &times;
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    style={{
+                      position: "absolute",
+                      right: "8px",
+                      background: "none",
+                      border: "none",
+                      color: "var(--primary)",
+                      cursor: "pointer",
+                      padding: "6px",
+                      zIndex: 5,
+                      display: "flex",
+                      alignItems: "center"
+                    }}
+                    disabled={isSearchingSubstitutes}
+                    title="Search equivalents"
+                  >
+                    {isSearchingSubstitutes ? (
+                      <i className="fa-solid fa-spinner fa-spin"></i>
+                    ) : (
+                      <i className="fa-solid fa-magnifying-glass"></i>
+                    )}
+                  </button>
+                </form>
+              </div>
+
+              {substituteResults.length > 0 && (
+                <div className="perf-list" style={{ maxHeight: "250px", overflowY: "auto", paddingRight: "4px" }}>
+                  {substituteResults.map((med) => (
+                    <div
+                      key={med._id || med.id}
+                      className="perf-item"
+                      style={{ cursor: "pointer", marginBottom: "8px" }}
+                      onClick={() => handleSelectMedicine(med)}
+                      title={`Click to select ${med.name} for billing`}
+                    >
+                      <div className="perf-details">
+                        <div className="perf-name" style={{ fontWeight: "600", color: "var(--text-primary)" }}>{med.name}</div>
+                        <div className="perf-category" style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
+                          Salt: {med.composition} | Batch: {med.batch}
+                        </div>
+                      </div>
+                      <div className="perf-stats" style={{ textAlign: "right" }}>
+                        <div className="perf-value" style={{ fontWeight: "600", color: "var(--text-primary)" }}>₹{med.price.toFixed(2)}</div>
+                        <div className="perf-subtext" style={{ fontSize: "11px", color: "#10b981", fontWeight: "600", marginTop: "2px" }}>
+                          {med.quantity} in stock
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -1089,13 +1524,7 @@ export default function BillingTab() {
                         bills.map((bill) => (
                           <tr key={bill._id || bill.id}>
                             <td>
-                              {new Date(bill.billDate).toLocaleString("en-GB", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                              {formatDateTimeDisplay(bill.billDate)}
                             </td>
                             <td>
                               <code
@@ -1272,6 +1701,221 @@ export default function BillingTab() {
             </div>
           </div>
         )}
+
+        {billingSubTab === "settlement" && (
+          <div className="settlement-panel">
+            <div className="settlement-date-header">
+              <div>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700' }}>
+                  <i className="fa-solid fa-clock-rotate-left" style={{ marginRight: '8px', color: 'var(--primary)' }}></i>
+                  Shift Settlement for Simulated Date
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Reconcile cash drawer and payments for date: <strong>{new Date(simulatedDate).toLocaleDateString('en-GB')}</strong>
+                </p>
+              </div>
+              <button className="btn btn-outline btn-icon" onClick={generateSettlementPDF}>
+                <i className="fa-solid fa-file-pdf"></i> Download PDF Report
+              </button>
+            </div>
+
+            <div className="settlement-grid">
+              <div className="card-panel">
+                <h3 className="analytics-section-title" style={{ marginBottom: '16px' }}>
+                  <i className="fa-solid fa-chart-pie"></i> Payment Mode Breakdown
+                </h3>
+                
+                <div className="settlement-summary-metrics">
+                  <div className="financial-card card-month" style={{ padding: '10px 12px' }}>
+                    <span className="fin-label" style={{ fontSize: '8px' }}>Cash Sales</span>
+                    <h4 className="fin-value" style={{ fontSize: '13px', color: '#10b981' }}>₹{cashCollected.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h4>
+                  </div>
+                  <div className="financial-card card-month" style={{ padding: '10px 12px' }}>
+                    <span className="fin-label" style={{ fontSize: '8px' }}>Card Sales</span>
+                    <h4 className="fin-value" style={{ fontSize: '13px', color: '#3b82f6' }}>₹{cardCollected.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h4>
+                  </div>
+                  <div className="financial-card card-month" style={{ padding: '10px 12px' }}>
+                    <span className="fin-label" style={{ fontSize: '8px' }}>UPI Sales</span>
+                    <h4 className="fin-value" style={{ fontSize: '13px', color: '#8b5cf6' }}>₹{upiCollected.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h4>
+                  </div>
+                </div>
+
+                <div className="recon-box">
+                  <div className="recon-row">
+                    <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>Total Invoices Billed:</span>
+                    <span style={{ fontWeight: '700', fontSize: '14px' }}>{settlementBills.length}</span>
+                  </div>
+                  <div className="recon-row" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
+                    <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>Total Gross Sales:</span>
+                    <span style={{ fontWeight: '800', fontSize: '15px', color: 'var(--primary)' }}>₹{totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card-panel">
+                <h3 className="analytics-section-title" style={{ marginBottom: '16px' }}>
+                  <i className="fa-solid fa-cash-register"></i> Cash Drawer Reconciliation
+                </h3>
+
+                <div className="recon-box" style={{ background: 'transparent', padding: 0, border: 'none' }}>
+                  <div className="recon-row">
+                    <label htmlFor="opening-float-input">Opening Cash Float (₹)</label>
+                    <input
+                      type="number"
+                      id="opening-float-input"
+                      className="recon-input"
+                      value={openingFloat}
+                      onChange={(e) => setOpeningFloat(e.target.value)}
+                    />
+                  </div>
+                  <div className="recon-row">
+                    <span style={{ color: 'var(--text-muted)' }}>+ Cash Sales Collected (₹)</span>
+                    <span style={{ fontWeight: '700' }}>₹{cashCollected.toFixed(2)}</span>
+                  </div>
+                  <div className="recon-row" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
+                    <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>= Expected Cash in Drawer (₹)</span>
+                    <span style={{ fontWeight: '800', color: 'var(--text-primary)' }}>₹{expectedCash.toFixed(2)}</span>
+                  </div>
+                  <div className="recon-row" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
+                    <label htmlFor="counted-cash-input" style={{ color: 'var(--text-primary)', fontWeight: '700' }}>Counted Cash in Drawer (₹)</label>
+                    <input
+                      type="number"
+                      id="counted-cash-input"
+                      className="recon-input"
+                      style={{ borderColor: 'var(--primary)' }}
+                      value={countedCash}
+                      onChange={(e) => setCountedCash(e.target.value)}
+                    />
+                  </div>
+
+                  {discrepancy === 0 && (
+                    <div className="discrepancy-banner balanced">
+                      <span><i className="fa-solid fa-circle-check" style={{ marginRight: '6px' }}></i> Drawer Balanced</span>
+                      <span>₹0.00</span>
+                    </div>
+                  )}
+                  {discrepancy < 0 && (
+                    <div className="discrepancy-banner shortage">
+                      <span><i className="fa-solid fa-circle-exclamation" style={{ marginRight: '6px' }}></i> Cash Shortage</span>
+                      <span>-₹{Math.abs(discrepancy).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {discrepancy > 0 && (
+                    <div className="discrepancy-banner overage">
+                      <span><i className="fa-solid fa-circle-question" style={{ marginRight: '6px' }}></i> Cash Overage</span>
+                      <span>+₹{discrepancy.toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="settlement-checklist-card">
+              <div className="settlement-checklist-header">
+                <h3 className="analytics-section-title" style={{ margin: 0 }}>
+                  <i className="fa-solid fa-list-check" style={{ color: "var(--primary)" }}></i> Today's Invoice Checklist
+                </h3>
+                <div className="checklist-search-wrapper">
+                  <i className="fa-solid fa-magnifying-glass"></i>
+                  <input
+                    type="text"
+                    className="checklist-search-input"
+                    placeholder="Search invoices, names, mobiles..."
+                    value={checklistSearch}
+                    onChange={(e) => setChecklistSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="table-responsive" style={{ maxHeight: '280px', overflowY: 'auto' }}>
+                <table className="checklist-table">
+                  <thead>
+                    <tr>
+                      <th><i className="fa-solid fa-hashtag" style={{ marginRight: '6px' }}></i>Invoice No</th>
+                      <th><i className="fa-regular fa-clock" style={{ marginRight: '6px' }}></i>Date &amp; Time</th>
+                      <th><i className="fa-regular fa-user" style={{ marginRight: '6px' }}></i>Patient Name</th>
+                      <th><i className="fa-solid fa-wallet" style={{ marginRight: '6px' }}></i>Payment Mode</th>
+                      <th style={{ textAlign: 'right' }}><i className="fa-solid fa-indian-rupee-sign" style={{ marginRight: '6px' }}></i>Total</th>
+                      <th style={{ textAlign: 'center', width: '60px' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredSettlementBills.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px 0' }}>
+                          No matching invoices found.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredSettlementBills.map((b) => {
+                        let paymentIcon = "fa-solid fa-money-bill-wave";
+                        if (b.paymentMode === "Card") paymentIcon = "fa-solid fa-credit-card";
+                        if (b.paymentMode === "UPI") paymentIcon = "fa-solid fa-qrcode";
+                        
+                        return (
+                          <tr
+                            key={b._id}
+                            className="checklist-row"
+                            onClick={() => {
+                              setSelectedBill(b);
+                              setIsDetailsOpen(true);
+                            }}
+                            title="Click to view full invoice details"
+                          >
+                            <td>
+                              <span className="checklist-invoice-badge">
+                                <i className="fa-solid fa-receipt"></i>
+                                {b.invoiceNo}
+                              </span>
+                            </td>
+                            <td>
+                              <span className="checklist-time">
+                                <i className="fa-regular fa-clock"></i>
+                                {formatDateTimeDisplay(b.billDate)}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="checklist-patient">
+                                <i className="fa-regular fa-user" style={{ color: 'var(--text-secondary)', fontSize: '12px' }}></i>
+                                <span>{b.patientName}</span>
+                                {b.patientMobile && (
+                                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '4px' }}>
+                                    ({b.patientMobile})
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td>
+                              <span className={`payment-badge-pill ${b.paymentMode ? b.paymentMode.toLowerCase() : 'cash'}`}>
+                                <i className={paymentIcon}></i>
+                                {b.paymentMode || 'Cash'}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <span className="checklist-amount">₹{b.netTotal.toFixed(2)}</span>
+                            </td>
+                            <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                              <button
+                                className="checklist-action-btn"
+                                title="View Bill Details"
+                                onClick={() => {
+                                  setSelectedBill(b);
+                                  setIsDetailsOpen(true);
+                                }}
+                              >
+                                <i className="fa-solid fa-eye"></i>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── BILL DETAILS MODAL ────────────────────────────────────────────── */}
@@ -1405,7 +2049,7 @@ export default function BillingTab() {
                   </div>
                   <div style={{ fontSize: "11px", color: "#555555" }}>
                     Date:{" "}
-                    {new Date(selectedBill.billDate).toLocaleString("en-GB")}
+                    {formatDateTimeDisplay(selectedBill.billDate)}
                   </div>
                 </div>
               </div>
@@ -1885,6 +2529,274 @@ export default function BillingTab() {
           </div>
         </div>
       </div>
+
+      {/* ── PRINT-ONLY SETTLEMENT REPORT LAYOUT ───────────────────────────────── */}
+      <div className="print-only settlement-print-wrapper">
+        <div className="settlement-print-header">
+          <div>
+            <h1 className="settlement-print-title" style={{ fontSize: '18px', fontWeight: '800', margin: 0 }}>ANIKA PHARMACY</h1>
+            <p style={{ margin: '2px 0 0', fontSize: '9px', color: '#555' }}>Pandeybaba bazar, Kadipur Road | Sultanpur, UP - 228145</p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <h2 style={{ fontSize: '14px', fontWeight: '700', margin: 0 }}>SHIFT CLOSING REPORT</h2>
+            <p style={{ margin: '2px 0 0', fontSize: '9px', color: '#555' }}>Date: {new Date(simulatedDate).toLocaleDateString('en-GB')}</p>
+          </div>
+        </div>
+
+        <div className="settlement-print-grid">
+          <div className="settlement-print-block">
+            <h4>SHIFT SALES SUMMARY</h4>
+            <div className="settlement-print-row">
+              <strong>Total Bills Count:</strong>
+              <span>{settlementBills.length} Invoices</span>
+            </div>
+            <div className="settlement-print-row">
+              <strong>Cash Revenue Collected:</strong>
+              <span>₹{cashCollected.toFixed(2)}</span>
+            </div>
+            <div className="settlement-print-row">
+              <strong>Card Revenue Collected:</strong>
+              <span>₹{cardCollected.toFixed(2)}</span>
+            </div>
+            <div className="settlement-print-row">
+              <strong>UPI Revenue Collected:</strong>
+              <span>₹{upiCollected.toFixed(2)}</span>
+            </div>
+            <div className="settlement-print-row" style={{ borderTop: '1px solid #ddd', paddingTop: '6px', marginTop: '6px', fontWeight: 'bold' }}>
+              <span>Total Shift Revenue:</span>
+              <span>₹{totalSales.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="settlement-print-block">
+            <h4>DRAWER RECONCILIATION</h4>
+            <div className="settlement-print-row">
+              <strong>Opening Float Cash:</strong>
+              <span>₹{floatVal.toFixed(2)}</span>
+            </div>
+            <div className="settlement-print-row">
+              <strong>+ Cash Sales Collected:</strong>
+              <span>₹{cashCollected.toFixed(2)}</span>
+            </div>
+            <div className="settlement-print-row" style={{ borderTop: '1px solid #ddd', paddingTop: '6px', marginTop: '6px' }}>
+              <strong>= Expected Cash in Drawer:</strong>
+              <span>₹{expectedCash.toFixed(2)}</span>
+            </div>
+            <div className="settlement-print-row">
+              <strong>Counted Cash in Drawer:</strong>
+              <span>₹{countVal.toFixed(2)}</span>
+            </div>
+            <div className="settlement-print-row" style={{ borderTop: '1px double #000', paddingTop: '6px', marginTop: '6px', fontWeight: 'bold' }}>
+              <span>Reconciliation Discrepancy:</span>
+              <span style={{ color: discrepancy === 0 ? '#10b981' : discrepancy < 0 ? '#ef4444' : '#f59e0b' }}>
+                {discrepancy === 0 ? '₹0.00 (Balanced)' : discrepancy < 0 ? `-₹${Math.abs(discrepancy).toFixed(2)} (Shortage)` : `+₹${discrepancy.toFixed(2)} (Overage)`}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h4 style={{ fontSize: '11px', fontWeight: '700', borderBottom: '1px solid #000', paddingBottom: '4px', marginBottom: '8px' }}>SHIFT TRANSACTION LIST</h4>
+          <table className="settlement-print-table">
+            <thead>
+              <tr>
+                <th style={{ borderBottom: '1.5px solid #000' }}>Invoice No</th>
+                <th style={{ borderBottom: '1.5px solid #000' }}>Date &amp; Time</th>
+                <th style={{ borderBottom: '1.5px solid #000' }}>Patient Name</th>
+                <th style={{ borderBottom: '1.5px solid #000' }}>Payment Mode</th>
+                <th style={{ borderBottom: '1.5px solid #000', textAnchor: 'middle', textAlign: 'right' }}>Amount (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {settlementBills.length === 0 ? (
+                <tr>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '10px' }}>No transactions recorded for this shift.</td>
+                </tr>
+              ) : (
+                settlementBills.map((b) => (
+                  <tr key={b._id}>
+                    <td>{b.invoiceNo}</td>
+                    <td>{formatDateTimeDisplay(b.billDate)}</td>
+                    <td>{b.patientName}</td>
+                    <td>{b.paymentMode || 'Cash'}</td>
+                    <td style={{ textAlign: 'right' }}>₹{b.netTotal.toFixed(2)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ marginTop: '50px', display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
+          <div style={{ width: '40%', borderTop: '1px solid #000', textAlign: 'center', paddingTop: '6px' }}>
+            Cashier Signature (Administrator)
+          </div>
+          <div style={{ width: '40%', borderTop: '1px solid #000', textAlign: 'center', paddingTop: '6px' }}>
+            Store Manager Audit Signature
+          </div>
+        </div>
+      </div>
+
+      {/* ── PATIENT HISTORY LOOKUP MODAL ───────────────────────────────────── */}
+      {patientHistoryModalOpen && (
+        <div
+          className="modal-backdrop show"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "rgba(0,0,0,0.5)",
+          }}
+        >
+          <div
+            className="modal-card"
+            style={{
+              width: "90%",
+              maxWidth: "700px",
+              maxHeight: "85vh",
+            }}
+          >
+            <div className="modal-header">
+              <h3>Patient Purchase History</h3>
+              <button
+                className="modal-close-btn"
+                onClick={() => setPatientHistoryModalOpen(false)}
+                aria-label="Close modal"
+              >
+                &times;
+              </button>
+            </div>
+            
+            <div className="modal-form" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div className="form-group" style={{ marginBottom: "10px" }}>
+                <label>Lookup Phone Number / Patient Name</label>
+                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                  <i className="fa-solid fa-magnifying-glass" style={{ position: "absolute", left: "12px", color: "var(--text-muted)", zIndex: 1 }}></i>
+                  <input
+                    type="text"
+                    placeholder="Enter patient name or phone number..."
+                    value={patientMobile}
+                    onChange={async (e) => {
+                      const val = e.target.value;
+                      setPatientMobile(val);
+                      if (val.trim()) {
+                        setIsFetchingHistory(true);
+                        try {
+                          const { data } = await billApi.getAll({ search: val.trim(), limit: 50 });
+                          if (data.success) {
+                            setPatientHistoryBills(data.bills || []);
+                          }
+                        } catch (err) {
+                          console.error("Search history failed:", err);
+                        } finally {
+                          setIsFetchingHistory(false);
+                        }
+                      }
+                    }}
+                    style={{ paddingLeft: "36px" }}
+                  />
+                </div>
+              </div>
+
+              {isFetchingHistory ? (
+                <div style={{ textAlign: "center", padding: "40px 0" }}>
+                  <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: "28px", color: "var(--primary)" }}></i>
+                  <p style={{ marginTop: "12px", color: "var(--text-muted)", fontSize: "13px" }}>Retrieving past purchase logs...</p>
+                </div>
+              ) : patientHistoryBills.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>
+                  <i className="fa-solid fa-folder-open" style={{ fontSize: "36px", opacity: 0.5, marginBottom: "12px" }}></i>
+                  <p style={{ fontSize: "13px" }}>No purchase logs found for this query.</p>
+                </div>
+              ) : (
+                <div style={{ overflowY: "auto", maxHeight: "400px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                  {patientHistoryBills.map((bill) => (
+                    <div
+                      key={bill._id || bill.id}
+                      style={{
+                        background: "var(--bg-input)",
+                        border: "1px solid var(--border-color)",
+                        borderRadius: "10px",
+                        padding: "16px",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+                        <div>
+                          <strong style={{ fontSize: "14px", color: "var(--text-primary)" }}>
+                            Invoice: {bill.invoiceNo}
+                          </strong>
+                          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
+                            Patient: {bill.patientName} | Mobile: {bill.patientMobile || "N/A"}
+                          </div>
+                          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
+                            Date: {formatDateTimeDisplay(bill.billDate)} | Mode: {bill.paymentMode}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontWeight: "700", fontSize: "14px", color: "var(--primary)" }}>
+                            ₹{bill.netTotal.toFixed(2)}
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-small"
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              marginTop: "6px",
+                              padding: "4px 10px",
+                              fontSize: "11px",
+                              height: "26px",
+                              cursor: "pointer"
+                            }}
+                            onClick={() => handleRepeatBill(bill)}
+                          >
+                            <i className="fa-solid fa-copy"></i> Repeat Bill
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{ borderTop: "1px dashed var(--border-color)", paddingTop: "8px", marginTop: "8px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: "600", color: "var(--text-secondary)", textTransform: "uppercase" }}>
+                          Items Purchased:
+                        </span>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "6px 20px", marginTop: "6px" }}>
+                          {bill.items.map((item, idx) => (
+                            <React.Fragment key={idx}>
+                              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                                {item.name} <span style={{ color: "var(--text-muted)", fontSize: "10px" }}>(Batch: {item.batch})</span>
+                              </span>
+                              <span style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-primary)" }}>
+                                {item.quantity} x ₹{item.price.toFixed(2)}
+                              </span>
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer" style={{ borderTop: "1px solid var(--border-color)", padding: "16px 24px" }}>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setPatientHistoryModalOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

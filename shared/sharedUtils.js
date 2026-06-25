@@ -30,9 +30,30 @@ export function formatDateDisplay(dateStr) {
 export function formatDateTimeDisplay(dateStr) {
     if (!dateStr) return 'N/A';
     const date = new Date(dateStr);
-    const datePart = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-    const timePart = date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-    return `${datePart} ${timePart}`;
+    if (isNaN(date.getTime())) return 'N/A';
+    
+    // Day: e.g. 5
+    const day = date.getDate();
+    
+    // Month: e.g. June
+    const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+    const month = monthNames[date.getMonth()];
+    
+    // Year: e.g. 2026
+    const year = date.getFullYear();
+    
+    // Time format e.g. 03:00 PM
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // 0 hour should be 12
+    const strHours = String(hours).padStart(2, '0');
+    
+    return `${day} ${month} ${year} & ${strHours}:${minutes} ${ampm}`;
 }
 
 export function getExpiryStatus(daysLeft) {

@@ -92,13 +92,25 @@ async function autoSeedIfNeeded() {
       const DEFAULT_PASSWORD = "admin@123";
 
       const admins = [
-        { email: "admin@anika.yopmail.com", passwordHash: DEFAULT_PASSWORD, role: "admin" },
-        { email: "avinashverma2408@gmail.com", passwordHash: DEFAULT_PASSWORD, role: "admin" },
+        {
+          email: "admin@anika.yopmail.com",
+          passwordHash: DEFAULT_PASSWORD,
+          role: "admin",
+        },
+        {
+          email: "avinashverma2408@gmail.com",
+          passwordHash: DEFAULT_PASSWORD,
+          role: "admin",
+        },
       ];
 
       // Create each admin if not already present (User.countDocuments was 0, so none exist)
       const createdAdmins = await User.create(admins);
-      createdAdmins.forEach(u => console.log(`👤 Admin created: ${u.email} (password: ${DEFAULT_PASSWORD})`));
+      createdAdmins.forEach((u) =>
+        console.log(
+          `👤 Admin created: ${u.email} (password: ${DEFAULT_PASSWORD})`,
+        ),
+      );
     } else {
       console.log(
         "✅ Database already contains user data. Skipping user seeding.",
@@ -128,6 +140,7 @@ async function autoSeedIfNeeded() {
           hsn: "30045033",
           pack: "1*15",
           gstRate: 5,
+          composition: "Paracetamol",
         },
         {
           name: "Amoxicillin 250mg Capsules",
@@ -142,6 +155,7 @@ async function autoSeedIfNeeded() {
           hsn: "300490",
           pack: "1*10",
           gstRate: 5,
+          composition: "Amoxicillin",
         },
         {
           name: "Cough Syrup Pediatric (Benadryl)",
@@ -156,6 +170,7 @@ async function autoSeedIfNeeded() {
           hsn: "30049094",
           pack: "1*15",
           gstRate: 5,
+          composition: "Diphenhydramine",
         },
         {
           name: "Influenza Vaccine (Flu Shield)",
@@ -170,6 +185,7 @@ async function autoSeedIfNeeded() {
           hsn: "3004",
           pack: "1*30",
           gstRate: 5,
+          composition: "Influenza Vaccine",
         },
         {
           name: "Vitamin C Chewable (Limcee)",
@@ -184,6 +200,7 @@ async function autoSeedIfNeeded() {
           hsn: "30045033",
           pack: "1*15",
           gstRate: 5,
+          composition: "Vitamin C",
         },
         {
           name: "Metformin 500mg",
@@ -198,6 +215,7 @@ async function autoSeedIfNeeded() {
           hsn: "30045033",
           pack: "1*10",
           gstRate: 5,
+          composition: "Metformin",
         },
         {
           name: "Azithromycin 250mg",
@@ -212,6 +230,7 @@ async function autoSeedIfNeeded() {
           hsn: "30049011",
           pack: "1*10",
           gstRate: 5,
+          composition: "Azithromycin",
         },
         {
           name: "Betadine Antiseptic Solution",
@@ -226,6 +245,7 @@ async function autoSeedIfNeeded() {
           hsn: "30049099",
           pack: "1*50GM",
           gstRate: 5,
+          composition: "Povidone-Iodine",
         },
         {
           name: "Insulin Regular (Humulin)",
@@ -240,6 +260,7 @@ async function autoSeedIfNeeded() {
           hsn: "3004",
           pack: "1*10",
           gstRate: 5,
+          composition: "Insulin",
         },
         {
           name: "Calamine Lotion",
@@ -254,6 +275,82 @@ async function autoSeedIfNeeded() {
           hsn: "3004",
           pack: "1*10",
           gstRate: 5,
+          composition: "Calamine",
+        },
+        {
+          name: "Dolo 650mg Tablets",
+          category: "Tablet",
+          batch: "DO-650",
+          price: 30,
+          quantity: 150,
+          expiryDate: addDays(60),
+          status: "Active",
+          stockistName: "Micro Labs",
+          ptr: 20.0,
+          hsn: "30045033",
+          pack: "1*15",
+          gstRate: 5,
+          composition: "Paracetamol",
+        },
+        {
+          name: "Calpol 500mg",
+          category: "Tablet",
+          batch: "CA-500",
+          price: 16,
+          quantity: 200,
+          expiryDate: addDays(40),
+          status: "Active",
+          stockistName: "GSK India",
+          ptr: 11.2,
+          hsn: "30045033",
+          pack: "1*15",
+          gstRate: 5,
+          composition: "Paracetamol",
+        },
+        {
+          name: "Celin 500mg (Vitamin C)",
+          category: "Tablet",
+          batch: "CE-500",
+          price: 38,
+          quantity: 180,
+          expiryDate: addDays(150),
+          status: "Active",
+          stockistName: "GSK India",
+          ptr: 25.5,
+          hsn: "30045033",
+          pack: "1*25",
+          gstRate: 5,
+          composition: "Vitamin C",
+        },
+        {
+          name: "Azee 500mg",
+          category: "Tablet",
+          batch: "AZ-500",
+          price: 220,
+          quantity: 60,
+          expiryDate: addDays(30),
+          status: "Active",
+          stockistName: "Cipla Ltd",
+          ptr: 165.0,
+          hsn: "30049011",
+          pack: "1*5",
+          gstRate: 5,
+          composition: "Azithromycin",
+        },
+        {
+          name: "Glycomet 500mg",
+          category: "Tablet",
+          batch: "GL-500",
+          price: 28,
+          quantity: 250,
+          expiryDate: addDays(110),
+          status: "Active",
+          stockistName: "USV Biotech",
+          ptr: 19.6,
+          hsn: "30045033",
+          pack: "1*10",
+          gstRate: 5,
+          composition: "Metformin",
         },
       ];
       await Medicine.insertMany(MEDICINES);

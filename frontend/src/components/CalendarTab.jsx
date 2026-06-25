@@ -119,7 +119,8 @@ export default function CalendarTab() {
                         </button>
                     </div>
 
-                    <button className="btn btn-outline btn-small" onClick={handleResetToToday}>
+                    <button className="reset-system-date-btn" onClick={handleResetToToday} style={{ marginLeft: 0 }}>
+                        <i className="fa-solid fa-clock-rotate-left"></i>
                         Back to System Date
                     </button>
                 </div>

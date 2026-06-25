@@ -54,10 +54,21 @@ const billSchema = new mongoose.Schema({
         default: 'CASH CUSTOMER',
         trim: true
     },
+    patientMobile: {
+        type: String,
+        default: '',
+        trim: true
+    },
     patientAddress: {
         type: String,
         default: '',
         trim: true
+    },
+    paymentMode: {
+        type: String,
+        required: true,
+        enum: ['Cash', 'Card', 'UPI'],
+        default: 'Cash'
     },
     billDate: {
         type: Date,
@@ -104,7 +115,7 @@ const billSchema = new mongoose.Schema({
 });
 
 // Indexes for fast querying
-billSchema.index({ patientName: 'text', invoiceNo: 'text' });
+billSchema.index({ patientName: 'text', invoiceNo: 'text', patientMobile: 'text' });
 billSchema.index({ billDate: -1 });
 
 module.exports = mongoose.model('Bill', billSchema);

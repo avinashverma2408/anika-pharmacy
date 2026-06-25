@@ -11,16 +11,22 @@ import('../../shared/sharedUtils.js').then(utils => {
 // GET /api/medicines
 exports.getMedicines = async (req, res) => {
     try {
-        const { search, category, status, expiry, sort = 'createdAt', order = 'desc' } = req.query;
+        const { search, category, status, expiry, composition, sort = 'createdAt', order = 'desc' } = req.query;
 
         const filter = {};
 
-        // Text search on name or batch
+        // Text search on name, batch, or composition
         if (search && search.trim()) {
             filter.$or = [
                 { name: { $regex: search.trim(), $options: 'i' } },
-                { batch: { $regex: search.trim(), $options: 'i' } }
+                { batch: { $regex: search.trim(), $options: 'i' } },
+                { composition: { $regex: search.trim(), $options: 'i' } }
             ];
+        }
+
+        // Filter by exact composition
+        if (composition && composition.trim()) {
+            filter.composition = { $regex: composition.trim(), $options: 'i' };
         }
 
         if (category && category !== 'all') filter.category = category;
@@ -141,13 +147,14 @@ exports.getMedicineCounts = async (req, res) => {
 // POST /api/medicines
 exports.addMedicine = async (req, res) => {
     try {
-        const { name, category, batch, price, quantity, expiryDate, status, stockistName, ptr, hsn, pack, gstRate } = req.body;
+        const { name, category, batch, price, quantity, expiryDate, status, stockistName, ptr, hsn, pack, gstRate, composition } = req.body;
 
         const medicine = await Medicine.create({
             name, category, batch, price: parseFloat(price),
             quantity: parseInt(quantity), expiryDate, status,
             stockistName, ptr: ptr ? parseFloat(ptr) : 0,
-            hsn, pack, gstRate: gstRate ? parseFloat(gstRate) : 5
+            hsn, pack, gstRate: gstRate ? parseFloat(gstRate) : 5,
+            composition
         });
 
         // Trigger expiry check for the new medicine
@@ -170,7 +177,7 @@ exports.addMedicine = async (req, res) => {
 // PUT /api/medicines/:id
 exports.updateMedicine = async (req, res) => {
     try {
-        const { name, category, batch, price, quantity, expiryDate, status, stockistName, ptr, hsn, pack, gstRate } = req.body;
+        const { name, category, batch, price, quantity, expiryDate, status, stockistName, ptr, hsn, pack, gstRate, composition } = req.body;
 
         const medicine = await Medicine.findByIdAndUpdate(
             req.params.id,
@@ -178,7 +185,8 @@ exports.updateMedicine = async (req, res) => {
                 name, category, batch, price: parseFloat(price), 
                 quantity: parseInt(quantity), expiryDate, status,
                 stockistName, ptr: ptr ? parseFloat(ptr) : 0,
-                hsn, pack, gstRate: gstRate ? parseFloat(gstRate) : 5
+                hsn, pack, gstRate: gstRate ? parseFloat(gstRate) : 5,
+                composition
             },
             { new: true, runValidators: true }
         );

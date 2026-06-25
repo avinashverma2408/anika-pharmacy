@@ -482,7 +482,8 @@ export const usePharmacyStore = create((set, get) => ({
       }
       return { success: false, message: data.message };
     } catch (err) {
-      const msg = err.response?.data?.message || "Failed to save invoice record.";
+      const msg =
+        err.response?.data?.message || "Failed to save invoice record.";
       showSimpleToast("Database Save Error", msg, "danger");
       return { success: false, message: msg };
     }

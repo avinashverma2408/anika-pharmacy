@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { usePharmacyStore, formatDateDisplay } from '../store/usePharmacyStore';
+import { usePharmacyStore, formatDateDisplay, getLocalDateString } from '../store/usePharmacyStore';
 
 export default function Header() {
     const { 
         theme, 
         toggleTheme, 
         simulatedDate, 
+        setSimulatedDate,
         notifications, 
         clearNotifications, 
         markAllNotificationsRead,
@@ -87,7 +88,7 @@ export default function Header() {
                                 notifications.slice(0, 5).map(n => {
                                     let iconBg = "bg-primary";
                                     let icon = "fa-bell";
-                                    if (n.severity === "critical") { iconBg = "bg-danger"; icon = "fa-circle-xmark"; }
+                                    if (n.severity === "critical") { iconBg = "bg-primary"; icon = "fa-bell"; }
                                     else if (n.severity === "orange") { iconBg = "bg-warning"; icon = "fa-triangle-exclamation"; }
 
                                     return (
@@ -143,6 +144,16 @@ export default function Header() {
                         <span className="date-label">System Date</span>
                         <span className="date-value" id="current-system-date">{formatDateDisplay(simulatedDate)}</span>
                     </div>
+                    {simulatedDate !== getLocalDateString(new Date()) && (
+                        <button
+                            className="reset-system-date-btn"
+                            onClick={() => setSimulatedDate(getLocalDateString(new Date()))}
+                            title="Reset to real system date"
+                        >
+                            <i className="fa-solid fa-clock-rotate-left"></i>
+                            Back to Safety
+                        </button>
+                    )}
                 </div>
             </div>
         </header>

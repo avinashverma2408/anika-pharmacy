@@ -34,6 +34,7 @@ export default function ProductModals() {
   const [addHsn, setAddHsn] = useState("");
   const [addPack, setAddPack] = useState("");
   const [addGstRate, setAddGstRate] = useState("5");
+  const [addComposition, setAddComposition] = useState("");
 
   // Edit Form Local States
   const [editName, setEditName] = useState("");
@@ -48,6 +49,7 @@ export default function ProductModals() {
   const [editHsn, setEditHsn] = useState("");
   const [editPack, setEditPack] = useState("");
   const [editGstRate, setEditGstRate] = useState("5");
+  const [editComposition, setEditComposition] = useState("");
 
   // Populate edit form when product loads
   useEffect(() => {
@@ -72,6 +74,7 @@ export default function ProductModals() {
           ? String(editingProduct.gstRate)
           : "5",
       );
+      setEditComposition(editingProduct.composition || "");
     }
   }, [editingProduct]);
 
@@ -90,6 +93,7 @@ export default function ProductModals() {
       hsn: addHsn,
       pack: addPack,
       gstRate: addGstRate,
+      composition: addComposition,
     });
     if (success) {
       setAddName("");
@@ -104,6 +108,7 @@ export default function ProductModals() {
       setAddHsn("");
       setAddPack("");
       setAddGstRate("5");
+      setAddComposition("");
     }
   };
 
@@ -123,6 +128,7 @@ export default function ProductModals() {
       hsn: editHsn,
       pack: editPack,
       gstRate: editGstRate,
+      composition: editComposition,
     });
   };
 
@@ -157,6 +163,19 @@ export default function ProductModals() {
                   placeholder="e.g., Crocin Pain Relief"
                   value={addName}
                   onChange={(e) => setAddName(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group col-span-2">
+                <label htmlFor="add-composition">
+                  Composition / Salt Form
+                </label>
+                <input
+                  type="text"
+                  id="add-composition"
+                  placeholder="e.g., Paracetamol 500mg + Caffeine 50mg"
+                  value={addComposition}
+                  onChange={(e) => setAddComposition(e.target.value)}
                 />
               </div>
 
@@ -370,6 +389,19 @@ export default function ProductModals() {
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group col-span-2">
+                <label htmlFor="edit-composition">
+                  Composition / Salt Form
+                </label>
+                <input
+                  type="text"
+                  id="edit-composition"
+                  placeholder="e.g., Paracetamol 500mg + Caffeine 50mg"
+                  value={editComposition}
+                  onChange={(e) => setEditComposition(e.target.value)}
                 />
               </div>
 

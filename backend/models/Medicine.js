@@ -76,6 +76,11 @@ const medicineSchema = new mongoose.Schema({
         min: [0, 'GST Rate cannot be negative'],
         max: [100, 'GST Rate cannot exceed 100%'],
         default: 5
+    },
+    composition: {
+        type: String,
+        trim: true,
+        default: ''
     }
 }, {
     timestamps: true,

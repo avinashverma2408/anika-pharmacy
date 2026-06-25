@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePharmacyStore, calculateDaysDifference, formatDateDisplay, getExpiryStatus } from '../store/usePharmacyStore';
 
 export default function DashboardTab() {
@@ -218,15 +218,23 @@ export default function DashboardTab() {
             breakdown.push({
                 label,
                 revenue: matchedDbMonth ? matchedDbMonth.revenue : 0,
+                profit: matchedDbMonth ? matchedDbMonth.profit : 0,
                 count: matchedDbMonth ? matchedDbMonth.count : 0
             });
         }
         return breakdown;
     };
 
-    const monthlyBreakdown = getDynamicMonthlyBreakdown();
+    const [chartMetric, setChartMetric] = useState('revenue'); // 'revenue' or 'profit'
 
-    const maxRevenue = Math.max(...monthlyBreakdown.map(d => d.revenue), 1);
+    const monthlyBreakdown = getDynamicMonthlyBreakdown();
+    const currentMonthData = monthlyBreakdown[monthlyBreakdown.length - 1];
+    const previousMonthData = monthlyBreakdown[monthlyBreakdown.length - 2];
+    const currentMonthVal = currentMonthData ? (chartMetric === 'revenue' ? currentMonthData.revenue : currentMonthData.profit) : 0;
+    const prevMonthVal = previousMonthData ? (chartMetric === 'revenue' ? previousMonthData.revenue : previousMonthData.profit) : 0;
+    const percentageChange = prevMonthVal > 0 ? ((currentMonthVal - prevMonthVal) / prevMonthVal) * 100 : 0;
+
+    const maxVal = Math.max(...monthlyBreakdown.map(d => chartMetric === 'revenue' ? d.revenue : d.profit), 1);
     
     // SVG Bar Chart Dimensions
     const chartWidth = 500;
@@ -245,11 +253,18 @@ export default function DashboardTab() {
     const lifetimeRevenue = billStats?.lifetimeRevenue || 0;
     const lifetimeBills = billStats?.lifetimeBills || 0;
     const currentMonthRevenue = billStats?.currentMonthRevenue || 0;
+    
+    const lifetimeProfit = billStats?.lifetimeProfit || 0;
+    const currentMonthProfit = billStats?.currentMonthProfit || 0;
+    const topSelling = billStats?.topSelling || [];
+    const topProfitable = billStats?.topProfitable || [];
+    const avgProfitMargin = lifetimeRevenue > 0 ? (lifetimeProfit / lifetimeRevenue) * 100 : 0;
 
     // Calculate line coordinates overlay on the bar chart
     const trendLinePoints = monthlyBreakdown.map((item, i) => {
         const x = paddingLeft + i * (barWidth + barGap) + barWidth / 2;
-        const barHeight = (item.revenue / maxRevenue) * graphHeight;
+        const val = chartMetric === 'revenue' ? item.revenue : item.profit;
+        const barHeight = (val / maxVal) * graphHeight;
         const y = paddingTop + graphHeight - barHeight;
         return { x, y };
     });
@@ -331,10 +346,39 @@ export default function DashboardTab() {
             <div className="dashboard-analytics-section">
                 {/* Left Panel: Revenue Chart */}
                 <div className="analytics-card card-panel">
-                    <div className="analytics-card-header">
+                    <div className="analytics-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
                         <div className="panel-title-group">
-                            <i className="fa-solid fa-chart-column panel-icon" style={{ color: 'var(--primary)' }}></i>
-                            <h3>Monthly Sales &amp; Revenue Trend</h3>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <i className="fa-solid fa-chart-column panel-icon" style={{ color: chartMetric === 'revenue' ? 'var(--primary)' : '#10b981' }}></i>
+                                <h3 style={{ margin: 0 }}>{chartMetric === 'revenue' ? 'Monthly Sales & Revenue Trend' : 'Monthly Net Profit Trend'}</h3>
+                            </div>
+                            <div className="trend-summary-highlights">
+                                <span className="trend-highlight-label">This Month:</span>
+                                <span className="trend-highlight-value" style={{ color: chartMetric === 'revenue' ? 'var(--primary)' : '#10b981', fontWeight: '700' }}>
+                                    ₹{currentMonthVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </span>
+                                {prevMonthVal > 0 && (
+                                    <span className={`trend-highlight-badge ${percentageChange >= 0 ? 'up' : 'down'}`}>
+                                        <i className={percentageChange >= 0 ? "fa-solid fa-arrow-trend-up" : "fa-solid fa-arrow-trend-down"}></i>
+                                        {percentageChange >= 0 ? '+' : ''}{percentageChange.toFixed(1)}% MoM
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        
+                        <div className="chart-metric-selector">
+                            <button 
+                                className={`metric-btn ${chartMetric === 'revenue' ? 'active' : ''}`}
+                                onClick={() => setChartMetric('revenue')}
+                            >
+                                Revenue
+                            </button>
+                            <button 
+                                className={`metric-btn ${chartMetric === 'profit' ? 'active profit' : ''}`}
+                                onClick={() => setChartMetric('profit')}
+                            >
+                                Profit
+                            </button>
                         </div>
                     </div>
                     
@@ -342,22 +386,22 @@ export default function DashboardTab() {
                         <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="analytics-svg-chart">
                             <defs>
                                 <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.85" />
-                                    <stop offset="100%" stopColor="var(--primary-hover)" stopOpacity="0.95" />
+                                    <stop offset="0%" stopColor={chartMetric === 'revenue' ? "var(--primary)" : "#10b981"} stopOpacity="0.85" />
+                                    <stop offset="100%" stopColor={chartMetric === 'revenue' ? "var(--primary-hover)" : "#059669"} stopOpacity="0.95" />
                                 </linearGradient>
                                 <linearGradient id="trendLineGrad" x1="0" y1="0" x2="1" y2="0">
-                                    <stop offset="0%" stopColor="#d946ef" />
-                                    <stop offset="100%" stopColor="#06b6d4" />
+                                    <stop offset="0%" stopColor={chartMetric === 'revenue' ? "#d946ef" : "#10b981"} />
+                                    <stop offset="100%" stopColor={chartMetric === 'revenue' ? "#06b6d4" : "#34d399"} />
                                 </linearGradient>
                                 <linearGradient id="chartAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#d946ef" stopOpacity="0.22" />
-                                    <stop offset="100%" stopColor="#d946ef" stopOpacity="0.0" />
+                                    <stop offset="0%" stopColor={chartMetric === 'revenue' ? "#d946ef" : "#10b981"} stopOpacity="0.22" />
+                                    <stop offset="100%" stopColor={chartMetric === 'revenue' ? "#d946ef" : "#10b981"} stopOpacity="0.0" />
                                 </linearGradient>
                                 <filter id="barShadow" x="-20%" y="-10%" width="140%" height="120%">
-                                    <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="var(--primary)" floodOpacity="0.25" />
+                                    <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor={chartMetric === 'revenue' ? "var(--primary)" : "#10b981"} floodOpacity="0.25" />
                                 </filter>
                                 <filter id="lineGlow" x="-20%" y="-20%" width="140%" height="140%">
-                                    <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#ec4899" floodOpacity="0.4" />
+                                    <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor={chartMetric === 'revenue' ? "#ec4899" : "#10b981"} floodOpacity="0.4" />
                                 </filter>
                             </defs>
 
@@ -373,7 +417,7 @@ export default function DashboardTab() {
                             {/* Grid Lines */}
                             {[0, 0.25, 0.5, 0.75, 1].map((pct, idx) => {
                                 const y = paddingTop + graphHeight * (1 - pct);
-                                const val = Math.round(maxRevenue * pct);
+                                const val = Math.round(maxVal * pct);
                                 return (
                                     <g key={idx} className="chart-grid-line-group">
                                         <line 
@@ -401,7 +445,8 @@ export default function DashboardTab() {
                             {/* Chart Bars */}
                             {monthlyBreakdown.map((item, i) => {
                                 const x = paddingLeft + i * (barWidth + barGap);
-                                const barHeight = (item.revenue / maxRevenue) * graphHeight;
+                                const val = chartMetric === 'revenue' ? item.revenue : item.profit;
+                                const barHeight = (val / maxVal) * graphHeight;
                                 const y = paddingTop + graphHeight - barHeight;
                                 
                                 return (
@@ -438,7 +483,7 @@ export default function DashboardTab() {
                                                 width={barWidth} 
                                                 height="4" 
                                                 rx="2" 
-                                                fill="#38bdf8" 
+                                                fill={chartMetric === 'revenue' ? "#38bdf8" : "#34d399"} 
                                                 opacity="0.85"
                                             />
                                         )}
@@ -463,7 +508,7 @@ export default function DashboardTab() {
                                                 height={38} 
                                                 rx="6" 
                                                 fill="var(--bg-card-hover)" 
-                                                stroke="var(--primary)" 
+                                                stroke={chartMetric === 'revenue' ? "var(--primary)" : "#10b981"} 
                                                 strokeWidth="1"
                                                 style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
                                             />
@@ -475,7 +520,7 @@ export default function DashboardTab() {
                                                 fontSize="10" 
                                                 fontWeight="bold"
                                             >
-                                                ₹{item.revenue.toLocaleString('en-IN')}
+                                                ₹{val.toLocaleString('en-IN')}
                                             </text>
                                             <text 
                                                 x={x + barWidth / 2} 
@@ -504,6 +549,18 @@ export default function DashboardTab() {
                                 />
                             )}
                         </svg>
+                        
+                        {/* Premium Chart Legend */}
+                        <div className="chart-legend-container" style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginTop: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+                            <div className="chart-legend-item" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '3px', background: chartMetric === 'revenue' ? 'var(--primary)' : '#10b981' }}></span>
+                                <span>{chartMetric === 'revenue' ? 'Monthly Revenue (Bars)' : 'Monthly Net Profit (Bars)'}</span>
+                            </div>
+                            <div className="chart-legend-item" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                <span style={{ display: 'inline-block', width: '20px', height: '3px', borderRadius: '1.5px', background: chartMetric === 'revenue' ? '#d946ef' : '#10b981' }}></span>
+                                <span>Smoothed Trend Line</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
  
@@ -549,7 +606,7 @@ export default function DashboardTab() {
                         })}
                     </div>
                     
-                    <div className="analytics-financial-summary">
+                    <div className="analytics-financial-summary" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                         <div className="financial-card card-month">
                             <div className="fin-card-header">
                                 <span className="fin-label">Current Month Sales</span>
@@ -570,6 +627,28 @@ export default function DashboardTab() {
                                 <div className="fin-icon-wrap bg-warning-glow"><i className="fa-solid fa-file-invoice text-warning-color"></i></div>
                             </div>
                             <h4 className="fin-value">{lifetimeBills}</h4>
+                        </div>
+                        
+                        <div className="financial-card card-month-profit">
+                            <div className="fin-card-header">
+                                <span className="fin-label">Current Month Profit</span>
+                                <div className="fin-icon-wrap bg-profit-glow"><i className="fa-solid fa-money-bill-trend-up"></i></div>
+                            </div>
+                            <h4 className="fin-value" style={{ color: '#10b981' }}>₹{currentMonthProfit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h4>
+                        </div>
+                        <div className="financial-card card-lifetime-profit">
+                            <div className="fin-card-header">
+                                <span className="fin-label">Lifetime Profit</span>
+                                <div className="fin-icon-wrap bg-month-profit-glow"><i className="fa-solid fa-vault"></i></div>
+                            </div>
+                            <h4 className="fin-value" style={{ color: '#8b5cf6' }}>₹{lifetimeProfit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h4>
+                        </div>
+                        <div className="financial-card card-margin">
+                            <div className="fin-card-header">
+                                <span className="fin-label">Avg Profit Margin</span>
+                                <div className="fin-icon-wrap bg-margin-glow"><i className="fa-solid fa-percent"></i></div>
+                            </div>
+                            <h4 className="fin-value" style={{ color: '#f59e0b' }}>{avgProfitMargin.toFixed(2)}%</h4>
                         </div>
                     </div>
                 </div>
@@ -754,6 +833,72 @@ export default function DashboardTab() {
                         <div className="info-text">
                             <h4>Notifications Policy</h4>
                             <p>This application will alert you in real-time. Make sure to allow browser notification permissions for system tray desktop popups!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Product Performance Analytics Panel */}
+            <div className="card-panel mt-4" style={{ marginTop: '24px' }}>
+                <div className="panel-header">
+                    <div className="panel-title-group">
+                        <i className="fa-solid fa-ranking-star panel-icon text-primary" style={{ color: 'var(--primary)' }}></i>
+                        <h3>Product Performance Analytics</h3>
+                    </div>
+                </div>
+                
+                <div className="performance-grid">
+                    {/* Top Selling Medicines */}
+                    <div className="perf-sub-panel">
+                        <h4><i className="fa-solid fa-fire text-orange" style={{ color: 'var(--orange)' }}></i> Top Selling Products (By Volume)</h4>
+                        <div className="perf-list">
+                            {topSelling.length === 0 ? (
+                                <div className="empty-state" style={{ padding: '20px', textAlign: 'center' }}>
+                                    <i className="fa-solid fa-chart-bar text-muted" style={{ fontSize: '24px', opacity: 0.5, marginBottom: '8px' }}></i>
+                                    <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No sales recorded yet.</p>
+                                </div>
+                            ) : (
+                                topSelling.map((med, idx) => (
+                                    <div key={idx} className="perf-item">
+                                        <div className="perf-rank">#{idx + 1}</div>
+                                        <div className="perf-details">
+                                            <div className="perf-name">{med._id}</div>
+                                            <div className="perf-category">{med.category}</div>
+                                        </div>
+                                        <div className="perf-stats">
+                                            <div className="perf-value">{med.quantity} Units</div>
+                                            <div className="perf-subtext">Sales: ₹{med.sales.toLocaleString('en-IN')}</div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Most Profitable Medicines */}
+                    <div className="perf-sub-panel">
+                        <h4><i className="fa-solid fa-gem text-success" style={{ color: '#10b981' }}></i> Most Profitable Products (Net Profit Contribution)</h4>
+                        <div className="perf-list">
+                            {topProfitable.length === 0 ? (
+                                <div className="empty-state" style={{ padding: '20px', textAlign: 'center' }}>
+                                    <i className="fa-solid fa-sack-dollar text-muted" style={{ fontSize: '24px', opacity: 0.5, marginBottom: '8px' }}></i>
+                                    <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No sales recorded yet.</p>
+                                </div>
+                            ) : (
+                                topProfitable.map((med, idx) => (
+                                    <div key={idx} className="perf-item profit-hover">
+                                        <div className="perf-rank" style={{ color: '#10b981' }}>#{idx + 1}</div>
+                                        <div className="perf-details">
+                                            <div className="perf-name">{med._id}</div>
+                                            <div className="perf-category">{med.category}</div>
+                                        </div>
+                                        <div className="perf-stats">
+                                            <div className="perf-value" style={{ color: '#10b981' }}>+₹{Math.round(med.profit).toLocaleString('en-IN')}</div>
+                                            <div className="perf-subtext">Sales: ₹{med.sales.toLocaleString('en-IN')}</div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>

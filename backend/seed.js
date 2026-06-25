@@ -19,16 +19,23 @@ const ADMIN = {
 };
 
 const MEDICINES = [
-    { name: 'Paracetamol 500mg (Crocin)',    category: 'Tablet',  batch: 'PR-102', price: 15,   quantity: 120, expiryDate: addDays(20),  status: 'Active', stockistName: 'Cipla Ltd', ptr: 10.50, hsn: '30045033', pack: '1*15', gstRate: 5 },
-    { name: 'Amoxicillin 250mg Capsules',    category: 'Tablet',  batch: 'AM-204', price: 120,  quantity: 80,  expiryDate: addDays(7),   status: 'Active', stockistName: 'Alkem Laboratories', ptr: 90.00, hsn: '300490', pack: '1*10', gstRate: 5 },
-    { name: 'Cough Syrup Pediatric (Benadryl)', category: 'Syrup', batch: 'CS-880', price: 65,  quantity: 0,   expiryDate: addDays(45),  status: 'Out of Stock', stockistName: 'Abbott India', ptr: 48.00, hsn: '30049094', pack: '1*15', gstRate: 5 },
-    { name: 'Influenza Vaccine (Flu Shield)', category: 'Vaccine', batch: 'FV-901', price: 850, quantity: 15,  expiryDate: addDays(0),   status: 'Active', stockistName: 'Serum Institute', ptr: 680.00, hsn: '3004', pack: '1*30', gstRate: 5 },
-    { name: 'Vitamin C Chewable (Limcee)',   category: 'Tablet',  batch: 'VC-304', price: 40,   quantity: 300, expiryDate: addDays(120), status: 'Active', stockistName: 'Abbott India', ptr: 28.00, hsn: '30045033', pack: '1*15', gstRate: 5 },
-    { name: 'Metformin 500mg',               category: 'Tablet',  batch: 'MF-501', price: 35,   quantity: 200, expiryDate: addDays(90),  status: 'Active', stockistName: 'Sun Pharma', ptr: 24.50, hsn: '30045033', pack: '1*10', gstRate: 5 },
-    { name: 'Azithromycin 250mg',            category: 'Tablet',  batch: 'AZ-301', price: 180,  quantity: 50,  expiryDate: addDays(3),   status: 'Active', stockistName: 'Cipla Ltd', ptr: 135.00, hsn: '30049011', pack: '1*10', gstRate: 5 },
-    { name: 'Betadine Antiseptic Solution',  category: 'Other',   batch: 'BD-601', price: 95,   quantity: 30,  expiryDate: addDays(180), status: 'Active', stockistName: 'Win-Medicare', ptr: 72.00, hsn: '30049099', pack: '1*50GM', gstRate: 5 },
-    { name: 'Insulin Regular (Humulin)',     category: 'Injection',batch: 'IN-101', price: 450, quantity: 20,  expiryDate: addDays(-5),  status: 'Active', stockistName: 'Lilly India', ptr: 360.00, hsn: '3004', pack: '1*10', gstRate: 5 },
-    { name: 'Calamine Lotion',               category: 'Ointment', batch: 'CL-401', price: 55,  quantity: 45,  expiryDate: addDays(300), status: 'Active', stockistName: 'Piramal Pharma', ptr: 41.25, hsn: '3004', pack: '1*10', gstRate: 5 }
+    { name: 'Paracetamol 500mg (Crocin)',    category: 'Tablet',  batch: 'PR-102', price: 15,   quantity: 120, expiryDate: addDays(20),  status: 'Active', stockistName: 'Cipla Ltd', ptr: 10.50, hsn: '30045033', pack: '1*15', gstRate: 5, composition: 'Paracetamol' },
+    { name: 'Amoxicillin 250mg Capsules',    category: 'Tablet',  batch: 'AM-204', price: 120,  quantity: 80,  expiryDate: addDays(7),   status: 'Active', stockistName: 'Alkem Laboratories', ptr: 90.00, hsn: '300490', pack: '1*10', gstRate: 5, composition: 'Amoxicillin' },
+    { name: 'Cough Syrup Pediatric (Benadryl)', category: 'Syrup', batch: 'CS-880', price: 65,  quantity: 0,   expiryDate: addDays(45),  status: 'Out of Stock', stockistName: 'Abbott India', ptr: 48.00, hsn: '30049094', pack: '1*15', gstRate: 5, composition: 'Diphenhydramine' },
+    { name: 'Influenza Vaccine (Flu Shield)', category: 'Vaccine', batch: 'FV-901', price: 850, quantity: 15,  expiryDate: addDays(0),   status: 'Active', stockistName: 'Serum Institute', ptr: 680.00, hsn: '3004', pack: '1*30', gstRate: 5, composition: 'Influenza Vaccine' },
+    { name: 'Vitamin C Chewable (Limcee)',   category: 'Tablet',  batch: 'VC-304', price: 40,   quantity: 300, expiryDate: addDays(120), status: 'Active', stockistName: 'Abbott India', ptr: 28.00, hsn: '30045033', pack: '1*15', gstRate: 5, composition: 'Vitamin C' },
+    { name: 'Metformin 500mg',               category: 'Tablet',  batch: 'MF-501', price: 35,   quantity: 200, expiryDate: addDays(90),  status: 'Active', stockistName: 'Sun Pharma', ptr: 24.50, hsn: '30045033', pack: '1*10', gstRate: 5, composition: 'Metformin' },
+    { name: 'Azithromycin 250mg',            category: 'Tablet',  batch: 'AZ-301', price: 180,  quantity: 50,  expiryDate: addDays(3),   status: 'Active', stockistName: 'Cipla Ltd', ptr: 135.00, hsn: '30049011', pack: '1*10', gstRate: 5, composition: 'Azithromycin' },
+    { name: 'Betadine Antiseptic Solution',  category: 'Other',   batch: 'BD-601', price: 95,   quantity: 30,  expiryDate: addDays(180), status: 'Active', stockistName: 'Win-Medicare', ptr: 72.00, hsn: '30049099', pack: '1*50GM', gstRate: 5, composition: 'Povidone-Iodine' },
+    { name: 'Insulin Regular (Humulin)',     category: 'Injection',batch: 'IN-101', price: 450, quantity: 20,  expiryDate: addDays(-5),  status: 'Active', stockistName: 'Lilly India', ptr: 360.00, hsn: '3004', pack: '1*10', gstRate: 5, composition: 'Insulin' },
+    { name: 'Calamine Lotion',               category: 'Ointment', batch: 'CL-401', price: 55,  quantity: 45,  expiryDate: addDays(300), status: 'Active', stockistName: 'Piramal Pharma', ptr: 41.25, hsn: '3004', pack: '1*10', gstRate: 5, composition: 'Calamine' },
+    
+    // Add substitutes for testing
+    { name: 'Dolo 650mg Tablets',            category: 'Tablet',  batch: 'DO-650', price: 30,   quantity: 150, expiryDate: addDays(60),  status: 'Active', stockistName: 'Micro Labs', ptr: 20.00, hsn: '30045033', pack: '1*15', gstRate: 5, composition: 'Paracetamol' },
+    { name: 'Calpol 500mg',                  category: 'Tablet',  batch: 'CA-500', price: 16,   quantity: 200, expiryDate: addDays(40),  status: 'Active', stockistName: 'GSK India', ptr: 11.20, hsn: '30045033', pack: '1*15', gstRate: 5, composition: 'Paracetamol' },
+    { name: 'Celin 500mg (Vitamin C)',       category: 'Tablet',  batch: 'CE-500', price: 38,   quantity: 180, expiryDate: addDays(150), status: 'Active', stockistName: 'GSK India', ptr: 25.50, hsn: '30045033', pack: '1*25', gstRate: 5, composition: 'Vitamin C' },
+    { name: 'Azee 500mg',                    category: 'Tablet',  batch: 'AZ-500', price: 220,  quantity: 60,  expiryDate: addDays(30),  status: 'Active', stockistName: 'Cipla Ltd', ptr: 165.00, hsn: '30049011', pack: '1*5', gstRate: 5, composition: 'Azithromycin' },
+    { name: 'Glycomet 500mg',                category: 'Tablet',  batch: 'GL-500', price: 28,   quantity: 250, expiryDate: addDays(110), status: 'Active', stockistName: 'USV Biotech', ptr: 19.60, hsn: '30045033', pack: '1*10', gstRate: 5, composition: 'Metformin' }
 ];
 
 async function seed() {
