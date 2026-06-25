@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "postbuild": "node -e \"require('fs').copyFileSync('../frontend/vercel.json','dist/vercel.json')\" || echo done",
+    "deploy": "vite build && npx vercel dist --prod --yes --scope=anika-pharmacy --project=anika-pharmacy",
     "lint": "eslint .",
     "preview": "vite preview"
   },

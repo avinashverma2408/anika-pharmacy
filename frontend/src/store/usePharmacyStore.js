@@ -9,7 +9,7 @@ import {
 
 // ── Auth Screen <-> Hash Route Map ──────────────────────────────────────────
 export const AUTH_SCREEN_TO_HASH = {
-  login: "/login",
+  login: "/",
   forgot: "/forgot-password",
   otp: "/verify-otp",
   reset: "/create-password",
