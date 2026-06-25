@@ -235,6 +235,16 @@ export const usePharmacyStore = create((set, get) => ({
   },
 
   logout: (sessionExpired = false) => {
+    // Show toast BEFORE unmounting dashboard (toast-container must exist in DOM)
+    if (sessionExpired) {
+      showSimpleToast("Session Expired", "Please login again.", "danger");
+    } else {
+      showSimpleToast(
+        "Logged Out",
+        "You have been securely logged out.",
+        "success",
+      );
+    }
     localStorage.removeItem("anika_token");
     localStorage.setItem("anika_auth", "false");
     window.location.hash = "/";
@@ -247,15 +257,6 @@ export const usePharmacyStore = create((set, get) => ({
       notifications: [],
       dashboardStats: null,
     });
-    if (sessionExpired) {
-      showSimpleToast("Session Expired", "Please login again.", "danger");
-    } else {
-      showSimpleToast(
-        "Logged Out",
-        "You have been securely logged out.",
-        "success",
-      );
-    }
   },
 
   sendOtp: async (email) => {
