@@ -32,7 +32,7 @@ api.interceptors.response.use(
       if (!isLoginRequest) {
         localStorage.removeItem("anika_token");
         localStorage.setItem("anika_auth", "false");
-        window.location.hash = "/login";
+        window.location.hash = "/";
         window.dispatchEvent(
           new CustomEvent("unauthorized", { detail: { sessionExpired: true } }),
         );

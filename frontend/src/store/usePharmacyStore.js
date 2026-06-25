@@ -237,7 +237,7 @@ export const usePharmacyStore = create((set, get) => ({
   logout: (sessionExpired = false) => {
     localStorage.removeItem("anika_token");
     localStorage.setItem("anika_auth", "false");
-    window.location.hash = "/login";
+    window.location.hash = "/";
     set({
       isAuthenticated: false,
       authScreen: "login",

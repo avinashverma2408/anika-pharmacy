@@ -22,8 +22,8 @@ export default function AuthPage() {
                 usePharmacyStore.setState({ authScreen: screen });
             }
         } else {
-            // No valid auth hash — default to /login
-            window.location.hash = '/login';
+            // No valid auth hash — default to /
+            window.location.hash = '/';
         }
 
         // Listen for browser back/forward
