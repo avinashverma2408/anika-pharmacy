@@ -28,6 +28,7 @@ export default function BillingTab() {
   const [patientName, setPatientName] = useState("");
   const [patientMobile, setPatientMobile] = useState("");
   const [patientAddress, setPatientAddress] = useState("");
+  const [doctorName, setDoctorName] = useState("");
   const [paymentMode, setPaymentMode] = useState("Cash");
   const [discountPercent, setDiscountPercent] = useState(5);
 
@@ -461,6 +462,7 @@ export default function BillingTab() {
     setPatientName("");
     setPatientMobile("");
     setPatientAddress("");
+    setDoctorName("");
     setPaymentMode("Cash");
     setAutoHistoryFound(false);
   };
@@ -552,6 +554,7 @@ export default function BillingTab() {
         patientName: patientName || "CASH CUSTOMER",
         patientMobile: patientMobile || "",
         patientAddress,
+        doctorName,
         paymentMode,
         billDate: new Date(`${billDate}T${billTime}`),
         items: billItems.map((item) => ({
@@ -626,6 +629,7 @@ export default function BillingTab() {
         invoiceNo: selectedBill.invoiceNo,
         patientName: selectedBill.patientName,
         patientAddress: selectedBill.patientAddress,
+        doctorName: selectedBill.doctorName || "",
         billDate: new Date(selectedBill.billDate).toISOString().slice(0, 10),
         billTime: new Date(selectedBill.billDate).toLocaleTimeString("en-US", {
           hour12: false,
@@ -645,6 +649,7 @@ export default function BillingTab() {
         invoiceNo,
         patientName: patientName || "CASH CUSTOMER",
         patientAddress,
+        doctorName,
         billDate,
         billTime: billTime || "",
         items: getNormalizedItems({ billItems }),
@@ -839,6 +844,15 @@ export default function BillingTab() {
                       value={patientName}
                       onChange={(e) => setPatientName(e.target.value)}
                       placeholder="Enter Patient Name"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Doctor Name (Dr. Name)</label>
+                    <input
+                      type="text"
+                      value={doctorName}
+                      onChange={(e) => setDoctorName(e.target.value)}
+                      placeholder="Enter Doctor's Name"
                     />
                   </div>
                   <div className="form-group" style={{ position: "relative" }}>
@@ -2069,6 +2083,12 @@ export default function BillingTab() {
                     <strong>Address:</strong> {selectedBill.patientAddress}
                   </>
                 )}
+                {selectedBill.doctorName && (
+                  <>
+                    <br />
+                    <strong>Dr. Ref:</strong> {selectedBill.doctorName.toUpperCase()}
+                  </>
+                )}
               </div>
 
               <table
@@ -2360,6 +2380,13 @@ export default function BillingTab() {
                 style={{ fontSize: "11px", color: "#333", marginTop: "2px" }}
               >
                 {activePrint.patientAddress}
+              </div>
+            )}
+            {activePrint.doctorName && (
+              <div
+                style={{ fontSize: "11px", color: "#000", marginTop: "4px", fontWeight: "bold" }}
+              >
+                Dr. Ref: {activePrint.doctorName.toUpperCase()}
               </div>
             )}
           </div>

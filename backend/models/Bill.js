@@ -64,6 +64,11 @@ const billSchema = new mongoose.Schema({
         default: '',
         trim: true
     },
+    doctorName: {
+        type: String,
+        default: '',
+        trim: true
+    },
     paymentMode: {
         type: String,
         required: true,

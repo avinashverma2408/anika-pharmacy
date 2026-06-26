@@ -9,6 +9,7 @@ export default function Sidebar() {
     { id: "inventory", label: "Inventory", icon: "fa-boxes-stacked" },
     { id: "calendar", label: "Expiry Calendar", icon: "fa-calendar-days" },
     { id: "billing", label: "GST Billing", icon: "fa-file-invoice-dollar" },
+    { id: "analytics", label: "Sales Analytics", icon: "fa-chart-line" },
     { id: "simulator", label: "Expiry Simulator", icon: "fa-flask-vial" },
     { id: "notifications-log", label: "Alert Logs", icon: "fa-bell-concierge" },
     { id: "settings", label: "Settings", icon: "fa-gear" },

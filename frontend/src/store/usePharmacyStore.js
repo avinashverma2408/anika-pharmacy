@@ -241,7 +241,7 @@ export const usePharmacyStore = create((set, get) => ({
     } else {
       showSimpleToast(
         "Logged Out",
-        "You have been securely logged out.",
+        "Admin logout successfully",
         "success",
       );
     }
@@ -421,6 +421,7 @@ export const usePharmacyStore = create((set, get) => ({
       "inventory",
       "calendar",
       "billing",
+      "analytics",
       "simulator",
       "notifications-log",
       "settings",

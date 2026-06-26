@@ -10,6 +10,7 @@ import SimulatorTab from "./components/SimulatorTab";
 import AlertLogsTab from "./components/AlertLogsTab";
 import SettingsTab from "./components/SettingsTab";
 import BillingTab from "./components/BillingTab";
+import AnalyticsTab from "./components/AnalyticsTab";
 import ProductModals from "./components/ProductModals";
 import LogoutModal from "./components/LogoutModal";
 import AuthPage from "./components/AuthPage";
@@ -19,6 +20,7 @@ const DASHBOARD_TABS = [
   "inventory",
   "calendar",
   "billing",
+  "analytics",
   "simulator",
   "notifications-log",
   "settings",
@@ -73,30 +75,32 @@ export default function App() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, [isAuthenticated, syncTabWithHash]);
 
-  if (!isAuthenticated) {
-    return <AuthPage />;
-  }
-
   return (
-    <div className="app-container">
-      <Sidebar />
+    <>
+      {!isAuthenticated ? (
+        <AuthPage />
+      ) : (
+        <div className="app-container">
+          <Sidebar />
 
-      <main className="main-content" style={{ maxWidth: "none", margin: "0" }}>
-        <Header />
+          <main className="main-content" style={{ maxWidth: "none", margin: "0" }}>
+            <Header />
 
-        {activeTab === "dashboard" && <DashboardTab />}
-        {activeTab === "inventory" && <InventoryTab />}
-        {activeTab === "calendar" && <CalendarTab />}
-        {activeTab === "billing" && <BillingTab />}
-        {activeTab === "simulator" && <SimulatorTab />}
-        {activeTab === "notifications-log" && <AlertLogsTab />}
-        {activeTab === "settings" && <SettingsTab />}
-      </main>
+            {activeTab === "dashboard" && <DashboardTab />}
+            {activeTab === "inventory" && <InventoryTab />}
+            {activeTab === "calendar" && <CalendarTab />}
+            {activeTab === "billing" && <BillingTab />}
+            {activeTab === "analytics" && <AnalyticsTab />}
+            {activeTab === "simulator" && <SimulatorTab />}
+            {activeTab === "notifications-log" && <AlertLogsTab />}
+            {activeTab === "settings" && <SettingsTab />}
+          </main>
 
-      <ProductModals />
-      <LogoutModal />
-
+          <ProductModals />
+          <LogoutModal />
+        </div>
+      )}
       <div className="toast-container" id="toast-container"></div>
-    </div>
+    </>
   );
 }

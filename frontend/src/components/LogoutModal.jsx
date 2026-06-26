@@ -19,7 +19,7 @@ export default function LogoutModal() {
                     </p>
                     <div className="modal-footer" style={{ borderTop: 'none', marginTop: '20px', paddingTop: '0' }}>
                         <button type="button" className="btn btn-outline" onClick={() => setLogoutModalOpen(false)}>Cancel</button>
-                        <button type="button" className="btn btn-danger" onClick={logout}>Confirm Logout</button>
+                        <button type="button" className="btn btn-danger" onClick={() => logout(false)}>Confirm Logout</button>
                     </div>
                 </div>
             </div>

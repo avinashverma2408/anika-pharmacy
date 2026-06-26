@@ -50,9 +50,6 @@ export default function AuthPage() {
                 {authScreen === 'reset'   && <CreatePasswordScreen />}
                 {authScreen === 'success' && <SuccessScreen />}
             </div>
-            
-            {/* Custom Toast Drawer for Auth notifications */}
-            <div className="toast-container" id="toast-container"></div>
         </div>
     );
 }
