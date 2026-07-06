@@ -49,6 +49,20 @@ export default function BillingTab() {
   const [countedCash, setCountedCash] = useState(1000);
   const [checklistSearch, setChecklistSearch] = useState("");
 
+  // GST & Financial Reports States
+  const [reportStartDate, setReportStartDate] = useState(() => {
+    const now = new Date();
+    // Default to 1st day of current month
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    return firstDay.toISOString().slice(0, 10);
+  });
+  const [reportEndDate, setReportEndDate] = useState(() => {
+    return new Date().toISOString().slice(0, 10);
+  });
+  const [reportBills, setReportBills] = useState([]);
+  const [isLoadingReportBills, setIsLoadingReportBills] = useState(false);
+  const [reportSearchQuery, setReportSearchQuery] = useState("");
+
   const fetchSettlementBills = async () => {
     setIsLoadingSettlement(true);
     try {
@@ -69,6 +83,162 @@ export default function BillingTab() {
       fetchSettlementBills();
     }
   }, [billingSubTab, simulatedDate]);
+
+  const fetchReportBills = async () => {
+    setIsLoadingReportBills(true);
+    try {
+      const { data } = await billApi.getAll({
+        startDate: reportStartDate,
+        endDate: reportEndDate,
+        noPagination: "true",
+      });
+      if (data.success) {
+        setReportBills(data.bills || []);
+      }
+    } catch (err) {
+      console.error("Failed to load report bills:", err);
+      showSimpleToast("Error", "Failed to load tax report details.", "danger");
+    } finally {
+      setIsLoadingReportBills(false);
+    }
+  };
+
+  useEffect(() => {
+    if (billingSubTab === "reports") {
+      fetchReportBills();
+    }
+  }, [billingSubTab, reportStartDate, reportEndDate]);
+
+  const handleDownloadReportCSV = () => {
+    if (!reportBills || reportBills.length === 0) {
+      showSimpleToast("No Data", "There are no records to export.", "warning");
+      return;
+    }
+
+    const headers = [
+      "Invoice No",
+      "Invoice Date",
+      "Patient Name",
+      "Patient Mobile",
+      "Doctor Name",
+      "Medicine Name",
+      "Batch",
+      "Qty",
+      "Price",
+      "GST Rate (%)",
+      "Taxable Value (Rs)",
+      "CGST (Rs)",
+      "SGST (Rs)",
+      "Total GST (Rs)",
+      "Discount (Rs)",
+      "Net Amount (Rs)",
+      "Payment Mode",
+    ];
+
+    const rows = [];
+    reportBills.forEach((bill) => {
+      const discPct = bill.discountPercent || 0;
+      bill.items.forEach((item) => {
+        const itemGross = item.amount;
+        const itemDisc = itemGross * (discPct / 100);
+        const itemNet = itemGross - itemDisc;
+        const rate = item.gstRate || 5;
+        const taxable = itemNet / (1 + rate / 100);
+        const cgst = taxable * (rate / 200);
+        const sgst = taxable * (rate / 200);
+
+        rows.push([
+          bill.invoiceNo,
+          new Date(bill.billDate).toLocaleDateString("en-GB"),
+          bill.patientName || "CASH CUSTOMER",
+          bill.patientMobile || "N/A",
+          bill.doctorName || "N/A",
+          item.name,
+          item.batch,
+          item.quantity,
+          item.price.toFixed(2),
+          `${rate}%`,
+          taxable.toFixed(2),
+          cgst.toFixed(2),
+          sgst.toFixed(2),
+          (cgst + sgst).toFixed(2),
+          itemDisc.toFixed(2),
+          itemNet.toFixed(2),
+          bill.paymentMode || "Cash",
+        ]);
+      });
+    });
+
+    const csvContent =
+      "data:text/csv;charset=utf-8,\uFEFF" +
+      [
+        headers.join(","),
+        ...rows.map((e) => e.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(",")),
+      ].join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `GSTR_Sales_Report_${reportStartDate}_to_${reportEndDate}.csv`,
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showSimpleToast(
+      "Export Success",
+      "GSTR CSV report downloaded successfully!",
+      "success",
+    );
+  };
+
+  const generateReportPDF = () => {
+    const element = document.querySelector(".reports-print-wrapper");
+    if (!element) return;
+
+    showSimpleToast("Generating PDF", "Compiling GST Tax Report...", "success");
+
+    element.classList.add("pdf-generation-in-progress");
+
+    setTimeout(() => {
+      Promise.all([import("html2canvas"), import("jspdf")])
+        .then(([html2canvasModule, jsPDFModule]) => {
+          const html2canvas = html2canvasModule.default || html2canvasModule;
+          const jsPDF = jsPDFModule.jsPDF || jsPDFModule.default || jsPDFModule;
+
+          html2canvas(element, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: "#ffffff",
+          })
+            .then((canvas) => {
+              const imgData = canvas.toDataURL("image/jpeg", 0.95);
+              const imgWidth = 210;
+              const imgHeight = (canvas.height * imgWidth) / canvas.width;
+              const pdf = new jsPDF("p", "mm", [210, Math.max(297, imgHeight)]);
+
+              pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight);
+              pdf.save(`GST_Tax_Report_${reportStartDate}_to_${reportEndDate}.pdf`);
+
+              element.classList.remove("pdf-generation-in-progress");
+              showSimpleToast("Success", "GST Tax PDF report downloaded successfully!", "success");
+            })
+            .catch((err) => {
+              console.error("Canvas capture failed:", err);
+              element.classList.remove("pdf-generation-in-progress");
+              showSimpleToast("PDF Error", "Failed to capture report layout.", "danger");
+            });
+        })
+        .catch((err) => {
+          console.error("Failed to load PDF libraries:", err);
+          element.classList.remove("pdf-generation-in-progress");
+          showSimpleToast("Library Error", "Failed to load PDF libraries.", "danger");
+        });
+    }, 150);
+  };
 
   const generateSettlementPDF = () => {
     const element = document.querySelector(".settlement-print-wrapper");
@@ -443,6 +613,63 @@ export default function BillingTab() {
     totalSGST += sgst;
   });
 
+  // Filtered bills based on table search in reports tab
+  const filteredReportBills = reportBills.filter((bill) => {
+    const term = reportSearchQuery.toLowerCase().trim();
+    if (!term) return true;
+    return (
+      (bill.invoiceNo && bill.invoiceNo.toLowerCase().includes(term)) ||
+      (bill.patientName && bill.patientName.toLowerCase().includes(term)) ||
+      (bill.patientMobile && bill.patientMobile.includes(term))
+    );
+  });
+
+  // Calculate Report Aggregates
+  let reportGrossSales = 0;
+  let reportTotalDiscount = 0;
+  let reportTotalTaxable = 0;
+  let reportTotalCGST = 0;
+  let reportTotalSGST = 0;
+  
+  const slabBreakdown = {
+    5: { taxable: 0, cgst: 0, sgst: 0, totalGst: 0, amount: 0 },
+    12: { taxable: 0, cgst: 0, sgst: 0, totalGst: 0, amount: 0 },
+    18: { taxable: 0, cgst: 0, sgst: 0, totalGst: 0, amount: 0 },
+    28: { taxable: 0, cgst: 0, sgst: 0, totalGst: 0, amount: 0 },
+  };
+
+  filteredReportBills.forEach((bill) => {
+    const discPct = bill.discountPercent || 0;
+    reportGrossSales += bill.netTotal;
+    reportTotalDiscount += bill.discountAmount;
+
+    bill.items.forEach((item) => {
+      const itemGross = item.amount;
+      const itemDisc = itemGross * (discPct / 100);
+      const itemNet = itemGross - itemDisc;
+      const rate = item.gstRate || 5;
+
+      const taxable = itemNet / (1 + rate / 100);
+      const cgst = taxable * (rate / 200);
+      const sgst = taxable * (rate / 200);
+
+      reportTotalTaxable += taxable;
+      reportTotalCGST += cgst;
+      reportTotalSGST += sgst;
+
+      if (!slabBreakdown[rate]) {
+        slabBreakdown[rate] = { taxable: 0, cgst: 0, sgst: 0, totalGst: 0, amount: 0 };
+      }
+      slabBreakdown[rate].taxable += taxable;
+      slabBreakdown[rate].cgst += cgst;
+      slabBreakdown[rate].sgst += sgst;
+      slabBreakdown[rate].totalGst += cgst + sgst;
+      slabBreakdown[rate].amount += itemNet;
+    });
+  });
+
+  const reportTotalGST = reportTotalCGST + reportTotalSGST;
+
   // Helper to reset bill form state after print/download
   const resetBillForm = () => {
     setBillItems([]);
@@ -767,6 +994,12 @@ export default function BillingTab() {
           >
             <i className="fa-solid fa-clock-rotate-left"></i> Billing History
             &amp; Revenue Reports
+          </button>
+          <button
+            className={`sub-tab-btn ${billingSubTab === "reports" ? "active" : ""}`}
+            onClick={() => setBillingSubTab("reports")}
+          >
+            <i className="fa-solid fa-file-invoice-dollar"></i> GST &amp; Tax Reports
           </button>
           <button
             className={`sub-tab-btn ${billingSubTab === "settlement" ? "active" : ""}`}
@@ -1930,6 +2163,276 @@ export default function BillingTab() {
             </div>
           </div>
         )}
+
+        {billingSubTab === "reports" && (
+          <div className="settlement-panel">
+            <div className="settlement-date-header">
+              <div>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700' }}>
+                  <i className="fa-solid fa-file-invoice-dollar" style={{ marginRight: '8px', color: 'var(--primary)' }}></i>
+                  GST &amp; Financial Reports (Tax Audit Ready)
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                  View tax logs, check GST slab performance, and download GSTR-1 ready CSV or PDF audits.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button className="btn btn-outline" onClick={handleDownloadReportCSV}>
+                  <i className="fa-solid fa-file-excel" style={{ marginRight: '6px' }}></i> Export GSTR CSV
+                </button>
+                <button className="btn btn-outline btn-icon" onClick={generateReportPDF}>
+                  <i className="fa-solid fa-file-pdf"></i> Download PDF Report
+                </button>
+              </div>
+            </div>
+
+            {/* Date Range Selector Card */}
+            <div className="card-panel" style={{ marginBottom: '20px', padding: '16px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'center' }}>
+                <div className="form-group" style={{ margin: 0, minWidth: '150px' }}>
+                  <label htmlFor="report-start-date" style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)' }}>From Date</label>
+                  <input
+                    type="date"
+                    id="report-start-date"
+                    value={reportStartDate}
+                    onChange={(e) => setReportStartDate(e.target.value)}
+                    style={{ marginTop: '4px', padding: '6px 12px', fontSize: '13px' }}
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0, minWidth: '150px' }}>
+                  <label htmlFor="report-end-date" style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)' }}>To Date</label>
+                  <input
+                    type="date"
+                    id="report-end-date"
+                    value={reportEndDate}
+                    onChange={(e) => setReportEndDate(e.target.value)}
+                    style={{ marginTop: '4px', padding: '6px 12px', fontSize: '13px' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                  <button 
+                    className="btn btn-outline btn-small"
+                    onClick={() => {
+                      const now = new Date();
+                      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+                      setReportStartDate(start.toISOString().slice(0,10));
+                      setReportEndDate(now.toISOString().slice(0,10));
+                    }}
+                    style={{ fontSize: '11px', height: '28px', padding: '0 10px', cursor: 'pointer' }}
+                  >
+                    This Month
+                  </button>
+                  <button 
+                    className="btn btn-outline btn-small"
+                    onClick={() => {
+                      const now = new Date();
+                      const start = new Date(now.getFullYear() - (now.getMonth() < 3 ? 1 : 0), 3, 1); // 1st April
+                      setReportStartDate(start.toISOString().slice(0,10));
+                      setReportEndDate(now.toISOString().slice(0,10));
+                    }}
+                    style={{ fontSize: '11px', height: '28px', padding: '0 10px', cursor: 'pointer' }}
+                  >
+                    Financial Year
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {isLoadingReportBills ? (
+              <div style={{ textAlign: "center", padding: "60px 0" }}>
+                <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: "36px", color: "var(--primary)" }}></i>
+                <p style={{ marginTop: "12px", color: "var(--text-muted)", fontSize: "14px" }}>Compiling reports database...</p>
+              </div>
+            ) : (
+              <>
+                {/* Aggregate Metrics Grid */}
+                <div className="settlement-summary-metrics" style={{ marginBottom: '20px' }}>
+                  <div className="financial-card card-month" style={{ padding: '16px', background: 'rgba(6, 182, 212, 0.04)', border: '1px solid rgba(6, 182, 212, 0.15)' }}>
+                    <span className="fin-label" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Gross Sales (Net Total)</span>
+                    <h4 className="fin-value" style={{ fontSize: '18px', color: 'var(--primary)', fontWeight: '700', marginTop: '6px' }}>₹{reportGrossSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h4>
+                  </div>
+                  <div className="financial-card card-month" style={{ padding: '16px', background: 'rgba(16, 185, 129, 0.04)', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
+                    <span className="fin-label" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Taxable Sales Value</span>
+                    <h4 className="fin-value" style={{ fontSize: '18px', color: 'var(--success)', fontWeight: '700', marginTop: '6px' }}>₹{reportTotalTaxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h4>
+                  </div>
+                  <div className="financial-card card-month" style={{ padding: '16px', background: 'rgba(139, 92, 246, 0.04)', border: '1px solid rgba(139, 92, 246, 0.15)' }}>
+                    <span className="fin-label" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total GST Collected (CGST+SGST)</span>
+                    <h4 className="fin-value" style={{ fontSize: '18px', color: '#8b5cf6', fontWeight: '700', marginTop: '6px' }}>₹{reportTotalGST.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h4>
+                  </div>
+                  <div className="financial-card card-month" style={{ padding: '16px', background: 'rgba(249, 115, 22, 0.04)', border: '1px solid rgba(249, 115, 22, 0.15)' }}>
+                    <span className="fin-label" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Discounts Given</span>
+                    <h4 className="fin-value" style={{ fontSize: '18px', color: '#f97316', fontWeight: '700', marginTop: '6px' }}>₹{reportTotalDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h4>
+                  </div>
+                </div>
+
+                <div className="settlement-grid" style={{ marginBottom: '20px' }}>
+                  {/* GST Slab Breakdown */}
+                  <div className="card-panel">
+                    <h3 className="analytics-section-title" style={{ marginBottom: '16px' }}>
+                      <i className="fa-solid fa-percent" style={{ color: 'var(--primary)', marginRight: '6px' }}></i> GST Rate Slab Breakdown
+                    </h3>
+                    <div className="table-responsive">
+                      <table className="checklist-table">
+                        <thead>
+                          <tr>
+                            <th>GST Slab</th>
+                            <th style={{ textAlign: 'right' }}>Taxable Amt (₹)</th>
+                            <th style={{ textAlign: 'right' }}>CGST (₹)</th>
+                            <th style={{ textAlign: 'right' }}>SGST (₹)</th>
+                            <th style={{ textAlign: 'right' }}>Total Tax (₹)</th>
+                            <th style={{ textAlign: 'right' }}>Total Billed (₹)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.keys(slabBreakdown).length === 0 || Object.values(slabBreakdown).every(s => s.amount === 0) ? (
+                            <tr>
+                              <td colSpan="6" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '16px' }}>No sales records found for this period.</td>
+                            </tr>
+                          ) : (
+                            Object.entries(slabBreakdown)
+                              .filter(([_, stats]) => stats.amount > 0)
+                              .map(([rate, stats]) => (
+                                <tr key={rate}>
+                                  <td><strong>GST {rate}%</strong></td>
+                                  <td style={{ textAlign: 'right' }}>₹{stats.taxable.toFixed(2)}</td>
+                                  <td style={{ textAlign: 'right' }}>₹{stats.cgst.toFixed(2)}</td>
+                                  <td style={{ textAlign: 'right' }}>₹{stats.sgst.toFixed(2)}</td>
+                                  <td style={{ fontWeight: '600', color: '#8b5cf6', textAlign: 'right' }}>₹{stats.totalGst.toFixed(2)}</td>
+                                  <td style={{ fontWeight: '700', color: 'var(--text-primary)', textAlign: 'right' }}>₹{stats.amount.toFixed(2)}</td>
+                                </tr>
+                              ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Payment Mode summary in Reports */}
+                  <div className="card-panel">
+                    <h3 className="analytics-section-title" style={{ marginBottom: '16px' }}>
+                      <i className="fa-solid fa-wallet" style={{ color: 'var(--primary)', marginRight: '6px' }}></i> Payments Reconciliation
+                    </h3>
+                    <div className="recon-box" style={{ padding: '4px' }}>
+                      <div className="recon-row" style={{ padding: '8px 0' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <i className="fa-solid fa-money-bill-wave" style={{ color: '#10b981' }}></i> Cash Sales
+                        </span>
+                        <span style={{ fontWeight: '700' }}>₹{filteredReportBills.reduce((sum, b) => b.paymentMode === "Cash" ? sum + b.netTotal : sum, 0).toFixed(2)}</span>
+                      </div>
+                      <div className="recon-row" style={{ padding: '8px 0', borderTop: '1px solid var(--border-color)' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <i className="fa-solid fa-credit-card" style={{ color: '#3b82f6' }}></i> Card Sales
+                        </span>
+                        <span style={{ fontWeight: '700' }}>₹{filteredReportBills.reduce((sum, b) => b.paymentMode === "Card" ? sum + b.netTotal : sum, 0).toFixed(2)}</span>
+                      </div>
+                      <div className="recon-row" style={{ padding: '8px 0', borderTop: '1px solid var(--border-color)' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <i className="fa-solid fa-qrcode" style={{ color: '#8b5cf6' }}></i> UPI Sales
+                        </span>
+                        <span style={{ fontWeight: '700' }}>₹{filteredReportBills.reduce((sum, b) => b.paymentMode === "UPI" ? sum + b.netTotal : sum, 0).toFixed(2)}</span>
+                      </div>
+                      <div className="recon-row" style={{ padding: '10px 0', borderTop: '2px solid var(--border-color)', fontWeight: 'bold' }}>
+                        <span>Total Income</span>
+                        <span style={{ color: 'var(--primary)', fontSize: '15px' }}>₹{reportGrossSales.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Transaction list for reports */}
+                <div className="settlement-checklist-card">
+                  <div className="settlement-checklist-header">
+                    <h3 className="analytics-section-title" style={{ margin: 0 }}>
+                      <i className="fa-solid fa-list-check" style={{ color: "var(--primary)", marginRight: '6px' }}></i> Transaction Details
+                    </h3>
+                    <div className="checklist-search-wrapper">
+                      <i className="fa-solid fa-magnifying-glass"></i>
+                      <input
+                        type="text"
+                        className="checklist-search-input"
+                        placeholder="Search invoices, names, mobiles..."
+                        value={reportSearchQuery}
+                        onChange={(e) => setReportSearchQuery(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="table-responsive" style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                    <table className="checklist-table">
+                      <thead>
+                        <tr>
+                          <th>Invoice No</th>
+                          <th>Date &amp; Time</th>
+                          <th>Patient Name</th>
+                          <th style={{ textAlign: 'right' }}>Subtotal</th>
+                          <th style={{ textAlign: 'right' }}>Taxable Amt</th>
+                          <th style={{ textAlign: 'right' }}>CGST</th>
+                          <th style={{ textAlign: 'right' }}>SGST</th>
+                          <th style={{ textAlign: 'right' }}>Grand Total</th>
+                          <th style={{ textAlign: 'center', width: '60px' }}>Details</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredReportBills.length === 0 ? (
+                          <tr>
+                            <td colSpan="9" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px 0' }}>
+                              No matching transactions found for this range.
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredReportBills.map((b) => (
+                            <tr
+                              key={b._id}
+                              className="checklist-row"
+                              onClick={() => {
+                                setSelectedBill(b);
+                                setIsDetailsOpen(true);
+                              }}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              <td>
+                                <span className="checklist-invoice-badge">
+                                  <i className="fa-solid fa-receipt"></i>
+                                  {b.invoiceNo}
+                                </span>
+                              </td>
+                              <td>
+                                <span className="checklist-time">
+                                  {formatDateTimeDisplay(b.billDate)}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="checklist-patient">
+                                  <span>{b.patientName}</span>
+                                </div>
+                              </td>
+                              <td style={{ textAlign: 'right' }}>₹{b.subTotal.toFixed(2)}</td>
+                              <td style={{ textAlign: 'right' }}>₹{b.taxableValue.toFixed(2)}</td>
+                              <td style={{ textAlign: 'right' }}>₹{b.cgst.toFixed(2)}</td>
+                              <td style={{ textAlign: 'right' }}>₹{b.sgst.toFixed(2)}</td>
+                              <td style={{ fontWeight: '700', textAlign: 'right' }}>₹{b.netTotal.toFixed(2)}</td>
+                              <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  className="checklist-action-btn"
+                                  onClick={() => {
+                                    setSelectedBill(b);
+                                    setIsDetailsOpen(true);
+                                  }}
+                                >
+                                  <i className="fa-solid fa-eye"></i>
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── BILL DETAILS MODAL ────────────────────────────────────────────── */}
@@ -2660,6 +3163,123 @@ export default function BillingTab() {
           </div>
           <div style={{ width: '40%', borderTop: '1px solid #000', textAlign: 'center', paddingTop: '6px' }}>
             Store Manager Audit Signature
+          </div>
+        </div>
+      </div>
+
+      {/* ── PRINT-ONLY GST REPORT LAYOUT ───────────────────────────────────────── */}
+      <div className="print-only reports-print-wrapper">
+        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #000', paddingBottom: '12px', marginBottom: '20px' }}>
+          <div>
+            <h1 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: '#000000' }}>ANIKA PHARMACY</h1>
+            <p style={{ margin: '2px 0 0', fontSize: '9px', color: '#555555' }}>Pandeybaba bazar, Kadipur Road | Sultanpur, UP - 228145</p>
+            <p style={{ margin: '2px 0 0', fontSize: '9px', color: '#555555' }}>Phone : 9795358689, 6386470668</p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <h2 style={{ fontSize: '14px', fontWeight: '700', margin: 0, color: '#000000' }}>GST TAX AUDIT REPORT</h2>
+            <p style={{ margin: '2px 0 0', fontSize: '9px', color: '#555555' }}>Period: {new Date(reportStartDate).toLocaleDateString('en-GB')} to {new Date(reportEndDate).toLocaleDateString('en-GB')}</p>
+            <p style={{ margin: '2px 0 0', fontSize: '9px', color: '#555555' }}>Generated: {new Date().toLocaleDateString('en-GB')}</p>
+          </div>
+        </div>
+
+        <h4 style={{ fontSize: '11px', fontWeight: '700', borderBottom: '1px solid #000', paddingBottom: '4px', marginBottom: '8px', color: '#000000' }}>FINANCIAL SUMMARY</h4>
+        <table className="reports-print-table" style={{ marginTop: '5px', marginBottom: '15px' }}>
+          <thead>
+            <tr>
+              <th>Metric Description</th>
+              <th style={{ textAlign: 'right' }}>Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Gross Sales (Net Revenue Billed)</strong></td>
+              <td style={{ textAlign: 'right', fontWeight: '700' }}>₹{reportGrossSales.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td>Total Taxable Value (Excluding GST)</td>
+              <td style={{ textAlign: 'right' }}>₹{reportTotalTaxable.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td>Total CGST Collected</td>
+              <td style={{ textAlign: 'right' }}>₹{reportTotalCGST.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td>Total SGST Collected</td>
+              <td style={{ textAlign: 'right' }}>₹{reportTotalSGST.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td><strong>Total Tax Collected (CGST + SGST)</strong></td>
+              <td style={{ textAlign: 'right', fontWeight: '700', color: '#8b5cf6' }}>₹{reportTotalGST.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td>Total Discounts Offered</td>
+              <td style={{ textAlign: 'right' }}>₹{reportTotalDiscount.toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h4 style={{ fontSize: '11px', fontWeight: '700', borderBottom: '1px solid #000', paddingBottom: '4px', marginBottom: '8px', color: '#000000' }}>GST RATE SLAB BREAKDOWN</h4>
+        <table className="reports-print-table" style={{ marginTop: '5px', marginBottom: '15px' }}>
+          <thead>
+            <tr>
+              <th>GST Slab</th>
+              <th style={{ textAlign: 'right' }}>Taxable Value (₹)</th>
+              <th style={{ textAlign: 'right' }}>CGST (₹)</th>
+              <th style={{ textAlign: 'right' }}>SGST (₹)</th>
+              <th style={{ textAlign: 'right' }}>Total Tax (₹)</th>
+              <th style={{ textAlign: 'right' }}>Total Billed (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(slabBreakdown)
+              .filter(([_, stats]) => stats.amount > 0)
+              .map(([rate, stats]) => (
+                <tr key={rate}>
+                  <td><strong>GST {rate}%</strong></td>
+                  <td style={{ textAlign: 'right' }}>₹{stats.taxable.toFixed(2)}</td>
+                  <td style={{ textAlign: 'right' }}>₹{stats.cgst.toFixed(2)}</td>
+                  <td style={{ textAlign: 'right' }}>₹{stats.sgst.toFixed(2)}</td>
+                  <td style={{ textAlign: 'right', fontWeight: '600' }}>₹{stats.totalGst.toFixed(2)}</td>
+                  <td style={{ textAlign: 'right', fontWeight: '700' }}>₹{stats.amount.toFixed(2)}</td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+
+        <h4 style={{ fontSize: '11px', fontWeight: '700', borderBottom: '1px solid #000', paddingBottom: '4px', marginBottom: '8px', color: '#000000' }}>PAYMENT METHOD SUMMARY</h4>
+        <table className="reports-print-table" style={{ marginTop: '5px', marginBottom: '15px' }}>
+          <thead>
+            <tr>
+              <th>Payment Mode</th>
+              <th style={{ textAlign: 'right' }}>Invoices Count</th>
+              <th style={{ textAlign: 'right' }}>Total Collected (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Cash Payments</td>
+              <td style={{ textAlign: 'right' }}>{filteredReportBills.filter(b => b.paymentMode === "Cash").length}</td>
+              <td style={{ textAlign: 'right' }}>₹{filteredReportBills.reduce((sum, b) => b.paymentMode === "Cash" ? sum + b.netTotal : sum, 0).toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td>Card Payments</td>
+              <td style={{ textAlign: 'right' }}>{filteredReportBills.filter(b => b.paymentMode === "Card").length}</td>
+              <td style={{ textAlign: 'right' }}>₹{filteredReportBills.reduce((sum, b) => b.paymentMode === "Card" ? sum + b.netTotal : sum, 0).toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td>UPI Payments</td>
+              <td style={{ textAlign: 'right' }}>{filteredReportBills.filter(b => b.paymentMode === "UPI").length}</td>
+              <td style={{ textAlign: 'right' }}>₹{filteredReportBills.reduce((sum, b) => b.paymentMode === "UPI" ? sum + b.netTotal : sum, 0).toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style={{ marginTop: '50px', display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
+          <div style={{ width: '40%', borderTop: '1px solid #000', textAlign: 'center', paddingTop: '6px' }}>
+            Prepared By (Administrator)
+          </div>
+          <div style={{ width: '40%', borderTop: '1px solid #000', textAlign: 'center', paddingTop: '6px' }}>
+            Verified By (Authorized Auditor)
           </div>
         </div>
       </div>

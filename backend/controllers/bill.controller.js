@@ -59,7 +59,7 @@ exports.createBill = async (req, res) => {
 // GET /api/bills - Get list of bills with filters
 exports.getBills = async (req, res) => {
     try {
-        const { search, month, year, date, page = 1, limit = 10 } = req.query;
+        const { search, month, year, date, startDate, endDate, noPagination, page = 1, limit = 10 } = req.query;
 
         const filter = {};
 
@@ -74,24 +74,47 @@ exports.getBills = async (req, res) => {
             ];
         }
 
-        // Filter by exact date (Shift Settlement)
-        if (date) {
+        // Filter by date range (GSTR / reports) or exact date or month/year
+        if (startDate || endDate) {
+            filter.billDate = {};
+            if (startDate) {
+                filter.billDate.$gte = new Date(startDate);
+            }
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                filter.billDate.$lte = end;
+            }
+        } else if (date) {
             const queryDate = new Date(date);
-            const startDate = new Date(queryDate.getFullYear(), queryDate.getMonth(), queryDate.getDate());
-            const endDate = new Date(queryDate.getFullYear(), queryDate.getMonth(), queryDate.getDate() + 1);
-            filter.billDate = { $gte: startDate, $lt: endDate };
+            const startDateVal = new Date(queryDate.getFullYear(), queryDate.getMonth(), queryDate.getDate());
+            const endDateVal = new Date(queryDate.getFullYear(), queryDate.getMonth(), queryDate.getDate() + 1);
+            filter.billDate = { $gte: startDateVal, $lt: endDateVal };
         } else if (year) {
             const y = parseInt(year);
             if (month) {
                 const m = parseInt(month) - 1; // JS month is 0-indexed
-                const startDate = new Date(y, m, 1);
-                const endDate = new Date(y, m + 1, 1);
-                filter.billDate = { $gte: startDate, $lt: endDate };
+                const startDateVal = new Date(y, m, 1);
+                const endDateVal = new Date(y, m + 1, 1);
+                filter.billDate = { $gte: startDateVal, $lt: endDateVal };
             } else {
-                const startDate = new Date(y, 0, 1);
-                const endDate = new Date(y + 1, 0, 1);
-                filter.billDate = { $gte: startDate, $lt: endDate };
+                const startDateVal = new Date(y, 0, 1);
+                const endDateVal = new Date(y + 1, 0, 1);
+                filter.billDate = { $gte: startDateVal, $lt: endDateVal };
             }
+        }
+
+        // If no pagination is requested, return all matching records (used for full report downloads)
+        if (noPagination === 'true') {
+            const [total, bills] = await Promise.all([
+                Bill.countDocuments(filter),
+                Bill.find(filter).sort({ billDate: -1 }).lean()
+            ]);
+            return res.json({
+                success: true,
+                total,
+                bills
+            });
         }
 
         const skip = (Math.max(1, parseInt(page)) - 1) * Math.max(1, parseInt(limit));
