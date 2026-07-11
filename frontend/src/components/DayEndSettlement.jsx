@@ -91,6 +91,59 @@ export default function DayEndSettlement() {
   const expectedCash = floatVal + cashCollected;
   const discrepancy = countVal - expectedCash;
 
+  const handleDownloadSettlementCSV = () => {
+    if (!settlementBills || settlementBills.length === 0) {
+      showSimpleToast("No Data", "There are no transactions to export.", "warning");
+      return;
+    }
+
+    const metadataRows = [
+      ["Day-End Settlement Report"],
+      ["Simulated Date", new Date(simulatedDate).toLocaleDateString('en-GB')],
+      ["Opening Cash Float", `Rs. ${floatVal.toFixed(2)}`],
+      ["Expected Cash in Drawer", `Rs. ${expectedCash.toFixed(2)}`],
+      ["Actual Counted Cash", `Rs. ${countVal.toFixed(2)}`],
+      ["Discrepancy Amount", `Rs. ${discrepancy.toFixed(2)}`],
+      ["Discrepancy Status", discrepancy === 0 ? "Balanced" : discrepancy < 0 ? "Shortage" : "Overage"],
+      [],
+      ["Payment Mode Summary"],
+      ["Cash Revenue", `Rs. ${cashCollected.toFixed(2)}`],
+      ["Card Revenue", `Rs. ${cardCollected.toFixed(2)}`],
+      ["UPI Revenue", `Rs. ${upiCollected.toFixed(2)}`],
+      ["Total Shift Revenue", `Rs. ${totalSales.toFixed(2)}`],
+      [],
+      ["SHIFT TRANSACTIONS CHECKLIST"],
+      ["Invoice No", "Patient Name", "Mobile", "Payment Mode", "Net Total (Rs)"]
+    ];
+
+    settlementBills.forEach((b) => {
+      metadataRows.push([
+        b.invoiceNo,
+        b.patientName || "CASH CUSTOMER",
+        b.patientMobile || "N/A",
+        b.paymentMode || "Cash",
+        b.netTotal.toFixed(2)
+      ]);
+    });
+
+    const csvContent =
+      "data:text/csv;charset=utf-8,\uFEFF" +
+      metadataRows.map((e) => e.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `Day_End_Settlement_${simulatedDate}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showSimpleToast("Export Success", "Settlement CSV report downloaded successfully!", "success");
+  };
+
   const filteredSettlementBills = settlementBills.filter((b) => {
     const term = checklistSearch.toLowerCase().trim();
     if (!term) return true;
@@ -115,9 +168,14 @@ export default function DayEndSettlement() {
               Reconcile cash drawer and payments for date: <strong>{new Date(simulatedDate).toLocaleDateString('en-GB')}</strong>
             </p>
           </div>
-          <button className="btn btn-outline btn-icon" onClick={generateSettlementPDF}>
-            <i className="fa-solid fa-file-pdf"></i> Download PDF Report
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="btn btn-outline" onClick={handleDownloadSettlementCSV}>
+              <i className="fa-solid fa-file-csv" style={{ marginRight: '6px' }}></i> Export CSV
+            </button>
+            <button className="btn btn-outline btn-icon" onClick={generateSettlementPDF}>
+              <i className="fa-solid fa-file-pdf"></i> Download PDF Report
+            </button>
+          </div>
         </div>
 
         <div className="settlement-grid">

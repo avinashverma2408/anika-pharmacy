@@ -4248,3 +4248,17 @@ body {
   font-size: 10px;
   color: #000000;
 }
+
+/* --- Premium Analytics Print Layout --- */
+.analytics-print-wrapper.pdf-generation-in-progress {
+  display: block !important;
+  position: relative !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  padding: 30px !important;
+  font-family: 'Inter', sans-serif !important;
+  width: 210mm !important;
+  left: 0;
+  top: 0;
+  z-index: 9999;
+}

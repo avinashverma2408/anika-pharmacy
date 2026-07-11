@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { usePharmacyStore } from "../store/usePharmacyStore";
+import { usePharmacyStore, showSimpleToast } from "../store/usePharmacyStore";
 
 export default function AnalyticsTab() {
   const { bills, isLoadingBills, fetchBills } = usePharmacyStore();
@@ -199,41 +199,224 @@ export default function AnalyticsTab() {
       ` L ${trendPoints[trendPoints.length - 1].x} ${paddingTop + graphHeight} L ${trendPoints[0].x} ${paddingTop + graphHeight} Z`;
   }
 
+  // ── Category-wise sales calculation ────────────────────────────────────────
+  const categorySales = {};
+  filteredBills.forEach((b) => {
+    b.items.forEach((item) => {
+      const cat = item.category || "Other";
+      categorySales[cat] = (categorySales[cat] || 0) + item.amount;
+    });
+  });
+
+  const totalItemSales = Object.values(categorySales).reduce((sum, val) => sum + val, 0) || 1;
+
+  const categoryData = Object.entries(categorySales)
+    .map(([category, amount]) => ({
+      category,
+      amount,
+      percentage: (amount / totalItemSales) * 100,
+    }))
+    .sort((a, b) => b.amount - a.amount);
+
+  // Circle properties for SVG donut
+  const catRadius = 50;
+  const catCirc = 2 * Math.PI * catRadius;
+  let catCurrentOffset = catCirc;
+
+  const catColors = [
+    "#3b82f6", // Blue
+    "#10b981", // Emerald
+    "#f59e0b", // Amber
+    "#8b5cf6", // Purple
+    "#ef4444", // Red
+    "#06b6d4", // Cyan
+    "#ec4899", // Pink
+    "#6b7280", // Gray
+  ];
+
+  const categorySegments = categoryData.map((cat, idx) => {
+    const strokeDash = (cat.percentage / 100) * catCirc;
+    const offset = catCurrentOffset;
+    catCurrentOffset -= strokeDash;
+    const color = catColors[idx % catColors.length];
+    return {
+      ...cat,
+      strokeDash,
+      offset,
+      color,
+    };
+  });
+
+  // ── CSV & PDF Export handlers ────────────────────────────────────────────────
+  const handleExportCSV = () => {
+    if (!filteredBills || filteredBills.length === 0) {
+      showSimpleToast("No Data", "There are no records to export.", "warning");
+      return;
+    }
+
+    const metadataRows = [
+      ["Sales Analytics Report"],
+      ["Date Filter Mode", filterType],
+      ["Export Date", new Date().toLocaleDateString('en-GB')],
+      [],
+      ["Overall Performance Summary"],
+      ["Metric", "Value"],
+      ["Total Revenue (Rs)", totalSales.toFixed(2)],
+      ["Net Profit (Rs)", totalProfit.toFixed(2)],
+      ["Invoices Count", invoiceCount],
+      ["Average Order Value (Rs)", avgOrderValue.toFixed(2)],
+      [],
+      ["Sales Trend Details"],
+      ["Period", "Sales Amount (Rs)"],
+    ];
+
+    trendData.forEach((t) => {
+      metadataRows.push([t.label, t.sales.toFixed(2)]);
+    });
+
+    metadataRows.push([]);
+    metadataRows.push(["Top Selling Products"]);
+    metadataRows.push(["Rank", "Medicine Name", "Category", "Quantity Sold", "Total Revenue (Rs)"]);
+    topProducts.forEach((p, idx) => {
+      metadataRows.push([
+        `#${idx + 1}`,
+        p.name,
+        p.category,
+        `${p.quantity} Units`,
+        p.sales.toFixed(2)
+      ]);
+    });
+
+    metadataRows.push([]);
+    metadataRows.push(["Category-wise Sales Breakdown"]);
+    metadataRows.push(["Category", "Total Revenue (Rs)", "Sales Share %"]);
+    categoryData.forEach((cat) => {
+      metadataRows.push([
+        cat.category,
+        cat.amount.toFixed(2),
+        `${cat.percentage.toFixed(1)}%`
+      ]);
+    });
+
+    metadataRows.push([]);
+    metadataRows.push(["Payment Methods Breakdown"]);
+    metadataRows.push(["Payment Mode", "Total Revenue (Rs)", "Share %"]);
+    metadataRows.push(["Cash", paymentCounts.Cash.toFixed(2), `${cashPct.toFixed(1)}%`]);
+    metadataRows.push(["UPI", paymentCounts.UPI.toFixed(2), `${upiPct.toFixed(1)}%`]);
+    metadataRows.push(["Card", paymentCounts.Card.toFixed(2), `${cardPct.toFixed(1)}%`]);
+
+    const csvContent =
+      "data:text/csv;charset=utf-8,\uFEFF" +
+      metadataRows.map((e) => e.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `Sales_Analytics_Report_${filterType}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showSimpleToast("Export Success", "Analytics CSV report downloaded successfully!", "success");
+  };
+
+  const handleDownloadPDF = () => {
+    const element = document.querySelector(".analytics-print-wrapper");
+    if (!element) return;
+
+    showSimpleToast("Generating PDF", "Compiling Sales Analytics Report...", "success");
+
+    element.classList.add("pdf-generation-in-progress");
+
+    setTimeout(() => {
+      Promise.all([import("html2canvas"), import("jspdf")])
+        .then(([html2canvasModule, jsPDFModule]) => {
+          const html2canvas = html2canvasModule.default || html2canvasModule;
+          const jsPDF = jsPDFModule.jsPDF || jsPDFModule.default || jsPDFModule;
+
+          html2canvas(element, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: "#ffffff",
+          })
+            .then((canvas) => {
+              const imgData = canvas.toDataURL("image/jpeg", 0.95);
+              const imgWidth = 210;
+              const imgHeight = (canvas.height * imgWidth) / canvas.width;
+              const pdf = new jsPDF("p", "mm", [210, Math.max(297, imgHeight)]);
+
+              pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight);
+              pdf.save(`Sales_Analytics_Report_${filterType}.pdf`);
+
+              element.classList.remove("pdf-generation-in-progress");
+              showSimpleToast("Success", "Analytics PDF report downloaded successfully!", "success");
+            })
+            .catch((err) => {
+              console.error("Canvas capture failed:", err);
+              element.classList.remove("pdf-generation-in-progress");
+              showSimpleToast("PDF Error", "Failed to capture analytics report.", "danger");
+            });
+        })
+        .catch((err) => {
+          console.error("Failed to load PDF libraries:", err);
+          element.classList.remove("pdf-generation-in-progress");
+          showSimpleToast("Library Error", "Failed to load PDF libraries.", "danger");
+        });
+    }, 150);
+  };
+
   return (
     <section id="tab-analytics" className="tab-pane active">
-      <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
         <div>
           <h2>Sales Analytics &amp; Reports</h2>
           <p className="subtitle">Visual insights into pharmacy revenue, profit, and customer payments.</p>
         </div>
 
-        <div className="chart-metric-selector" style={{ display: "flex", gap: "8px" }}>
-          <button
-            className={`metric-btn ${filterType === "last7" ? "active" : ""}`}
-            onClick={() => setFilterType("last7")}
-          >
-            7 Days
-          </button>
-          <button
-            className={`metric-btn ${filterType === "last30" ? "active" : ""}`}
-            onClick={() => setFilterType("last30")}
-          >
-            30 Days
-          </button>
-          <button
-            className={`metric-btn ${filterType === "month" ? "active" : ""}`}
-            onClick={() => setFilterType("month")}
-          >
-            This Month
-          </button>
-          <button
-            className={`metric-btn ${filterType === "all" ? "active" : ""}`}
-            onClick={() => setFilterType("all")}
-          >
-            All Time
-          </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }} className="no-print">
+          <div className="chart-metric-selector" style={{ display: "flex", gap: "8px" }}>
+            <button
+              className={`metric-btn ${filterType === "last7" ? "active" : ""}`}
+              onClick={() => setFilterType("last7")}
+            >
+              7 Days
+            </button>
+            <button
+              className={`metric-btn ${filterType === "last30" ? "active" : ""}`}
+              onClick={() => setFilterType("last30")}
+            >
+              30 Days
+            </button>
+            <button
+              className={`metric-btn ${filterType === "month" ? "active" : ""}`}
+              onClick={() => setFilterType("month")}
+            >
+              This Month
+            </button>
+            <button
+              className={`metric-btn ${filterType === "all" ? "active" : ""}`}
+              onClick={() => setFilterType("all")}
+            >
+              All Time
+            </button>
+          </div>
+
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button className="btn btn-outline" onClick={handleExportCSV}>
+              <i className="fa-solid fa-file-csv" style={{ marginRight: '6px' }}></i> Export CSV
+            </button>
+            <button className="btn btn-outline" onClick={handleDownloadPDF}>
+              <i className="fa-solid fa-file-pdf" style={{ marginRight: '6px' }}></i> Download PDF
+            </button>
+          </div>
         </div>
       </div>
+
+      <div className="analytics-print-wrapper" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
 
       {/* Analytics Stats Summary Cards */}
       <div className="stats-grid" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
@@ -457,9 +640,9 @@ export default function AnalyticsTab() {
         </div>
       </div>
 
-      <div className="dashboard-split" style={{ marginTop: "24px", gap: "20px" }}>
+      <div className="dashboard-split" style={{ gridTemplateColumns: "1.3fr 1fr 0.9fr", marginTop: "24px", gap: "20px" }}>
         {/* Left: Top Products Table */}
-        <div className="split-left card-panel" style={{ flex: "1.4" }}>
+        <div className="split-left card-panel" style={{ flex: "none", width: "100%" }}>
           <div className="panel-header" style={{ marginBottom: "16px" }}>
             <div className="panel-title-group" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <i className="fa-solid fa-ranking-star panel-icon" style={{ color: "var(--orange)" }}></i>
@@ -472,17 +655,17 @@ export default function AnalyticsTab() {
               <thead>
                 <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border-color)", color: "var(--text-muted)" }}>
                   <th style={{ padding: "10px 8px" }}>Rank</th>
-                  <th style={{ padding: "10px 8px" }}>Medicine Name</th>
+                  <th style={{ padding: "10px 8px" }}>Name</th>
                   <th style={{ padding: "10px 8px" }}>Category</th>
-                  <th style={{ padding: "10px 8px" }}>Qty Sold</th>
-                  <th style={{ padding: "10px 8px" }}>Total Sales</th>
+                  <th style={{ padding: "10px 8px" }}>Qty</th>
+                  <th style={{ padding: "10px 8px" }}>Sales</th>
                 </tr>
               </thead>
               <tbody>
                 {topProducts.length === 0 ? (
                   <tr>
                     <td colSpan="5" style={{ textAlign: "center", padding: "20px", color: "var(--text-muted)" }}>
-                      No transactions recorded in this period.
+                      No transactions recorded.
                     </td>
                   </tr>
                 ) : (
@@ -491,7 +674,7 @@ export default function AnalyticsTab() {
                       <td style={{ padding: "12px 8px", fontWeight: "bold" }}>#{idx + 1}</td>
                       <td style={{ padding: "12px 8px", fontWeight: "500" }}>{p.name}</td>
                       <td style={{ padding: "12px 8px" }}>{p.category}</td>
-                      <td style={{ padding: "12px 8px" }}>{p.quantity} Units</td>
+                      <td style={{ padding: "12px 8px" }}>{p.quantity}</td>
                       <td style={{ padding: "12px 8px", fontWeight: "600", color: "var(--primary)" }}>
                         ₹{p.sales.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                       </td>
@@ -503,38 +686,93 @@ export default function AnalyticsTab() {
           </div>
         </div>
 
-        {/* Right: Tax Breakdown Summary Card */}
-        <div className="split-right card-panel" style={{ flex: "1" }}>
-          <div className="panel-header" style={{ marginBottom: "16px" }}>
+        {/* Middle: Category Sales Distribution Donut Chart */}
+        <div className="analytics-card card-panel" style={{ width: "100%" }}>
+          <div className="analytics-card-header">
             <div className="panel-title-group" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <i className="fa-solid fa-receipt panel-icon" style={{ color: "var(--primary)" }}></i>
-              <h3>GST Tax &amp; Discount Sheet</h3>
+              <i className="fa-solid fa-tags panel-icon" style={{ color: "#3b82f6" }}></i>
+              <h3 style={{ margin: 0 }}>Sales by Category</h3>
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div style={{ padding: "14px", borderRadius: "8px", background: "var(--bg-card-hover)", border: "1px solid var(--border-color)" }}>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>CGST Collected</div>
-              <h4 style={{ fontSize: "18px", fontWeight: "600", color: "var(--text-primary)", marginTop: "4px" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "20px", marginTop: "20px" }}>
+            {categoryData.length === 0 ? (
+              <div style={{ height: "140px", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: "12px" }}>
+                No category sales recorded.
+              </div>
+            ) : (
+              <>
+                <svg width="110" height="110" viewBox="0 0 140 140" style={{ transform: "rotate(-90deg)" }}>
+                  {categorySegments.map((seg, idx) => (
+                    <circle
+                      key={idx}
+                      cx="70"
+                      cy="70"
+                      r={catRadius}
+                      fill="transparent"
+                      stroke={seg.color}
+                      strokeWidth="18"
+                      strokeDasharray={`${seg.strokeDash} ${catCirc}`}
+                      strokeDashoffset={catCirc - seg.offset}
+                    />
+                  ))}
+                  <circle cx="70" cy="70" r="38" fill="var(--bg-card)" />
+                </svg>
+
+                {/* Legends & Amounts */}
+                <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "8px", maxHeight: "150px", overflowY: "auto", paddingRight: "4px" }}>
+                  {categorySegments.map((seg, idx) => (
+                    <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px" }}>
+                        <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: seg.color }}></span>
+                        <span>{seg.category}</span>
+                      </div>
+                      <div style={{ fontSize: "11px", fontWeight: "600" }}>
+                        ₹{Math.round(seg.amount).toLocaleString("en-IN")} ({Math.round(seg.percentage || 0)}%)
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Tax Breakdown Summary Card */}
+        <div className="split-right card-panel" style={{ flex: "none", width: "100%" }}>
+          <div className="panel-header" style={{ marginBottom: "16px" }}>
+            <div className="panel-title-group" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <i className="fa-solid fa-receipt panel-icon" style={{ color: "var(--primary)" }}></i>
+              <h3>Tax Summary</h3>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ padding: "10px 12px", borderRadius: "8px", background: "var(--bg-card-hover)", border: "1px solid var(--border-color)" }}>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>CGST Collected</div>
+              <h4 style={{ fontSize: "15px", fontWeight: "600", color: "var(--text-primary)", marginTop: "2px" }}>
                 ₹{totalCGST.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </h4>
             </div>
 
-            <div style={{ padding: "14px", borderRadius: "8px", background: "var(--bg-card-hover)", border: "1px solid var(--border-color)" }}>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>SGST Collected</div>
-              <h4 style={{ fontSize: "18px", fontWeight: "600", color: "var(--text-primary)", marginTop: "4px" }}>
+            <div style={{ padding: "10px 12px", borderRadius: "8px", background: "var(--bg-card-hover)", border: "1px solid var(--border-color)" }}>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>SGST Collected</div>
+              <h4 style={{ fontSize: "15px", fontWeight: "600", color: "var(--text-primary)", marginTop: "2px" }}>
                 ₹{totalSGST.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </h4>
             </div>
 
-            <div style={{ padding: "14px", borderRadius: "8px", background: "var(--bg-card-hover)", border: "1px solid var(--border-color)" }}>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>Total Discounts Applied</div>
-              <h4 style={{ fontSize: "18px", fontWeight: "600", color: "var(--danger)", marginTop: "4px" }}>
+            <div style={{ padding: "10px 12px", borderRadius: "8px", background: "var(--bg-card-hover)", border: "1px solid var(--border-color)" }}>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Discounts Applied</div>
+              <h4 style={{ fontSize: "15px", fontWeight: "600", color: "var(--danger)", marginTop: "2px" }}>
                 ₹{totalDiscount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </h4>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Close analytics-print-wrapper */}
       </div>
     </section>
   );
