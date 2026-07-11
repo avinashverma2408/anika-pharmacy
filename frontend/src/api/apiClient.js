@@ -30,12 +30,15 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       const isLoginRequest = error.config?.url?.includes("/auth/login");
       if (!isLoginRequest) {
-        localStorage.removeItem("anika_token");
-        localStorage.setItem("anika_auth", "false");
-        window.location.hash = "/";
-        window.dispatchEvent(
-          new CustomEvent("unauthorized", { detail: { sessionExpired: true } }),
-        );
+        const token = localStorage.getItem("anika_token");
+        if (token) {
+          localStorage.removeItem("anika_token");
+          localStorage.setItem("anika_auth", "false");
+          window.location.hash = "/";
+          window.dispatchEvent(
+            new CustomEvent("unauthorized", { detail: { sessionExpired: true } }),
+          );
+        }
       }
     }
     return Promise.reject(error);

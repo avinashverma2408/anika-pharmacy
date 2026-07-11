@@ -235,6 +235,9 @@ export const usePharmacyStore = create((set, get) => ({
   },
 
   logout: (sessionExpired = false) => {
+    // Prevent duplicate triggers if already logged out
+    if (!get().isAuthenticated) return;
+
     // Show toast BEFORE unmounting dashboard (toast-container must exist in DOM)
     if (sessionExpired) {
       showSimpleToast("Session Expired", "Please login again.", "danger");
