@@ -699,6 +699,9 @@ body {
 .stat-card.border-inactive {
   border-left: 4px solid var(--text-muted);
 }
+.stat-card.border-purple {
+  border-left: 4px solid #8b5cf6;
+}
 
 .stat-icon {
   width: 48px;
@@ -2459,6 +2462,14 @@ body {
 .tab-badge.badge-inactive {
   background-color: var(--bg-input);
   color: var(--text-muted);
+}
+.tab-badge.badge-purple {
+  background-color: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+}
+.tab-badge.badge-orange {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
 }
 
 /* --- GST Billing Screen Screen Styling --- */
@@ -4258,6 +4269,23 @@ body {
   padding: 30px !important;
   font-family: 'Inter', sans-serif !important;
   width: 210mm !important;
+  left: 0;
+  top: 0;
+  z-index: 9999;
+}
+
+/* --- Premium Voucher Print Layout --- */
+.voucher-print-wrapper {
+  background: #ffffff;
+  color: #000000;
+  padding: 30px;
+  font-family: 'Inter', sans-serif;
+  width: 210mm;
+}
+
+.voucher-print-wrapper.pdf-generation-in-progress {
+  display: block !important;
+  position: relative !important;
   left: 0;
   top: 0;
   z-index: 9999;

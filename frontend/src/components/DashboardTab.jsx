@@ -490,6 +490,20 @@ export default function DashboardTab() {
             <StatValue val={inactiveCount} />
           </div>
         </div>
+
+        <div
+          className="stat-card border-purple"
+          style={{ cursor: "pointer" }}
+          onClick={() => handleStatCardClick("vendor-returns")}
+        >
+          <div className="stat-icon" style={{ background: "rgba(139, 92, 246, 0.15)", color: "#8b5cf6" }}>
+            <i className="fa-solid fa-truck-field"></i>
+          </div>
+          <div className="stat-info">
+            <span className="stat-label">Vendor Returns</span>
+            <StatValue val={expiredCount} />
+          </div>
+        </div>
       </div>
       <div className="dashboard-analytics-section">
         {/* Left Panel: Revenue Chart */}
