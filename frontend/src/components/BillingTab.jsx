@@ -1,15 +1,45 @@
-import React, { useState } from "react";
-import NewBillCalculator from "./NewBillCalculator";
-import BillingHistory from "./BillingHistory";
-import GSTRTaxReports from "./GSTRTaxReports";
-import DayEndSettlement from "./DayEndSettlement";
+import React, { Suspense, lazy, useState } from "react";
+import TabFallback from "./TabFallback";
+
+const NewBillCalculator = lazy(() => import("./NewBillCalculator"));
+const BillingHistory = lazy(() => import("./BillingHistory"));
+const GSTRTaxReports = lazy(() => import("./GSTRTaxReports"));
+const DayEndSettlement = lazy(() => import("./DayEndSettlement"));
+
+const SUB_TABS = [
+  {
+    id: "new",
+    label: "New Bill Calculator",
+    icon: "fa-calculator",
+    Component: NewBillCalculator,
+  },
+  {
+    id: "history",
+    label: "Billing History & Revenue Reports",
+    icon: "fa-clock-rotate-left",
+    Component: BillingHistory,
+  },
+  {
+    id: "reports",
+    label: "GST & Tax Reports",
+    icon: "fa-file-invoice-dollar",
+    Component: GSTRTaxReports,
+  },
+  {
+    id: "settlement",
+    label: "Day-End Settlement",
+    icon: "fa-cash-register",
+    Component: DayEndSettlement,
+  },
+];
 
 export default function BillingTab() {
   const [billingSubTab, setBillingSubTab] = useState("new");
+  const active = SUB_TABS.find((tab) => tab.id === billingSubTab) || SUB_TABS[0];
+  const ActivePanel = active.Component;
 
   return (
     <section id="tab-billing" className="tab-pane active">
-      {/* Screen View */}
       <div className="no-print">
         <div className="page-header flex-header">
           <div>
@@ -21,40 +51,22 @@ export default function BillingTab() {
           </div>
         </div>
 
-        {/* Sub Tab Navigation */}
-        <div className="sub-tabs-container" style={{ marginBottom: "20px" }}>
-          <button
-            className={`sub-tab-btn ${billingSubTab === "new" ? "active" : ""}`}
-            onClick={() => setBillingSubTab("new")}
-          >
-            <i className="fa-solid fa-calculator"></i> New Bill Calculator
-          </button>
-          <button
-            className={`sub-tab-btn ${billingSubTab === "history" ? "active" : ""}`}
-            onClick={() => setBillingSubTab("history")}
-          >
-            <i className="fa-solid fa-clock-rotate-left"></i> Billing History
-            &amp; Revenue Reports
-          </button>
-          <button
-            className={`sub-tab-btn ${billingSubTab === "reports" ? "active" : ""}`}
-            onClick={() => setBillingSubTab("reports")}
-          >
-            <i className="fa-solid fa-file-invoice-dollar"></i> GST &amp; Tax Reports
-          </button>
-          <button
-            className={`sub-tab-btn ${billingSubTab === "settlement" ? "active" : ""}`}
-            onClick={() => setBillingSubTab("settlement")}
-          >
-            <i className="fa-solid fa-cash-register"></i> Day-End Settlement
-          </button>
+        <div className="sub-tabs-container billing-subtabs">
+          {SUB_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`sub-tab-btn ${billingSubTab === tab.id ? "active" : ""}`}
+              onClick={() => setBillingSubTab(tab.id)}
+            >
+              <i className={`fa-solid ${tab.icon}`}></i> {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Conditional rendering of sub-tab components */}
-        {billingSubTab === "new" && <NewBillCalculator />}
-        {billingSubTab === "history" && <BillingHistory />}
-        {billingSubTab === "reports" && <GSTRTaxReports />}
-        {billingSubTab === "settlement" && <DayEndSettlement />}
+        <Suspense fallback={<TabFallback label="Loading billing panel…" />}>
+          <ActivePanel />
+        </Suspense>
       </div>
     </section>
   );

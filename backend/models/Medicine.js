@@ -81,6 +81,12 @@ const medicineSchema = new mongoose.Schema({
         type: String,
         trim: true,
         default: ''
+    },
+    minStock: {
+        type: Number,
+        min: [0, 'Min stock cannot be negative'],
+        max: [999999, 'Min stock seems too high'],
+        default: 10
     }
 }, {
     timestamps: true,

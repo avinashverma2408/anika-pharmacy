@@ -1,55 +1,64 @@
-import React, { useEffect } from 'react';
-import { usePharmacyStore } from '../store/usePharmacyStore';
-import { AUTH_HASH_TO_SCREEN } from '../store/usePharmacyStore';
-import LoginScreen from './auth/LoginScreen';
-import ForgotPasswordScreen from './auth/ForgotPasswordScreen';
-import VerifyOtpScreen from './auth/VerifyOtpScreen';
-import CreatePasswordScreen from './auth/CreatePasswordScreen';
-import SuccessScreen from './auth/SuccessScreen';
+import React, { Suspense, lazy, useEffect } from "react";
+import { usePharmacyStore, AUTH_HASH_TO_SCREEN } from "../store/usePharmacyStore";
+import TabFallback from "./TabFallback";
+
+const LoginScreen = lazy(() => import("./auth/LoginScreen"));
+const ForgotPasswordScreen = lazy(() => import("./auth/ForgotPasswordScreen"));
+const VerifyOtpScreen = lazy(() => import("./auth/VerifyOtpScreen"));
+const CreatePasswordScreen = lazy(() => import("./auth/CreatePasswordScreen"));
+const SuccessScreen = lazy(() => import("./auth/SuccessScreen"));
+
+const AUTH_SCREENS = {
+  login: LoginScreen,
+  forgot: ForgotPasswordScreen,
+  otp: VerifyOtpScreen,
+  reset: CreatePasswordScreen,
+  success: SuccessScreen,
+};
 
 export default function AuthPage() {
-    const { authScreen, syncAuthWithHash, setAuthScreen } = usePharmacyStore();
+  const authScreen = usePharmacyStore((s) => s.authScreen);
+  const syncAuthWithHash = usePharmacyStore((s) => s.syncAuthWithHash);
 
-    useEffect(() => {
-        // On first load: read hash and sync screen
-        const hash = window.location.hash.replace('#', '');
-        const screen = AUTH_HASH_TO_SCREEN[hash];
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    const screen = AUTH_HASH_TO_SCREEN[hash];
 
-        if (screen) {
-            // Hash matches a known auth route — sync state
-            if (screen !== authScreen) {
-                // Only update state; don't re-push hash (would loop)
-                usePharmacyStore.setState({ authScreen: screen });
-            }
-        } else {
-            // No valid auth hash — default to /
-            window.location.hash = '/';
-        }
+    if (screen) {
+      if (screen !== usePharmacyStore.getState().authScreen) {
+        usePharmacyStore.setState({ authScreen: screen });
+      }
+    } else {
+      window.location.hash = "/";
+    }
 
-        // Listen for browser back/forward
-        const handleHashChange = () => syncAuthWithHash();
-        window.addEventListener('hashchange', handleHashChange);
-        return () => window.removeEventListener('hashchange', handleHashChange);
-    }, []); // Run once on mount
+    const handleHashChange = () => syncAuthWithHash();
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, [syncAuthWithHash]);
 
-    return (
-        <div className="auth-wrapper">
-            <div className="auth-bg-overlay"></div>
-            
-            <div className="auth-container">
-                <div className="auth-brand">
-                    <img src="/logo.png" alt="Anika Pharmacy Logo" className="auth-logo-img" />
-                    <h2>Anika Pharmacy</h2>
-                    <span>Store Portal Authentication</span>
-                </div>
+  const ActiveScreen = AUTH_SCREENS[authScreen] || LoginScreen;
 
-                {/* Sub-screens Switched by hash route */}
-                {authScreen === 'login'   && <LoginScreen />}
-                {authScreen === 'forgot'  && <ForgotPasswordScreen />}
-                {authScreen === 'otp'     && <VerifyOtpScreen />}
-                {authScreen === 'reset'   && <CreatePasswordScreen />}
-                {authScreen === 'success' && <SuccessScreen />}
-            </div>
+  return (
+    <div className="auth-wrapper">
+      <div className="auth-bg-overlay" />
+
+      <div className="auth-container">
+        <div className="auth-brand">
+          <img
+            src="/logo.png"
+            alt="Anika Pharmacy Logo"
+            className="auth-logo-img"
+            decoding="async"
+          />
+          <h2>Anika Pharmacy</h2>
+          <span>Store Portal Authentication</span>
         </div>
-    );
+
+        <Suspense fallback={<TabFallback label="Preparing secure login…" />}>
+          <ActiveScreen />
+        </Suspense>
+      </div>
+    </div>
+  );
 }

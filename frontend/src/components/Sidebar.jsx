@@ -1,19 +1,25 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { usePharmacyStore } from "../store/usePharmacyStore";
 
-export default function Sidebar() {
-  const { activeTab, setActiveTab, setLogoutModalOpen } = usePharmacyStore();
+const MENU_ITEMS = [
+  { id: "dashboard", label: "Dashboard", icon: "fa-chart-pie" },
+  { id: "inventory", label: "Inventory", icon: "fa-boxes-stacked" },
+  { id: "calendar", label: "Expiry Calendar", icon: "fa-calendar-days" },
+  { id: "billing", label: "GST Billing", icon: "fa-file-invoice-dollar" },
+  { id: "analytics", label: "Sales Analytics", icon: "fa-chart-line" },
+  { id: "suppliers", label: "Suppliers", icon: "fa-truck-field" },
+  { id: "customers", label: "Customers", icon: "fa-user-group" },
+  { id: "simulator", label: "Expiry Simulator", icon: "fa-flask-vial" },
+  { id: "notifications-log", label: "Alert Logs", icon: "fa-bell-concierge" },
+  { id: "settings", label: "Settings", icon: "fa-gear" },
+];
 
-  const menuItems = [
-    { id: "dashboard", label: "Dashboard", icon: "fa-chart-pie" },
-    { id: "inventory", label: "Inventory", icon: "fa-boxes-stacked" },
-    { id: "calendar", label: "Expiry Calendar", icon: "fa-calendar-days" },
-    { id: "billing", label: "GST Billing", icon: "fa-file-invoice-dollar" },
-    { id: "analytics", label: "Sales Analytics", icon: "fa-chart-line" },
-    { id: "simulator", label: "Expiry Simulator", icon: "fa-flask-vial" },
-    { id: "notifications-log", label: "Alert Logs", icon: "fa-bell-concierge" },
-    { id: "settings", label: "Settings", icon: "fa-gear" },
-  ];
+export default function Sidebar() {
+  const activeTab = usePharmacyStore((s) => s.activeTab);
+  const setActiveTab = usePharmacyStore((s) => s.setActiveTab);
+  const setLogoutModalOpen = usePharmacyStore((s) => s.setLogoutModalOpen);
+
+  const items = useMemo(() => MENU_ITEMS, []);
 
   return (
     <aside className="sidebar">
@@ -22,6 +28,8 @@ export default function Sidebar() {
           src="/logo.png"
           alt="Anika Pharmacy Logo"
           className="logo-icon-img"
+          loading="eager"
+          decoding="async"
         />
         <div className="brand-text">
           <h1>Anika Pharmacy</h1>
@@ -29,27 +37,28 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <nav className="sidebar-menu">
-        {menuItems.map((item) => (
-          <a
-            key={item.id}
-            href="#"
-            className={`menu-item ${activeTab === item.id ? "active" : ""}`}
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveTab(item.id);
-            }}
-          >
-            <i className={`fa-solid ${item.icon}`}></i>
-            <span>{item.label}</span>
-          </a>
-        ))}
+      <nav className="sidebar-menu" aria-label="Primary">
+        {items.map((item) => {
+          const isActive = activeTab === item.id;
+          return (
+            <a
+              key={item.id}
+              href={`#/${item.id}`}
+              className={`menu-item ${isActive ? "active" : ""}`}
+              aria-current={isActive ? "page" : undefined}
+              onClick={(e) => {
+                e.preventDefault();
+                if (!isActive) setActiveTab(item.id);
+              }}
+            >
+              <i className={`fa-solid ${item.icon}`} aria-hidden="true"></i>
+              <span>{item.label}</span>
+            </a>
+          );
+        })}
       </nav>
 
-      <div
-        className="sidebar-footer"
-        style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-      >
+      <div className="sidebar-footer">
         <div className="user-profile">
           <div className="avatar">AP</div>
           <div className="user-info">
@@ -57,30 +66,14 @@ export default function Sidebar() {
             <span className="user-role">Store Manager</span>
           </div>
         </div>
-        <a
-          href="#"
+        <button
+          type="button"
           className="logout-link"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "10px 16px",
-            color: "#fda4af",
-            fontSize: "13px",
-            textDecoration: "none",
-            borderRadius: "8px",
-            background: "rgba(239, 68, 68, 0.08)",
-            transition: "background-color 0.2s",
-            fontWeight: "500",
-          }}
-          onClick={(e) => {
-            e.preventDefault();
-            setLogoutModalOpen(true);
-          }}
+          onClick={() => setLogoutModalOpen(true)}
         >
-          <i className="fa-solid fa-right-from-bracket"></i>
+          <i className="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
           <span>Logout Portal</span>
-        </a>
+        </button>
       </div>
     </aside>
   );

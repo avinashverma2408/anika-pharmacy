@@ -5,7 +5,7 @@ import {
   formatDateTimeDisplay,
   showSimpleToast,
 } from "../store/usePharmacyStore";
-import { billApi, medicineApi } from "../api/apiClient";
+import { billApi, medicineApi, customerApi } from "../api/apiClient";
 
 export default function NewBillCalculator() {
   const {
@@ -29,6 +29,7 @@ export default function NewBillCalculator() {
   const [patientHistoryBills, setPatientHistoryBills] = useState([]);
   const [isFetchingHistory, setIsFetchingHistory] = useState(false);
   const [autoHistoryFound, setAutoHistoryFound] = useState(false);
+  const [matchedCustomer, setMatchedCustomer] = useState(null);
 
   // Bill Items state
   const [billItems, setBillItems] = useState([]);
@@ -87,27 +88,45 @@ export default function NewBillCalculator() {
     setSearchResults(filtered);
   }, [searchQuery, medicines]);
 
-  // Auto-fetch patient purchase history when mobile number reaches 10 digits
+  // Auto-lookup customer + purchase history when mobile reaches 10 digits
   useEffect(() => {
     const fetchPatientHistory = async () => {
       const trimmedMobile = patientMobile.trim();
       if (trimmedMobile.length === 10) {
         setIsFetchingHistory(true);
         try {
-          const { data } = await billApi.getAll({ search: trimmedMobile, limit: 50 });
-          if (data.success) {
-            const filteredBills = data.bills || [];
+          const [{ data: lookup }, { data: billsData }] = await Promise.all([
+            customerApi.lookupByMobile(trimmedMobile),
+            billApi.getAll({ search: trimmedMobile, limit: 50 }),
+          ]);
+
+          if (lookup?.success && lookup.found && lookup.customer) {
+            const c = lookup.customer;
+            setMatchedCustomer(c);
+            setPatientName((prev) =>
+              !prev || prev === "CASH CUSTOMER" ? c.name || prev : prev,
+            );
+            setPatientAddress((prev) => prev || c.address || "");
+            setDoctorName((prev) => prev || c.preferredDoctor || "");
+          } else {
+            setMatchedCustomer(null);
+          }
+
+          if (billsData?.success) {
+            const filteredBills = billsData.bills || [];
             setPatientHistoryBills(filteredBills);
             setAutoHistoryFound(filteredBills.length > 0);
           }
         } catch (err) {
           console.error("Failed to fetch patient history:", err);
+          setMatchedCustomer(null);
         } finally {
           setIsFetchingHistory(false);
         }
       } else {
         setAutoHistoryFound(false);
         setPatientHistoryBills([]);
+        setMatchedCustomer(null);
       }
     };
     fetchPatientHistory();
@@ -523,6 +542,25 @@ export default function NewBillCalculator() {
                   placeholder="Enter 10-digit Mobile"
                   maxLength="10"
                 />
+                {matchedCustomer && (
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      color: "var(--success)",
+                      marginTop: "4px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      fontWeight: "600",
+                    }}
+                  >
+                    <i className="fa-solid fa-user-check"></i>
+                    Customer matched: {matchedCustomer.name}
+                    {matchedCustomer.totalPurchases
+                      ? ` · ${matchedCustomer.totalPurchases} visits`
+                      : ""}
+                  </span>
+                )}
                 {autoHistoryFound && (
                   <span
                     style={{
@@ -540,6 +578,11 @@ export default function NewBillCalculator() {
                   >
                     <i className="fa-solid fa-circle-info"></i>
                     {patientHistoryBills.length} past purchases found. View History
+                  </span>
+                )}
+                {isFetchingHistory && (
+                  <span style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+                    <i className="fa-solid fa-spinner fa-spin"></i> Looking up customer…
                   </span>
                 )}
               </div>

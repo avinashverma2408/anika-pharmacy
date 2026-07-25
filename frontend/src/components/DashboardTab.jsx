@@ -204,6 +204,12 @@ export default function DashboardTab() {
         (m.status === "Out of Stock" || m.quantity === 0) &&
         calculateDaysDifference(simulatedDate, m.expiryDate) >= 0,
     ).length;
+  const lowStockCount =
+    stats?.lowStock ??
+    medicines.filter((m) => {
+      const min = m.minStock !== undefined && m.minStock !== null ? m.minStock : 10;
+      return m.status === "Active" && m.quantity > 0 && m.quantity <= min;
+    }).length;
   const inactiveCount =
     stats?.inactiveCount ??
     medicines.filter((m) => m.status === "Inactive").length;
@@ -474,6 +480,20 @@ export default function DashboardTab() {
           <div className="stat-info">
             <span className="stat-label">Out of Stock</span>
             <StatValue val={outOfStockCount} />
+          </div>
+        </div>
+
+        <div
+          className="stat-card border-warning"
+          style={{ cursor: "pointer" }}
+          onClick={() => handleStatCardClick("lowstock")}
+        >
+          <div className="stat-icon bg-warning text-dark">
+            <i className="fa-solid fa-battery-quarter"></i>
+          </div>
+          <div className="stat-info">
+            <span className="stat-label">Low Stock Alerts</span>
+            <StatValue val={lowStockCount} />
           </div>
         </div>
 

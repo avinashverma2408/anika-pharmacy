@@ -8,10 +8,17 @@ exports.getNotifications = async (req, res) => {
         const simulatedDate = req.headers['x-simulated-date'];
         await checkAndCreateExpiryAlerts(simulatedDate);
 
-        const { severity, read } = req.query;
+        const { severity, read, type } = req.query;
         const filter = {};
 
         if (severity && severity !== 'all') filter.severity = severity;
+        if (type && type !== 'all') {
+            if (type === 'stock') {
+                filter.type = { $in: ['low-stock', 'out-of-stock'] };
+            } else {
+                filter.type = type;
+            }
+        }
         if (read === 'true') filter.read = true;
         if (read === 'false') filter.read = false;
 
@@ -100,7 +107,8 @@ exports.getDashboardStats = async (req, res) => {
             expiring7Days,
             expiringToday,
             inactiveCount,
-            unreadNotifications
+            unreadNotifications,
+            lowStock
         ] = await Promise.all([
             Medicine.countDocuments({ status: { $ne: 'Inactive' } }),
             Medicine.countDocuments({ status: 'Active', expiryDate: { $gt: d20 }, quantity: { $gt: 0 } }),
@@ -110,7 +118,12 @@ exports.getDashboardStats = async (req, res) => {
             Medicine.countDocuments({ status: 'Active', expiryDate: { $gte: today, $lte: d7 }, quantity: { $gt: 0 } }),
             Medicine.countDocuments({ status: 'Active', expiryDate: { $gte: today, $lt: new Date(today.getTime() + 86400000) }, quantity: { $gt: 0 } }),
             Medicine.countDocuments({ status: 'Inactive' }),
-            Notification.countDocuments({ read: false })
+            Notification.countDocuments({ read: false }),
+            Medicine.countDocuments({
+                status: 'Active',
+                quantity: { $gt: 0 },
+                $expr: { $lte: ['$quantity', { $ifNull: ['$minStock', 10] }] }
+            })
         ]);
 
         // Recent alerts (last 5)
@@ -137,7 +150,8 @@ exports.getDashboardStats = async (req, res) => {
                 expiring7Days,
                 expiringToday,
                 inactiveCount,
-                unreadNotifications
+                unreadNotifications,
+                lowStock
             },
             recentAlerts: recentAlerts.map(n => ({ ...n, id: n._id })),
             expiringSoon: expiringSoon.map(m => ({

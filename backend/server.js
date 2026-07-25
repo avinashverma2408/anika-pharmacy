@@ -52,6 +52,8 @@ app.use("/api/notifications", require("./routes/notification.routes"));
 // Dashboard stats reuse notification controller under a separate prefix
 app.use("/api/dashboard", require("./routes/notification.routes"));
 app.use("/api/bills", require("./routes/bill.routes"));
+app.use("/api/suppliers", require("./routes/supplier.routes"));
+app.use("/api/customers", require("./routes/customer.routes"));
 
 // Health check
 app.get("/api/health", (req, res) => {
@@ -360,6 +362,27 @@ async function autoSeedIfNeeded() {
     } else {
       console.log(
         "✅ Database already contains medicine data. Skipping medicine seeding.",
+      );
+    }
+
+    // Seed suppliers from medicine stockist names if empty
+    const Supplier = require("./models/Supplier");
+    const supplierCount = await Supplier.countDocuments();
+    if (supplierCount === 0) {
+      const Medicine = require("./models/Medicine");
+      const names = await Medicine.distinct("stockistName", {
+        stockistName: { $nin: [null, ""] },
+      });
+      const unique = [...new Set(names.map((n) => String(n).trim()).filter(Boolean))];
+      if (unique.length > 0) {
+        await Supplier.insertMany(
+          unique.map((name) => ({ name, status: "Active", outstandingDues: 0 })),
+        );
+        console.log(`🏭 ${unique.length} suppliers auto-seeded from stockists.`);
+      }
+    } else {
+      console.log(
+        "✅ Database already contains supplier data. Skipping supplier seeding.",
       );
     }
   } catch (err) {

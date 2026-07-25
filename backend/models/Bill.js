@@ -64,6 +64,12 @@ const billSchema = new mongoose.Schema({
         default: '',
         trim: true
     },
+    customerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Customer',
+        default: null,
+        index: true
+    },
     doctorName: {
         type: String,
         default: '',
@@ -122,5 +128,7 @@ const billSchema = new mongoose.Schema({
 // Indexes for fast querying
 billSchema.index({ patientName: 'text', invoiceNo: 'text', patientMobile: 'text' });
 billSchema.index({ billDate: -1 });
+billSchema.index({ customerId: 1, billDate: -1 });
+billSchema.index({ patientMobile: 1 });
 
 module.exports = mongoose.model('Bill', billSchema);

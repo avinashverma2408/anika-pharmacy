@@ -225,6 +225,32 @@ body {
 .sidebar-footer {
   padding: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.logout-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  color: #fda4af;
+  font-size: 13px;
+  text-decoration: none;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.08);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-weight: 500;
+  font-family: inherit;
+  text-align: left;
+}
+
+.logout-link:hover {
+  background: rgba(239, 68, 68, 0.16);
 }
 
 .user-profile {
@@ -1000,14 +1026,207 @@ body {
   font-weight: 500;
 }
 
-.filter-group select {
-  padding: 10px;
+.filter-group select,
+.filter-group input {
+  padding: 10px 12px;
   background-color: var(--bg-input);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   border-radius: 8px;
   outline: none;
   font-size: 13px;
+  width: 100%;
+  box-sizing: border-box;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.filter-group input::placeholder {
+  color: var(--text-muted);
+}
+
+.filter-group .filter-search-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.filter-group .filter-search-wrap > i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.filter-group .filter-search-wrap input {
+  padding-left: 36px;
+}
+
+.filter-group input[type="search"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.filter-group input[type="search"]::-webkit-search-decoration,
+.filter-group input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+/* Inventory category filter — full bar, balanced controls */
+.inventory-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 18px 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.inventory-filter-bar .inventory-category-group {
+  flex: 1 1 320px;
+  max-width: 480px;
+  min-width: 240px;
+  gap: 6px;
+}
+
+.inventory-filter-bar .inventory-category-group label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.inventory-filter-bar .inventory-category-group select {
+  width: 100%;
+  height: 44px;
+  padding: 10px 14px;
+  font-size: 14px;
+  border-radius: 8px;
+}
+
+.inventory-filter-bar .inventory-reset-btn {
+  height: 44px;
+  padding: 0 20px;
+  font-size: 14px;
+  border-radius: 8px;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* --- Suppliers screen helpers --- */
+.header-actions-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-group-grow {
+  flex-grow: 2;
+  min-width: 220px;
+}
+
+.filter-reset-btn {
+  align-self: flex-end;
+  height: 40px;
+}
+
+.table-skeleton-row {
+  height: 16px;
+  margin: 6px 0;
+  border-radius: 6px;
+  background: var(--bg-input);
+  animation: pulse 1.5s infinite;
+  opacity: 0.55;
+}
+
+.cell-strong {
+  font-weight: 600;
+}
+
+.cell-code {
+  font-size: 12px;
+}
+
+.cell-dues {
+  font-weight: 600;
+  color: var(--warning);
+}
+
+.cell-clear {
+  font-weight: 600;
+  color: var(--success);
+}
+
+.suppliers-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.suppliers-empty .empty-hint {
+  font-size: 13px;
+  max-width: 420px;
+  margin: 0;
+}
+
+.suppliers-back-btn {
+  margin-bottom: 12px;
+}
+
+.suppliers-status-value {
+  font-size: 18px;
+}
+
+.suppliers-profile-card {
+  margin-bottom: 20px;
+}
+
+.suppliers-profile-card .panel-header {
+  margin-bottom: 16px;
+}
+
+.suppliers-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.suppliers-profile-span {
+  grid-column: 1 / -1;
+}
+
+.suppliers-ledger-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 20px 24px 8px;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.suppliers-ledger-header h3 {
+  margin: 0;
+}
+
+.table-empty-cell {
+  text-align: center;
+  padding: 28px;
+  color: var(--text-muted);
 }
 
 /* --- Data Table Styling --- */
@@ -4289,4 +4508,124 @@ body {
   left: 0;
   top: 0;
   z-index: 9999;
+}
+
+/* --- Performance shell: workspace + tab fallback --- */
+.app-main {
+  max-width: none;
+  margin: 0;
+}
+
+.workspace-stage {
+  animation: workspace-enter 220ms ease-out;
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 720px;
+}
+
+@keyframes workspace-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-stage {
+    animation: none;
+  }
+}
+
+.tab-fallback {
+  min-height: 420px;
+  display: grid;
+  place-items: center;
+  padding: 32px 16px;
+}
+
+.tab-fallback-card {
+  width: min(420px, 100%);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 28px 24px;
+  text-align: center;
+  box-shadow: var(--shadow-md);
+}
+
+.tab-fallback-spinner {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary);
+  animation: tab-spin 0.75s linear infinite;
+}
+
+@keyframes tab-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tab-fallback-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tab-fallback-subtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.tab-fallback-bars {
+  margin-top: 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.tab-fallback-bars span {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-input) 0%,
+    var(--bg-card-hover) 50%,
+    var(--bg-input) 100%
+  );
+  background-size: 200% 100%;
+  animation: tab-shimmer 1.2s ease-in-out infinite;
+}
+
+.tab-fallback-bars span:nth-child(2) {
+  width: 82%;
+  margin-inline: auto;
+  animation-delay: 0.1s;
+}
+
+.tab-fallback-bars span:nth-child(3) {
+  width: 64%;
+  margin-inline: auto;
+  animation-delay: 0.2s;
+}
+
+@keyframes tab-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.billing-subtabs {
+  margin-bottom: 20px;
 }

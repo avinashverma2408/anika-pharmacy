@@ -19,6 +19,7 @@ export default function ProductModals() {
     confirmDeleteMedicine,
     isSavingMedicine,
     isDeletingMedicine,
+    suppliers,
   } = usePharmacyStore();
 
   // Add Form Local States
@@ -35,6 +36,7 @@ export default function ProductModals() {
   const [addPack, setAddPack] = useState("");
   const [addGstRate, setAddGstRate] = useState("5");
   const [addComposition, setAddComposition] = useState("");
+  const [addMinStock, setAddMinStock] = useState("10");
 
   // Edit Form Local States
   const [editName, setEditName] = useState("");
@@ -50,6 +52,12 @@ export default function ProductModals() {
   const [editPack, setEditPack] = useState("");
   const [editGstRate, setEditGstRate] = useState("5");
   const [editComposition, setEditComposition] = useState("");
+  const [editMinStock, setEditMinStock] = useState("10");
+
+  const supplierNames = (suppliers || [])
+    .filter((s) => s.status !== "Inactive")
+    .map((s) => s.name)
+    .filter(Boolean);
 
   // Populate edit form when product loads
   useEffect(() => {
@@ -75,6 +83,11 @@ export default function ProductModals() {
           : "5",
       );
       setEditComposition(editingProduct.composition || "");
+      setEditMinStock(
+        editingProduct.minStock !== undefined && editingProduct.minStock !== null
+          ? String(editingProduct.minStock)
+          : "10",
+      );
     }
   }, [editingProduct]);
 
@@ -94,6 +107,7 @@ export default function ProductModals() {
       pack: addPack,
       gstRate: addGstRate,
       composition: addComposition,
+      minStock: addMinStock,
     });
     if (success) {
       setAddName("");
@@ -109,6 +123,7 @@ export default function ProductModals() {
       setAddPack("");
       setAddGstRate("5");
       setAddComposition("");
+      setAddMinStock("10");
     }
   };
 
@@ -129,6 +144,7 @@ export default function ProductModals() {
       pack: editPack,
       gstRate: editGstRate,
       composition: editComposition,
+      minStock: editMinStock,
     });
   };
 
@@ -246,6 +262,18 @@ export default function ProductModals() {
               </div>
 
               <div className="form-group">
+                <label htmlFor="add-min-stock">Min Stock Alert</label>
+                <input
+                  type="number"
+                  id="add-min-stock"
+                  min="0"
+                  placeholder="e.g., 10"
+                  value={addMinStock}
+                  onChange={(e) => setAddMinStock(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
                 <label htmlFor="add-expiry">
                   Expiry Date <span className="required">*</span>
                 </label>
@@ -276,7 +304,8 @@ export default function ProductModals() {
                 <input
                   type="text"
                   id="add-stockist"
-                  placeholder="e.g., Cipla Ltd"
+                  list="supplier-datalist"
+                  placeholder="Select or type stockist"
                   value={addStockistName}
                   onChange={(e) => setAddStockistName(e.target.value)}
                 />
@@ -466,6 +495,17 @@ export default function ProductModals() {
               </div>
 
               <div className="form-group">
+                <label htmlFor="edit-min-stock">Min Stock Alert</label>
+                <input
+                  type="number"
+                  id="edit-min-stock"
+                  min="0"
+                  value={editMinStock}
+                  onChange={(e) => setEditMinStock(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
                 <label htmlFor="edit-expiry">
                   Expiry Date <span className="required">*</span>
                 </label>
@@ -496,7 +536,8 @@ export default function ProductModals() {
                 <input
                   type="text"
                   id="edit-stockist"
-                  placeholder="e.g., Cipla Ltd"
+                  list="supplier-datalist"
+                  placeholder="Select or type stockist"
                   value={editStockistName}
                   onChange={(e) => setEditStockistName(e.target.value)}
                 />
@@ -644,6 +685,12 @@ export default function ProductModals() {
           </div>
         </div>
       </div>
+
+      <datalist id="supplier-datalist">
+        {supplierNames.map((name) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
     </>
   );
 }

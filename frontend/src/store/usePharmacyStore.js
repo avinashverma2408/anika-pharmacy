@@ -5,6 +5,7 @@ import {
   notificationApi,
   dashboardApi,
   billApi,
+  supplierApi,
 } from "../api/apiClient";
 
 // ── Auth Screen <-> Hash Route Map ──────────────────────────────────────────
@@ -180,6 +181,10 @@ const loadInitialState = () => {
     bills: [],
     billStats: null,
 
+    // Suppliers
+    suppliers: [],
+    supplierSummary: { activeSuppliers: 0, totalOutstandingDues: 0, withDues: 0 },
+
     // Loading states
     isLoadingMedicines: false,
     isLoadingNotifications: false,
@@ -188,6 +193,8 @@ const loadInitialState = () => {
     isSavingMedicine: false,
     isDeletingMedicine: false,
     isLoadingBills: false,
+    isLoadingSuppliers: false,
+    isSavingSupplier: false,
   };
 };
 
@@ -425,6 +432,8 @@ export const usePharmacyStore = create((set, get) => ({
       "calendar",
       "billing",
       "analytics",
+      "suppliers",
+      "customers",
       "simulator",
       "notifications-log",
       "settings",
@@ -712,6 +721,8 @@ export const usePharmacyStore = create((set, get) => ({
           hsn: med.hsn,
           pack: med.pack,
           gstRate: med.gstRate,
+          composition: med.composition,
+          minStock: med.minStock ?? 10,
         });
       }
 
@@ -803,6 +814,124 @@ export const usePharmacyStore = create((set, get) => ({
       set({ dashboardStats: data, isLoadingStats: false });
     } catch (err) {
       set({ isLoadingStats: false });
+    }
+  },
+
+  // ── Suppliers (API) ───────────────────────────────────────────────────────
+  setSupplierSummary: (summary) =>
+    set({
+      supplierSummary: summary || {
+        activeSuppliers: 0,
+        totalOutstandingDues: 0,
+        withDues: 0,
+      },
+    }),
+
+  fetchSuppliers: async (params = {}) => {
+    set({ isLoadingSuppliers: true });
+    try {
+      const { data } = await supplierApi.getAll(params);
+      set({
+        suppliers: data.suppliers || [],
+        supplierSummary: data.summary || {
+          activeSuppliers: 0,
+          totalOutstandingDues: 0,
+          withDues: 0,
+        },
+        isLoadingSuppliers: false,
+      });
+      return data;
+    } catch (err) {
+      set({ isLoadingSuppliers: false });
+      showSimpleToast("Error", "Failed to load suppliers.", "danger");
+      return null;
+    }
+  },
+
+  addSupplier: async (payload) => {
+    set({ isSavingSupplier: true });
+    try {
+      const { data } = await supplierApi.add(payload);
+      set({ isSavingSupplier: false });
+      showSimpleToast("Supplier Added", data.message, "success");
+      // Refresh option list used by medicine forms
+      await get().fetchSuppliers({ limit: 100, sort: "name", order: "asc" });
+      return true;
+    } catch (err) {
+      set({ isSavingSupplier: false });
+      showSimpleToast(
+        "Error",
+        err.response?.data?.message || "Failed to add supplier.",
+        "danger",
+      );
+      return false;
+    }
+  },
+
+  updateSupplier: async (id, payload) => {
+    set({ isSavingSupplier: true });
+    try {
+      const { data } = await supplierApi.update(id, payload);
+      set({ isSavingSupplier: false });
+      showSimpleToast("Supplier Updated", data.message, "success");
+      await get().fetchSuppliers({ limit: 100, sort: "name", order: "asc" });
+      return true;
+    } catch (err) {
+      set({ isSavingSupplier: false });
+      showSimpleToast(
+        "Error",
+        err.response?.data?.message || "Failed to update supplier.",
+        "danger",
+      );
+      return false;
+    }
+  },
+
+  deleteSupplier: async (id) => {
+    try {
+      const { data } = await supplierApi.delete(id);
+      set((state) => ({
+        suppliers: state.suppliers.filter(
+          (s) => String(s._id || s.id) !== String(id),
+        ),
+      }));
+      showSimpleToast("Deleted", data.message, "success");
+      await get().fetchSuppliers({ limit: 100, sort: "name", order: "asc" });
+      return true;
+    } catch (err) {
+      showSimpleToast(
+        "Error",
+        err.response?.data?.message || "Failed to delete supplier.",
+        "danger",
+      );
+      return false;
+    }
+  },
+
+  addSupplierTransaction: async (id, payload) => {
+    try {
+      const { data } = await supplierApi.addTransaction(id, payload);
+      showSimpleToast("Recorded", data.message, "success");
+      return data;
+    } catch (err) {
+      showSimpleToast(
+        "Error",
+        err.response?.data?.message || "Failed to record transaction.",
+        "danger",
+      );
+      return null;
+    }
+  },
+
+  syncSuppliersFromStockists: async () => {
+    try {
+      const { data } = await supplierApi.syncFromStockists();
+      showSimpleToast("Synced", data.message, "success");
+      await get().fetchSuppliers({ limit: 100, sort: "name", order: "asc" });
+      return true;
+    } catch (err) {
+      showSimpleToast("Error", "Failed to sync suppliers.", "danger");
+      return false;
     }
   },
 

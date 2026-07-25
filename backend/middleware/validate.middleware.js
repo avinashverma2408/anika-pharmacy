@@ -113,13 +113,100 @@ const medicineRules = [
         .isLength({ max: 20 }).withMessage('Pack must be 20 characters or less'),
     body('gstRate')
         .optional()
-        .isFloat({ min: 0, max: 100 }).withMessage('GST rate must be a percentage between 0 and 100')
+        .isFloat({ min: 0, max: 100 }).withMessage('GST rate must be a percentage between 0 and 100'),
+    body('minStock')
+        .optional({ checkFalsy: true })
+        .isInt({ min: 0, max: 999999 }).withMessage('Min stock must be 0 or more')
 ];
 
 const statusUpdateRules = [
     body('status')
         .notEmpty().withMessage('Status is required')
         .isIn(['Active', 'Inactive', 'Out of Stock']).withMessage('Invalid status')
+];
+
+const supplierRules = [
+    body('name')
+        .trim().notEmpty().withMessage('Supplier name is required')
+        .isLength({ min: 2, max: 100 }).withMessage('Name must be 2-100 characters'),
+    body('contactPerson')
+        .optional({ checkFalsy: true })
+        .trim()
+        .isLength({ max: 100 }).withMessage('Contact person cannot exceed 100 characters'),
+    body('phone')
+        .optional({ checkFalsy: true })
+        .trim()
+        .isLength({ max: 20 }).withMessage('Phone cannot exceed 20 characters'),
+    body('email')
+        .optional({ checkFalsy: true })
+        .trim()
+        .isEmail().withMessage('Enter a valid email address'),
+    body('address')
+        .optional({ checkFalsy: true })
+        .trim()
+        .isLength({ max: 300 }).withMessage('Address cannot exceed 300 characters'),
+    body('gstin')
+        .optional({ checkFalsy: true })
+        .trim()
+        .isLength({ max: 15 }).withMessage('GSTIN cannot exceed 15 characters'),
+    body('notes')
+        .optional({ checkFalsy: true })
+        .trim()
+        .isLength({ max: 500 }).withMessage('Notes cannot exceed 500 characters'),
+    body('status')
+        .optional()
+        .isIn(['Active', 'Inactive']).withMessage('Status must be Active or Inactive'),
+    body('outstandingDues')
+        .optional({ checkFalsy: true })
+        .isFloat({ min: 0, max: 99999999 }).withMessage('Outstanding dues must be 0 or more')
+];
+
+const supplierTransactionRules = [
+    body('type')
+        .notEmpty().withMessage('Transaction type is required')
+        .isIn(['purchase', 'payment', 'adjustment']).withMessage('Type must be purchase, payment, or adjustment'),
+    body('amount')
+        .notEmpty().withMessage('Amount is required')
+        .isFloat({ min: 0.01, max: 99999999 }).withMessage('Amount must be greater than 0'),
+    body('invoiceNo')
+        .optional({ checkFalsy: true })
+        .trim()
+        .isLength({ max: 50 }).withMessage('Invoice number cannot exceed 50 characters'),
+    body('notes')
+        .optional({ checkFalsy: true })
+        .trim()
+        .isLength({ max: 300 }).withMessage('Notes cannot exceed 300 characters'),
+    body('transactionDate')
+        .optional({ checkFalsy: true })
+        .isISO8601().withMessage('Transaction date must be a valid date')
+];
+
+const customerRules = [
+    body('name')
+        .trim().notEmpty().withMessage('Customer name is required')
+        .isLength({ min: 2, max: 120 }).withMessage('Name must be 2-120 characters'),
+    body('mobile')
+        .trim().notEmpty().withMessage('Mobile number is required')
+        .custom((value) => {
+            const digits = String(value).replace(/\D/g, '');
+            if (digits.length < 10) throw new Error('Mobile must be at least 10 digits');
+            return true;
+        }),
+    body('address')
+        .optional({ checkFalsy: true })
+        .trim()
+        .isLength({ max: 300 }).withMessage('Address cannot exceed 300 characters'),
+    body('preferredDoctor')
+        .optional({ checkFalsy: true })
+        .trim()
+        .isLength({ max: 120 }).withMessage('Doctor name cannot exceed 120 characters'),
+    body('notes')
+        .optional({ checkFalsy: true })
+        .trim()
+        .isLength({ max: 500 }).withMessage('Notes cannot exceed 500 characters'),
+    body('status')
+        .optional()
+        .isIn(['Active', 'Inactive']).withMessage('Status must be Active or Inactive')
 ];
 
 const mongoIdParam = (paramName = 'id') => [
@@ -136,5 +223,8 @@ module.exports = {
     updatePasswordRules,
     medicineRules,
     statusUpdateRules,
+    supplierRules,
+    supplierTransactionRules,
+    customerRules,
     mongoIdParam
 };

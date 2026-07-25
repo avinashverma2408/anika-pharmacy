@@ -101,16 +101,18 @@ async function checkAndCreateExpiryAlerts(customDate = null) {
             let message = '';
             let hindiMessage = '';
 
+            const minStock = (med.minStock !== undefined && med.minStock !== null) ? med.minStock : 10;
+
             if (med.quantity === 0 || med.status === 'Out of Stock') {
                 alertType = 'out-of-stock';
                 severity = 'orange';
                 message = `⚠️ OUT OF STOCK: "${med.name}" (Batch #${med.batch}) is out of stock! Reorder immediately.`;
                 hindiMessage = `स्टॉक समाप्त: "${med.name}" (Batch #${med.batch}) का स्टॉक समाप्त हो गया है! तुरंत पुनः ऑर्डर करें।`;
-            } else if (med.quantity > 0 && med.quantity <= 10) {
+            } else if (med.quantity > 0 && med.quantity <= minStock) {
                 alertType = 'low-stock';
                 severity = 'warning';
-                message = `🔔 LOW STOCK: "${med.name}" (Batch #${med.batch}) is running low! Only ${med.quantity} unit(s) left.`;
-                hindiMessage = `कम स्टॉक: "${med.name}" (Batch #${med.batch}) का स्टॉक कम है! केवल ${med.quantity} यूनिट बची हैं।`;
+                message = `🔔 LOW STOCK: "${med.name}" (Batch #${med.batch}) is at/below min stock (${minStock}). Only ${med.quantity} unit(s) left.`;
+                hindiMessage = `कम स्टॉक: "${med.name}" (Batch #${med.batch}) न्यूनतम स्टॉक (${minStock}) पर/से कम है! केवल ${med.quantity} यूनिट बची हैं।`;
             }
 
             if (alertType) {

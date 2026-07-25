@@ -139,6 +139,16 @@ export default function ProductDetails() {
                         </div>
 
                         <div className="info-item">
+                            <span className="info-label">Min Stock Alert</span>
+                            <span className="info-value">
+                                {med.minStock !== undefined && med.minStock !== null ? med.minStock : 10}
+                                {med.quantity > 0 && med.quantity <= (med.minStock ?? 10) && (
+                                    <span className="badge badge-warning" style={{ marginLeft: 8 }}>Low Stock</span>
+                                )}
+                            </span>
+                        </div>
+
+                        <div className="info-item">
                             <span className="info-label">Expiry Date</span>
                             <span className="info-value">{formatDateDisplay(med.expiryDate)}</span>
                         </div>

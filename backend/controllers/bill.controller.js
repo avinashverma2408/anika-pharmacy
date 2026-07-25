@@ -1,4 +1,5 @@
 const Bill = require('../models/Bill');
+const { upsertFromBill, normalizeMobile } = require('../utils/customerUpsert');
 
 // POST /api/bills - Save a new invoice
 exports.createBill = async (req, res) => {
@@ -27,11 +28,22 @@ exports.createBill = async (req, res) => {
             return res.status(400).json({ success: false, message: `Invoice number ${invoiceNo} already exists.` });
         }
 
+        const cleanMobile = normalizeMobile(patientMobile || '');
+        const customer = await upsertFromBill({
+            name: patientName,
+            mobile: cleanMobile,
+            address: patientAddress,
+            doctorName,
+            billDate,
+            netTotal
+        });
+
         const newBill = await Bill.create({
             invoiceNo,
             patientName: patientName || 'CASH CUSTOMER',
-            patientMobile: patientMobile || '',
+            patientMobile: cleanMobile || '',
             patientAddress,
+            customerId: customer?._id || null,
             doctorName: doctorName || '',
             paymentMode: paymentMode || 'Cash',
             billDate: billDate ? new Date(billDate) : new Date(),

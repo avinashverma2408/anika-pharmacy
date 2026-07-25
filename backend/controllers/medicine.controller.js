@@ -11,7 +11,7 @@ import('../../shared/sharedUtils.js').then(utils => {
 // GET /api/medicines
 exports.getMedicines = async (req, res) => {
     try {
-        const { search, category, status, expiry, composition, sort = 'createdAt', order = 'desc' } = req.query;
+        const { search, category, status, expiry, composition, stock, sort = 'createdAt', order = 'desc' } = req.query;
 
         const filter = {};
 
@@ -68,6 +68,15 @@ exports.getMedicines = async (req, res) => {
         } else if (expiry === 'safe') {
             const d20 = new Date(today); d20.setDate(d20.getDate() + 20);
             filter.expiryDate = { $gt: d20 };
+        }
+
+        // Low stock: qty > 0 and qty <= per-medicine minStock (default 10)
+        if (stock === 'low') {
+            filter.status = 'Active';
+            filter.quantity = { $gt: 0 };
+            filter.$expr = {
+                $lte: ['$quantity', { $ifNull: ['$minStock', 10] }]
+            };
         }
 
         const sortObj = {};
@@ -128,16 +137,22 @@ exports.getMedicineCounts = async (req, res) => {
         const d20 = new Date(today);
         d20.setDate(d20.getDate() + 20);
 
-        const [all, active, expired, outofstock, expiring, inactive] = await Promise.all([
+        const [all, active, expired, outofstock, expiring, inactive, lowstock] = await Promise.all([
             Medicine.countDocuments({ ...base, status: { $ne: 'Inactive' } }),
             Medicine.countDocuments({ ...base, status: 'Active', expiryDate: { $gt: d20 }, quantity: { $gt: 0 } }),
             Medicine.countDocuments({ ...base, status: { $ne: 'Inactive' }, expiryDate: { $lt: today } }),
             Medicine.countDocuments({ ...base, status: { $ne: 'Inactive' }, $or: [{ status: 'Out of Stock' }, { quantity: 0 }], expiryDate: { $gte: today } }),
             Medicine.countDocuments({ ...base, status: 'Active', expiryDate: { $gte: today, $lte: d20 }, quantity: { $gt: 0 } }),
-            Medicine.countDocuments({ ...base, status: 'Inactive' })
+            Medicine.countDocuments({ ...base, status: 'Inactive' }),
+            Medicine.countDocuments({
+                ...base,
+                status: 'Active',
+                quantity: { $gt: 0 },
+                $expr: { $lte: ['$quantity', { $ifNull: ['$minStock', 10] }] }
+            })
         ]);
 
-        res.json({ success: true, counts: { all, active, expired, outofstock, expiring, inactive } });
+        res.json({ success: true, counts: { all, active, expired, outofstock, expiring, inactive, lowstock } });
     } catch (err) {
         console.error('Get medicine counts error:', err);
         res.status(500).json({ success: false, message: 'Failed to fetch counts.' });
@@ -147,14 +162,15 @@ exports.getMedicineCounts = async (req, res) => {
 // POST /api/medicines
 exports.addMedicine = async (req, res) => {
     try {
-        const { name, category, batch, price, quantity, expiryDate, status, stockistName, ptr, hsn, pack, gstRate, composition } = req.body;
+        const { name, category, batch, price, quantity, expiryDate, status, stockistName, ptr, hsn, pack, gstRate, composition, minStock } = req.body;
 
         const medicine = await Medicine.create({
             name, category, batch, price: parseFloat(price),
             quantity: parseInt(quantity), expiryDate, status,
             stockistName, ptr: ptr ? parseFloat(ptr) : 0,
             hsn, pack, gstRate: gstRate ? parseFloat(gstRate) : 5,
-            composition
+            composition,
+            minStock: minStock !== undefined && minStock !== '' ? parseInt(minStock) : 10
         });
 
         // Trigger expiry check for the new medicine
@@ -177,7 +193,7 @@ exports.addMedicine = async (req, res) => {
 // PUT /api/medicines/:id
 exports.updateMedicine = async (req, res) => {
     try {
-        const { name, category, batch, price, quantity, expiryDate, status, stockistName, ptr, hsn, pack, gstRate, composition } = req.body;
+        const { name, category, batch, price, quantity, expiryDate, status, stockistName, ptr, hsn, pack, gstRate, composition, minStock } = req.body;
 
         const medicine = await Medicine.findByIdAndUpdate(
             req.params.id,
@@ -186,7 +202,8 @@ exports.updateMedicine = async (req, res) => {
                 quantity: parseInt(quantity), expiryDate, status,
                 stockistName, ptr: ptr ? parseFloat(ptr) : 0,
                 hsn, pack, gstRate: gstRate ? parseFloat(gstRate) : 5,
-                composition
+                composition,
+                minStock: minStock !== undefined && minStock !== '' ? parseInt(minStock) : 10
             },
             { new: true, runValidators: true }
         );
@@ -243,11 +260,14 @@ exports.updateStatus = async (req, res) => {
         }
 
         medicine.status = status;
-        // Auto adjust quantity when going out of stock
+        // Auto adjust quantity when going out of stock / restocking
         if (status === 'Out of Stock') {
             medicine.quantity = 0;
         } else if (status === 'Active' && medicine.quantity === 0) {
-            medicine.quantity = 10; // Default restock
+            const restockQty = (medicine.minStock !== undefined && medicine.minStock !== null)
+                ? Math.max(medicine.minStock, 1)
+                : 10;
+            medicine.quantity = restockQty;
         }
 
         await medicine.save();

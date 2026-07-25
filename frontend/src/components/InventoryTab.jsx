@@ -229,6 +229,7 @@ export default function InventoryTab() {
     expired: 0,
     "vendor-returns": 0,
     outofstock: 0,
+    lowstock: 0,
     inactive: 0,
     all: 0,
   });
@@ -260,6 +261,8 @@ export default function InventoryTab() {
       } else if (tab === "outofstock") {
         params.status = "Out of Stock";
         params.expiry = "not-expired";
+      } else if (tab === "lowstock") {
+        params.stock = "low";
       } else if (tab === "inactive") {
         params.status = "Inactive";
       } else if (tab === "all") {
@@ -401,6 +404,11 @@ export default function InventoryTab() {
                 badgeClass: "badge-orange",
               },
               {
+                key: "lowstock",
+                label: "Low Stock",
+                badgeClass: "badge-warning",
+              },
+              {
                 key: "inactive",
                 label: "Inactive Stock",
                 badgeClass: "badge-inactive",
@@ -527,8 +535,8 @@ export default function InventoryTab() {
           ) : (
             <>
               {/* Filter Toolbar */}
-              <div className="filter-toolbar card-panel">
-                <div className="filter-group">
+              <div className="filter-toolbar card-panel inventory-filter-bar">
+                <div className="filter-group inventory-category-group">
                   <label htmlFor="filter-category">Category</label>
                   <select
                     id="filter-category"
@@ -548,11 +556,10 @@ export default function InventoryTab() {
 
                 <button
                   id="reset-filters-btn"
-                  className="btn btn-outline btn-small"
+                  className="btn btn-outline inventory-reset-btn"
                   onClick={handleResetFilters}
-                  style={{ alignSelf: "flex-end", height: "40px" }}
                 >
-                  Reset
+                  <i className="fa-solid fa-rotate-left"></i> Reset
                 </button>
               </div>
 
