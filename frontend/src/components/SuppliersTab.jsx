@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { usePharmacyStore } from "../store/usePharmacyStore";
 import { supplierApi } from "../api/apiClient";
 
@@ -364,8 +364,6 @@ export default function SuppliersTab() {
   const [txnOpen, setTxnOpen] = useState(false);
   const [txnForm, setTxnForm] = useState(EMPTY_TXN);
 
-  const autoSyncedRef = useRef(false);
-
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -407,40 +405,6 @@ export default function SuppliersTab() {
   useEffect(() => {
     fetchPage();
   }, [fetchPage]);
-
-  // One-time sync when catalog is empty
-  useEffect(() => {
-    if (autoSyncedRef.current || isLoading || isSyncing) return;
-    if (pageData.total > 0) return;
-    if (search || statusFilter !== "all" || duesFilter !== "all") return;
-
-    autoSyncedRef.current = true;
-    let cancelled = false;
-
-    (async () => {
-      setIsSyncing(true);
-      try {
-        await supplierApi.syncFromStockists();
-        if (!cancelled) await fetchPage();
-      } catch {
-        autoSyncedRef.current = false;
-      } finally {
-        if (!cancelled) setIsSyncing(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    isLoading,
-    isSyncing,
-    pageData.total,
-    search,
-    statusFilter,
-    duesFilter,
-    fetchPage,
-  ]);
 
   const loadDetail = useCallback(async (id) => {
     if (!id) return;
@@ -584,7 +548,8 @@ export default function SuppliersTab() {
   );
 
   const showList = !selectedId;
-  const busy = isLoading || isSyncing;
+  // Only block the table on list fetch — sync spinner stays on the button
+  const busy = isLoading;
 
   return (
     <section id="tab-suppliers" className="tab-pane active">
