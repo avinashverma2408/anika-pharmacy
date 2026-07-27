@@ -552,7 +552,7 @@ export const usePharmacyStore = create((set, get) => ({
     set({ isLoadingMedicines: true });
     try {
       const { data } = await medicineApi.getAll(params);
-      set({ medicines: data.medicines, isLoadingMedicines: false });
+      set({ medicines: data.medicines || [], isLoadingMedicines: false });
     } catch (err) {
       set({ isLoadingMedicines: false });
       showSimpleToast("Error", "Failed to load medicines.", "danger");

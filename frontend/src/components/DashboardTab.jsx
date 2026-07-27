@@ -20,6 +20,8 @@ export default function DashboardTab() {
     fetchBillStats,
   } = usePharmacyStore();
 
+  const medList = Array.isArray(medicines) ? medicines : [];
+
   useEffect(() => {
     fetchBillStats();
   }, [fetchBillStats]);
@@ -75,7 +77,7 @@ export default function DashboardTab() {
       seasonColor = "#06b6d4"; // cyan
     }
 
-    const primaryMeds = medicines.filter(
+    const primaryMeds = medList.filter(
       (m) => m.status !== "Inactive" && m.category === primaryCategory,
     );
     const primaryStock = primaryMeds.reduce((sum, m) => sum + m.quantity, 0);
@@ -171,10 +173,10 @@ export default function DashboardTab() {
   const stats = dashboardStats?.stats;
   const totalCount =
     stats?.totalMedicines ??
-    medicines.filter((m) => m.status !== "Inactive").length;
+    medList.filter((m) => m.status !== "Inactive").length;
   const activeSafeCount =
     stats?.activeMedicines ??
-    medicines.filter(
+    medList.filter(
       (m) =>
         m.status === "Active" &&
         calculateDaysDifference(simulatedDate, m.expiryDate) > 20 &&
@@ -182,7 +184,7 @@ export default function DashboardTab() {
     ).length;
   const expiringSoonCount =
     stats?.expiring20Days ??
-    medicines.filter(
+    medList.filter(
       (m) =>
         m.status === "Active" &&
         m.quantity > 0 &&
@@ -191,14 +193,14 @@ export default function DashboardTab() {
     ).length;
   const expiredCount =
     stats?.expiredCount ??
-    medicines.filter(
+    medList.filter(
       (m) =>
         m.status !== "Inactive" &&
         calculateDaysDifference(simulatedDate, m.expiryDate) < 0,
     ).length;
   const outOfStockCount =
     stats?.outOfStock ??
-    medicines.filter(
+    medList.filter(
       (m) =>
         m.status !== "Inactive" &&
         (m.status === "Out of Stock" || m.quantity === 0) &&
@@ -206,13 +208,13 @@ export default function DashboardTab() {
     ).length;
   const lowStockCount =
     stats?.lowStock ??
-    medicines.filter((m) => {
+    medList.filter((m) => {
       const min = m.minStock !== undefined && m.minStock !== null ? m.minStock : 10;
       return m.status === "Active" && m.quantity > 0 && m.quantity <= min;
     }).length;
   const inactiveCount =
     stats?.inactiveCount ??
-    medicines.filter((m) => m.status === "Inactive").length;
+    medList.filter((m) => m.status === "Inactive").length;
 
   // Expiring soon list from API or local compute
   const expiringSoonItems = dashboardStats?.expiringSoon
@@ -220,7 +222,7 @@ export default function DashboardTab() {
         medicine: m,
         daysLeft: m.daysUntilExpiry ?? 0,
       }))
-    : medicines
+    : medList
         .filter((m) => {
           const d = calculateDaysDifference(simulatedDate, m.expiryDate);
           return m.status === "Active" && m.quantity > 0 && d >= 0 && d <= 20;
@@ -253,7 +255,7 @@ export default function DashboardTab() {
     );
 
   // Calculate category distribution
-  const categoryCounts = medicines.reduce((acc, curr) => {
+  const categoryCounts = medList.reduce((acc, curr) => {
     if (curr.status !== "Inactive") {
       const cat = curr.category || "Other";
       acc[cat] = (acc[cat] || 0) + 1;
