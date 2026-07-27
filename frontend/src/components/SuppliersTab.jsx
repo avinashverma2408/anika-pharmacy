@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePharmacyStore } from "../store/usePharmacyStore";
 import { supplierApi } from "../api/apiClient";
 
@@ -148,182 +149,343 @@ function PaginationBar({ page, total, totalPages, pageSize, onChange }) {
 }
 
 function SupplierFormModal({ open, editing, form, saving, onChange, onClose, onSubmit }) {
-  return (
-    <div className={`modal-backdrop ${open ? "show" : ""}`}>
-      <div className="modal-card">
+  const setField = (key) => (e) => onChange({ ...form, [key]: e.target.value });
+  if (!open) return null;
+
+  return createPortal(
+    <div
+      className="modal-backdrop show"
+      id={editing ? "edit-supplier-modal" : "add-supplier-modal"}
+      onClick={onClose}
+    >
+      <div className="modal-card supplier-modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>{editing ? "Edit Supplier" : "Add Supplier"}</h3>
-          <button type="button" className="modal-close-btn" onClick={onClose}>
+          <h3>{editing ? "Edit Supplier" : "Add New Supplier"}</h3>
+          <button
+            type="button"
+            className="modal-close-btn"
+            onClick={onClose}
+            aria-label="Close modal"
+          >
             &times;
           </button>
         </div>
         <form onSubmit={onSubmit} className="modal-form">
           <div className="form-grid">
             <div className="form-group col-span-2">
-              <label>
+              <label htmlFor="modal-supplier-name">
                 Supplier / Stockist Name <span className="required">*</span>
               </label>
               <input
+                id="modal-supplier-name"
+                type="text"
                 required
                 value={form.name}
                 placeholder="e.g., Cipla Ltd"
-                onChange={(e) => onChange({ ...form, name: e.target.value })}
+                onChange={setField("name")}
               />
             </div>
+
             <div className="form-group">
-              <label>Contact Person</label>
+              <label htmlFor="modal-supplier-contact">Contact Person</label>
               <input
+                id="modal-supplier-contact"
+                type="text"
                 value={form.contactPerson}
-                onChange={(e) => onChange({ ...form, contactPerson: e.target.value })}
+                placeholder="e.g., Rajesh Kumar"
+                onChange={setField("contactPerson")}
               />
             </div>
+
             <div className="form-group">
-              <label>Phone</label>
+              <label htmlFor="modal-supplier-phone">Phone</label>
               <input
+                id="modal-supplier-phone"
+                type="tel"
                 value={form.phone}
-                onChange={(e) => onChange({ ...form, phone: e.target.value })}
+                placeholder="e.g., 9876543210"
+                onChange={setField("phone")}
               />
             </div>
+
             <div className="form-group">
-              <label>Email</label>
+              <label htmlFor="modal-supplier-email">Email</label>
               <input
+                id="modal-supplier-email"
                 type="email"
                 value={form.email}
-                onChange={(e) => onChange({ ...form, email: e.target.value })}
+                placeholder="e.g., orders@supplier.com"
+                onChange={setField("email")}
               />
             </div>
+
             <div className="form-group">
-              <label>GSTIN</label>
+              <label htmlFor="modal-supplier-gstin">GSTIN</label>
               <input
+                id="modal-supplier-gstin"
+                type="text"
                 value={form.gstin}
-                onChange={(e) => onChange({ ...form, gstin: e.target.value })}
+                placeholder="e.g., 22AAAAA0000A1Z5"
+                onChange={setField("gstin")}
               />
             </div>
+
             <div className="form-group col-span-2">
-              <label>Address</label>
-              <input
+              <label htmlFor="modal-supplier-address">Address</label>
+              <textarea
+                id="modal-supplier-address"
+                rows={2}
                 value={form.address}
-                onChange={(e) => onChange({ ...form, address: e.target.value })}
+                placeholder="Shop / warehouse address"
+                onChange={setField("address")}
               />
             </div>
-            {!editing && (
-              <div className="form-group">
-                <label>Opening Dues (₹)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={form.outstandingDues}
-                  onChange={(e) => onChange({ ...form, outstandingDues: e.target.value })}
-                />
-              </div>
-            )}
+
             <div className="form-group">
-              <label>Status</label>
+              <label htmlFor="modal-supplier-opening-dues">Opening Dues (₹)</label>
+              <input
+                id="modal-supplier-opening-dues"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={form.outstandingDues}
+                onChange={setField("outstandingDues")}
+                disabled={Boolean(editing)}
+                title={
+                  editing
+                    ? "Use Purchase / Payment / Adjustment to change dues"
+                    : undefined
+                }
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="modal-supplier-status">Status</label>
               <select
+                id="modal-supplier-status"
                 value={form.status}
-                onChange={(e) => onChange({ ...form, status: e.target.value })}
+                onChange={setField("status")}
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
               </select>
             </div>
+
             <div className="form-group col-span-2">
-              <label>Notes</label>
-              <input
+              <label htmlFor="modal-supplier-notes">Notes</label>
+              <textarea
+                id="modal-supplier-notes"
+                rows={2}
                 value={form.notes}
-                onChange={(e) => onChange({ ...form, notes: e.target.value })}
+                placeholder="Optional notes about this supplier"
+                onChange={setField("notes")}
               />
             </div>
           </div>
+
           <div className="modal-footer">
-            <button type="button" className="btn btn-outline" onClick={onClose}>
+            <button
+              type="button"
+              className="btn btn-outline modal-cancel-btn"
+              onClick={onClose}
+              disabled={saving}
+            >
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? "Saving..." : editing ? "Update" : "Add"}
+              {saving ? (
+                <>
+                  <i className="fa-solid fa-spinner fa-spin" />{" "}
+                  {editing ? "Updating..." : "Adding..."}
+                </>
+              ) : editing ? (
+                <>
+                  <i className="fa-solid fa-floppy-disk" /> Update Supplier
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-plus" /> Add Supplier
+                </>
+              )}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
+  );
+}
+
+function DeleteSupplierModal({ open, supplier, deleting, onClose, onConfirm }) {
+  if (!open) return null;
+
+  return createPortal(
+    <div
+      className="modal-backdrop show"
+      id="delete-supplier-modal"
+      onClick={onClose}
+    >
+      <div
+        className="modal-card"
+        style={{ maxWidth: "400px" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="modal-header"
+          style={{ borderBottom: "none", paddingBottom: "0" }}
+        >
+          <h3>Delete Supplier?</h3>
+          <button
+            type="button"
+            className="modal-close-btn"
+            onClick={onClose}
+            aria-label="Close modal"
+          >
+            &times;
+          </button>
+        </div>
+        <div className="modal-form" style={{ paddingTop: "10px" }}>
+          <p
+            style={{
+              fontSize: "14px",
+              lineHeight: "1.5",
+              color: "var(--text-secondary)",
+            }}
+          >
+            Are you sure you want to delete{" "}
+            <strong>{supplier?.name}</strong>? Purchase / payment history will
+            also be removed. This action cannot be undone.
+          </p>
+          <div
+            className="modal-footer"
+            style={{ borderTop: "none", marginTop: "20px", paddingTop: "0" }}
+          >
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={onClose}
+              disabled={deleting}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={onConfirm}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <>
+                  <i className="fa-solid fa-spinner fa-spin" /> Deleting...
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-trash-can" /> Delete
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
 
 function TransactionModal({ open, form, onChange, onClose, onSubmit }) {
-  return (
-    <div className={`modal-backdrop ${open ? "show" : ""}`}>
-      <div className="modal-card">
+  const setField = (key) => (e) => onChange({ ...form, [key]: e.target.value });
+  if (!open) return null;
+
+  return createPortal(
+    <div
+      className="modal-backdrop show"
+      id="supplier-transaction-modal"
+      onClick={onClose}
+    >
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{TXN_TITLES[form.type] || "Record Transaction"}</h3>
-          <button type="button" className="modal-close-btn" onClick={onClose}>
+          <button
+            type="button"
+            className="modal-close-btn"
+            onClick={onClose}
+            aria-label="Close modal"
+          >
             &times;
           </button>
         </div>
         <form onSubmit={onSubmit} className="modal-form">
           <div className="form-grid">
             <div className="form-group">
-              <label>Type</label>
-              <select
-                value={form.type}
-                onChange={(e) => onChange({ ...form, type: e.target.value })}
-              >
+              <label htmlFor="txn-type">Type</label>
+              <select id="txn-type" value={form.type} onChange={setField("type")}>
                 <option value="purchase">Purchase (increase dues)</option>
                 <option value="payment">Payment (reduce dues)</option>
                 <option value="adjustment">Adjustment (set dues)</option>
               </select>
             </div>
             <div className="form-group">
-              <label>
+              <label htmlFor="txn-amount">
                 Amount (₹) <span className="required">*</span>
               </label>
               <input
+                id="txn-amount"
                 type="number"
                 min="0.01"
                 step="0.01"
                 required
+                placeholder="e.g., 1500.00"
                 value={form.amount}
-                onChange={(e) => onChange({ ...form, amount: e.target.value })}
+                onChange={setField("amount")}
               />
             </div>
             <div className="form-group">
-              <label>Invoice No.</label>
+              <label htmlFor="txn-invoice">Invoice No.</label>
               <input
+                id="txn-invoice"
+                type="text"
                 value={form.invoiceNo}
                 placeholder="Optional"
-                onChange={(e) => onChange({ ...form, invoiceNo: e.target.value })}
+                onChange={setField("invoiceNo")}
               />
             </div>
             <div className="form-group">
-              <label>Date</label>
+              <label htmlFor="txn-date">Date</label>
               <input
+                id="txn-date"
                 type="date"
                 value={form.transactionDate}
-                onChange={(e) =>
-                  onChange({ ...form, transactionDate: e.target.value })
-                }
+                onChange={setField("transactionDate")}
               />
             </div>
             <div className="form-group col-span-2">
-              <label>Notes</label>
-              <input
+              <label htmlFor="txn-notes">Notes</label>
+              <textarea
+                id="txn-notes"
+                rows={2}
                 value={form.notes}
-                onChange={(e) => onChange({ ...form, notes: e.target.value })}
+                placeholder="Optional notes"
+                onChange={setField("notes")}
               />
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-outline" onClick={onClose}>
+            <button
+              type="button"
+              className="btn btn-outline modal-cancel-btn"
+              onClick={onClose}
+            >
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
-              Save Transaction
+              <i className="fa-solid fa-check" /> Save Transaction
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -360,6 +522,10 @@ export default function SuppliersTab() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletingSupplier, setDeletingSupplier] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [txnOpen, setTxnOpen] = useState(false);
   const [txnForm, setTxnForm] = useState(EMPTY_TXN);
@@ -456,7 +622,10 @@ export default function SuppliersTab() {
       gstin: supplier.gstin || "",
       notes: supplier.notes || "",
       status: supplier.status || "Active",
-      outstandingDues: "",
+      outstandingDues:
+        supplier.outstandingDues === 0 || supplier.outstandingDues
+          ? String(supplier.outstandingDues)
+          : "",
     });
     setFormOpen(true);
   };
@@ -490,18 +659,31 @@ export default function SuppliersTab() {
     if (editing && selectedId) await loadDetail(selectedId);
   };
 
-  const handleDelete = async (supplier) => {
-    const confirmed = window.confirm(
-      `Delete supplier "${supplier.name}"? Purchase history will also be removed.`,
-    );
-    if (!confirmed) return;
+  const openDelete = (supplier) => {
+    setDeletingSupplier(supplier);
+    setDeleteOpen(true);
+  };
 
-    const id = getId(supplier);
-    const ok = await deleteSupplier(id);
-    if (!ok) return;
+  const closeDelete = () => {
+    if (isDeleting) return;
+    setDeleteOpen(false);
+    setDeletingSupplier(null);
+  };
 
-    if (String(selectedId) === String(id)) closeDetail();
-    await fetchPage();
+  const handleConfirmDelete = async () => {
+    if (!deletingSupplier) return;
+    const id = getId(deletingSupplier);
+    setIsDeleting(true);
+    try {
+      const ok = await deleteSupplier(id);
+      if (!ok) return;
+      setDeleteOpen(false);
+      setDeletingSupplier(null);
+      if (String(selectedId) === String(id)) closeDetail();
+      await fetchPage();
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleSync = async () => {
@@ -745,7 +927,7 @@ export default function SuppliersTab() {
                               type="button"
                               className="btn-icon-only delete"
                               title="Delete Supplier"
-                              onClick={() => handleDelete(supplier)}
+                              onClick={() => openDelete(supplier)}
                             >
                               <i className="fa-solid fa-trash-can" />
                             </button>
@@ -1009,6 +1191,14 @@ export default function SuppliersTab() {
         onChange={setForm}
         onClose={() => setFormOpen(false)}
         onSubmit={handleSaveSupplier}
+      />
+
+      <DeleteSupplierModal
+        open={deleteOpen}
+        supplier={deletingSupplier}
+        deleting={isDeleting}
+        onClose={closeDelete}
+        onConfirm={handleConfirmDelete}
       />
 
       <TransactionModal

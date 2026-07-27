@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { customerApi } from "../api/apiClient";
 import { showSimpleToast } from "../store/usePharmacyStore";
 
@@ -85,6 +86,214 @@ function PaginationBar({ page, total, totalPages, pageSize, onChange }) {
   );
 }
 
+function CustomerFormModal({ open, editing, form, saving, onChange, onClose, onSubmit }) {
+  const setField = (key) => (e) => onChange({ ...form, [key]: e.target.value });
+  if (!open) return null;
+
+  return createPortal(
+    <div
+      className="modal-backdrop show"
+      id={editing ? "edit-customer-modal" : "add-customer-modal"}
+      onClick={onClose}
+    >
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{editing ? "Edit Customer" : "Add New Customer"}</h3>
+          <button
+            type="button"
+            className="modal-close-btn"
+            onClick={onClose}
+            aria-label="Close modal"
+          >
+            &times;
+          </button>
+        </div>
+        <form onSubmit={onSubmit} className="modal-form">
+          <div className="form-grid">
+            <div className="form-group">
+              <label htmlFor="modal-customer-name">
+                Name <span className="required">*</span>
+              </label>
+              <input
+                id="modal-customer-name"
+                type="text"
+                required
+                value={form.name}
+                placeholder="e.g., Rahul Sharma"
+                onChange={setField("name")}
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="modal-customer-mobile">
+                Mobile <span className="required">*</span>
+              </label>
+              <input
+                id="modal-customer-mobile"
+                type="tel"
+                required
+                value={form.mobile}
+                maxLength={15}
+                placeholder="10-digit mobile"
+                onChange={(e) =>
+                  onChange({
+                    ...form,
+                    mobile: e.target.value.replace(/\D/g, ""),
+                  })
+                }
+              />
+            </div>
+            <div className="form-group col-span-2">
+              <label htmlFor="modal-customer-address">Address</label>
+              <textarea
+                id="modal-customer-address"
+                rows={2}
+                value={form.address}
+                placeholder="Patient address"
+                onChange={setField("address")}
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="modal-customer-doctor">Preferred Doctor</label>
+              <input
+                id="modal-customer-doctor"
+                type="text"
+                value={form.preferredDoctor}
+                placeholder="e.g., Dr. Mehta"
+                onChange={setField("preferredDoctor")}
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="modal-customer-status">Status</label>
+              <select
+                id="modal-customer-status"
+                value={form.status}
+                onChange={setField("status")}
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+            <div className="form-group col-span-2">
+              <label htmlFor="modal-customer-notes">Notes</label>
+              <textarea
+                id="modal-customer-notes"
+                rows={2}
+                value={form.notes}
+                placeholder="Optional notes"
+                onChange={setField("notes")}
+              />
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button
+              type="button"
+              className="btn btn-outline modal-cancel-btn"
+              onClick={onClose}
+              disabled={saving}
+            >
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? (
+                <>
+                  <i className="fa-solid fa-spinner fa-spin" />{" "}
+                  {editing ? "Updating..." : "Adding..."}
+                </>
+              ) : editing ? (
+                <>
+                  <i className="fa-solid fa-floppy-disk" /> Update Customer
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-plus" /> Add Customer
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+function DeleteCustomerModal({ open, customer, deleting, onClose, onConfirm }) {
+  if (!open) return null;
+
+  return createPortal(
+    <div
+      className="modal-backdrop show"
+      id="delete-customer-modal"
+      onClick={onClose}
+    >
+      <div
+        className="modal-card"
+        style={{ maxWidth: "400px" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="modal-header"
+          style={{ borderBottom: "none", paddingBottom: "0" }}
+        >
+          <h3>Delete Customer?</h3>
+          <button
+            type="button"
+            className="modal-close-btn"
+            onClick={onClose}
+            aria-label="Close modal"
+          >
+            &times;
+          </button>
+        </div>
+        <div className="modal-form" style={{ paddingTop: "10px" }}>
+          <p
+            style={{
+              fontSize: "14px",
+              lineHeight: "1.5",
+              color: "var(--text-secondary)",
+            }}
+          >
+            Are you sure you want to delete{" "}
+            <strong>{customer?.name}</strong>
+            {customer?.mobile ? ` (${customer.mobile})` : ""}? Bills will remain;
+            only the customer profile is removed. This action cannot be undone.
+          </p>
+          <div
+            className="modal-footer"
+            style={{ borderTop: "none", marginTop: "20px", paddingTop: "0" }}
+          >
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={onClose}
+              disabled={deleting}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={onConfirm}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <>
+                  <i className="fa-solid fa-spinner fa-spin" /> Deleting...
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-trash-can" /> Delete
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export default function CustomersTab() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -111,6 +320,10 @@ export default function CustomersTab() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletingCustomer, setDeletingCustomer] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -194,13 +407,18 @@ export default function CustomersTab() {
     setFormOpen(true);
   };
 
+  const closeForm = () => {
+    if (saving) return;
+    setFormOpen(false);
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
       const payload = {
         name: form.name.trim(),
-        mobile: form.mobile.replace(/\D/g, ""),
+        mobile: form.mobile.trim(),
         address: form.address.trim(),
         preferredDoctor: form.preferredDoctor.trim(),
         notes: form.notes.trim(),
@@ -229,18 +447,27 @@ export default function CustomersTab() {
     }
   };
 
-  const handleDelete = async (customer) => {
-    if (
-      !window.confirm(
-        `Delete customer "${customer.name}"? Bills will remain, only the profile is removed.`,
-      )
-    ) {
-      return;
-    }
+  const openDelete = (customer) => {
+    setDeletingCustomer(customer);
+    setDeleteOpen(true);
+  };
+
+  const closeDelete = () => {
+    if (isDeleting) return;
+    setDeleteOpen(false);
+    setDeletingCustomer(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingCustomer) return;
+    const id = getId(deletingCustomer);
+    setIsDeleting(true);
     try {
-      const { data } = await customerApi.delete(getId(customer));
+      const { data } = await customerApi.delete(id);
       showSimpleToast("Deleted", data.message, "success");
-      if (String(selectedId) === String(getId(customer))) closeDetail();
+      setDeleteOpen(false);
+      setDeletingCustomer(null);
+      if (String(selectedId) === String(id)) closeDetail();
       await fetchPage();
     } catch (err) {
       showSimpleToast(
@@ -248,6 +475,8 @@ export default function CustomersTab() {
         err.response?.data?.message || "Failed to delete customer.",
         "danger",
       );
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -270,6 +499,27 @@ export default function CustomersTab() {
     setStatusFilter("all");
     setCurrentPage(1);
   };
+
+  const modals = (
+    <>
+      <CustomerFormModal
+        open={formOpen}
+        editing={editing}
+        form={form}
+        saving={saving}
+        onChange={setForm}
+        onClose={closeForm}
+        onSubmit={handleSave}
+      />
+      <DeleteCustomerModal
+        open={deleteOpen}
+        customer={deletingCustomer}
+        deleting={isDeleting}
+        onClose={closeDelete}
+        onConfirm={handleConfirmDelete}
+      />
+    </>
+  );
 
   if (selectedId) {
     return (
@@ -425,7 +675,7 @@ export default function CustomersTab() {
           </>
         )}
 
-        {renderFormModal()}
+        {modals}
       </section>
     );
   }
@@ -434,7 +684,7 @@ export default function CustomersTab() {
     <section id="tab-customers" className="tab-pane active">
       <div className="page-header flex-header">
         <div>
-          <h2>Customer Database</h2>
+          <h2>Customer Management</h2>
           <p className="subtitle">
             Patient profiles, mobile lookup, and purchase history.
           </p>
@@ -460,7 +710,7 @@ export default function CustomersTab() {
       <div className="stats-grid">
         <div className="stat-card border-success">
           <div className="stat-icon bg-success">
-            <i className="fa-solid fa-users" />
+            <i className="fa-solid fa-user-group" />
           </div>
           <div className="stat-info">
             <span className="stat-label">Active Customers</span>
@@ -469,16 +719,16 @@ export default function CustomersTab() {
         </div>
         <div className="stat-card border-warning">
           <div className="stat-icon bg-warning text-dark">
-            <i className="fa-solid fa-sack-dollar" />
+            <i className="fa-solid fa-wallet" />
           </div>
           <div className="stat-info">
-            <span className="stat-label">Lifetime Value</span>
+            <span className="stat-label">Total Spent</span>
             <h3 className="stat-value">{formatMoney(summary.totalSpent)}</h3>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-icon bg-primary">
-            <i className="fa-solid fa-file-invoice" />
+            <i className="fa-solid fa-receipt" />
           </div>
           <div className="stat-info">
             <span className="stat-label">Total Purchases</span>
@@ -490,7 +740,7 @@ export default function CustomersTab() {
             <i className="fa-solid fa-list" />
           </div>
           <div className="stat-info">
-            <span className="stat-label">Listed</span>
+            <span className="stat-label">Listed Customers</span>
             <h3 className="stat-value">{pageData.total}</h3>
           </div>
         </div>
@@ -504,7 +754,7 @@ export default function CustomersTab() {
             <input
               id="customer-search"
               type="search"
-              placeholder="Name, mobile, address..."
+              placeholder="Name or mobile..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
@@ -538,7 +788,7 @@ export default function CustomersTab() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Customer</th>
+              <th>Name</th>
               <th>Mobile</th>
               <th>Last Visit</th>
               <th>Purchases</th>
@@ -580,7 +830,7 @@ export default function CustomersTab() {
                       <button
                         type="button"
                         className="btn-icon-only view"
-                        title="View"
+                        title="View Details"
                         onClick={() => openDetail(customer)}
                       >
                         <i className="fa-solid fa-eye" />
@@ -588,7 +838,7 @@ export default function CustomersTab() {
                       <button
                         type="button"
                         className="btn-icon-only edit"
-                        title="Edit"
+                        title="Edit Customer"
                         onClick={() => openEdit(customer)}
                       >
                         <i className="fa-solid fa-pen-to-square" />
@@ -596,8 +846,8 @@ export default function CustomersTab() {
                       <button
                         type="button"
                         className="btn-icon-only delete"
-                        title="Delete"
-                        onClick={() => handleDelete(customer)}
+                        title="Delete Customer"
+                        onClick={() => openDelete(customer)}
                       >
                         <i className="fa-solid fa-trash-can" />
                       </button>
@@ -611,7 +861,7 @@ export default function CustomersTab() {
 
         {!isLoading && pageData.customers.length === 0 && (
           <div className="empty-state suppliers-empty">
-            <i className="fa-solid fa-users" />
+            <i className="fa-solid fa-user-group" />
             <p>No customers yet.</p>
             <p className="empty-hint">
               Add manually, or sync from existing bills with mobile numbers.
@@ -641,103 +891,7 @@ export default function CustomersTab() {
         />
       </div>
 
-      {renderFormModal()}
+      {modals}
     </section>
   );
-
-  function renderFormModal() {
-    return (
-      <div className={`modal-backdrop ${formOpen ? "show" : ""}`}>
-        <div className="modal-card">
-          <div className="modal-header">
-            <h3>{editing ? "Edit Customer" : "Add Customer"}</h3>
-            <button
-              type="button"
-              className="modal-close-btn"
-              onClick={() => setFormOpen(false)}
-            >
-              &times;
-            </button>
-          </div>
-          <form onSubmit={handleSave} className="modal-form">
-            <div className="form-grid">
-              <div className="form-group">
-                <label>
-                  Name <span className="required">*</span>
-                </label>
-                <input
-                  required
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Patient name"
-                />
-              </div>
-              <div className="form-group">
-                <label>
-                  Mobile <span className="required">*</span>
-                </label>
-                <input
-                  required
-                  value={form.mobile}
-                  maxLength={15}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      mobile: e.target.value.replace(/\D/g, ""),
-                    })
-                  }
-                  placeholder="10-digit mobile"
-                />
-              </div>
-              <div className="form-group col-span-2">
-                <label>Address</label>
-                <input
-                  value={form.address}
-                  onChange={(e) => setForm({ ...form, address: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label>Preferred Doctor</label>
-                <input
-                  value={form.preferredDoctor}
-                  onChange={(e) =>
-                    setForm({ ...form, preferredDoctor: e.target.value })
-                  }
-                />
-              </div>
-              <div className="form-group">
-                <label>Status</label>
-                <select
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value })}
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-              <div className="form-group col-span-2">
-                <label>Notes</label>
-                <input
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={() => setFormOpen(false)}
-              >
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={saving}>
-                {saving ? "Saving..." : editing ? "Update" : "Add"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  }
 }
