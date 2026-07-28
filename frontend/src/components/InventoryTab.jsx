@@ -369,20 +369,21 @@ export default function InventoryTab() {
                 stock.
               </p>
             </div>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <button
-                className="btn btn-outline"
-                id="inventory-scan-bill-btn"
-                onClick={() => setBillUploadOpen(true)}
-              >
-                <i className="fa-solid fa-file-invoice-dollar" style={{ color: "#3b82f6" }}></i> Scan Purchase Bill
-              </button>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
               <button
                 className="btn btn-primary"
+                id="inventory-scan-bill-btn"
+                onClick={() => setBillUploadOpen(true)}
+                style={{ background: "linear-gradient(135deg, #0284c7 0%, #2563eb 100%)", color: "#ffffff", fontWeight: 600, border: "none", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}
+              >
+                <i className="fa-solid fa-file-invoice-dollar" style={{ marginRight: "6px" }}></i> Scan Purchase Bill
+              </button>
+              <button
+                className="btn btn-outline"
                 id="inventory-add-btn"
                 onClick={() => setAddModalOpen(true)}
               >
-                <i className="fa-solid fa-plus"></i> Add Product
+                <i className="fa-solid fa-plus" style={{ marginRight: "6px" }}></i> Add Product
               </button>
             </div>
           </div>
