@@ -4661,3 +4661,60 @@ body {
 .billing-subtabs {
   margin-bottom: 20px;
 }
+
+/* --- Bill Upload Modal Styling --- */
+.modal-card.modal-card-lg {
+  max-width: 1200px !important;
+  width: min(1200px, 96vw) !important;
+  margin: auto !important;
+}
+
+.bill-dropzone {
+  border: 2px dashed var(--border-color);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+  background-color: var(--bg-input);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 12px;
+}
+
+.bill-dropzone:hover {
+  background-color: var(--bg-card-hover);
+  border-color: var(--primary);
+}
+
+.bill-preset-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 6px;
+}
+
+.bill-preset-btn:hover {
+  border-color: var(--primary);
+  background-color: var(--bg-card-hover);
+}
+
+/* Sticky Table Header for BillUploadModal and Inventory Tables */
+.table-container th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  background-color: var(--bg-card) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+
+
+

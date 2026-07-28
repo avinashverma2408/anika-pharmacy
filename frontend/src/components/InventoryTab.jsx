@@ -8,6 +8,7 @@ import {
 } from "../store/usePharmacyStore";
 import { medicineApi } from "../api/apiClient";
 import ProductDetails from "./ProductDetails";
+import BillUploadModal from "./BillUploadModal";
 
 const PAGE_SIZE = 10;
 
@@ -15,6 +16,7 @@ export default function InventoryTab() {
   const {
     isLoadingMedicines,
     setAddModalOpen,
+    setBillUploadOpen,
     setEditModalOpen,
     setDeleteModalOpen,
     updateMedicineStatus,
@@ -44,6 +46,7 @@ export default function InventoryTab() {
   const [selectedDistributor, setSelectedDistributor] = useState(null);
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
   const [isMarkingReturned, setIsMarkingReturned] = useState(false);
+  const [isBillScanModalOpen, setIsBillScanModalOpen] = useState(false);
 
   // Group expired medicines by Distributor for the Vendor Returns view
   const getVendorGroupedReturns = () => {
@@ -366,13 +369,22 @@ export default function InventoryTab() {
                 stock.
               </p>
             </div>
-            <button
-              className="btn btn-primary"
-              id="inventory-add-btn"
-              onClick={() => setAddModalOpen(true)}
-            >
-              <i className="fa-solid fa-plus"></i> Add Product
-            </button>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                className="btn btn-outline"
+                id="inventory-scan-bill-btn"
+                onClick={() => setBillUploadOpen(true)}
+              >
+                <i className="fa-solid fa-file-invoice-dollar" style={{ color: "#3b82f6" }}></i> Scan Purchase Bill
+              </button>
+              <button
+                className="btn btn-primary"
+                id="inventory-add-btn"
+                onClick={() => setAddModalOpen(true)}
+              >
+                <i className="fa-solid fa-plus"></i> Add Product
+              </button>
+            </div>
           </div>
 
           {/* Sub Tab Navigation */}

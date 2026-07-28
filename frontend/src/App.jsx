@@ -5,6 +5,7 @@ import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import ProductModals from "./components/ProductModals";
 import LogoutModal from "./components/LogoutModal";
+import BillUploadModal from "./components/BillUploadModal";
 import AuthPage from "./components/AuthPage";
 import TabFallback from "./components/TabFallback";
 
@@ -149,6 +150,7 @@ export default function App() {
 
           <ProductModals />
           <LogoutModal />
+          <BillUploadModal />
         </div>
       )}
       <div className="toast-container" id="toast-container" />

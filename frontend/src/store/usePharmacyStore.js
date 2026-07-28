@@ -174,6 +174,7 @@ const loadInitialState = () => {
     isAddModalOpen: false,
     isEditModalOpen: false,
     isDeleteModalOpen: false,
+    isBillUploadOpen: false,
     selectedMedicineForDetails: null,
     globalSearchQuery: "",
 
@@ -526,6 +527,7 @@ export const usePharmacyStore = create((set, get) => ({
     set({ isEditModalOpen: isOpen, editingProduct: product }),
   setDeleteModalOpen: (isOpen, product = null) =>
     set({ isDeleteModalOpen: isOpen, deletingProduct: product }),
+  setBillUploadOpen: (isOpen) => set({ isBillUploadOpen: isOpen }),
   setSelectedMedicineForDetails: (product) =>
     set({ selectedMedicineForDetails: product }),
 
