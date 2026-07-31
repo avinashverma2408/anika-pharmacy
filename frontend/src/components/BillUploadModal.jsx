@@ -895,6 +895,11 @@ export default function BillUploadModal() {
             setOcrEngineName(aiRes.data.engine || "Gemini Vision AI ✨");
             setRawOcrText(JSON.stringify(aiRes.data, null, 2));
 
+            // Auto-rotate image upright if Gemini Vision detected sideways text
+            if (aiRes.data.suggestedRotationDeg) {
+              setRotationDeg(aiRes.data.suggestedRotationDeg);
+            }
+
             const footerTotals = extractDirectOcrFooterTotals("", items);
             setDirectFooterTotals(footerTotals);
 

@@ -38,6 +38,7 @@ Return ONLY a JSON object matching this exact schema (do not include Markdown bl
   "stockist": "Supplier/Distributor Name",
   "invNo": "Invoice Number",
   "invoiceDate": "YYYY-MM-DD",
+  "suggestedRotationDeg": 0,
   "items": [
     {
       "name": "Medicine Trade/Brand Name (e.g. Dolo 650mg)",
@@ -56,11 +57,12 @@ Return ONLY a JSON object matching this exact schema (do not include Markdown bl
 }
 
 Rules:
-1. "ptr": Purchase rate per pack/unit. If missing on invoice, calculate as ~70% of MRP.
-2. "price": MRP per pack/unit.
-3. "quantity": Quantity bought.
-4. "category": Must be one of ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Other"].
-5. "expiryDate": Convert 08/28 or Aug-28 to ISO YYYY-MM-DD format (e.g. 2028-08-28).
+1. AUTO ROTATION: The image may be uploaded sideways (90° clockwise, 270° counterclockwise) or upside down. Detect the text orientation. If the text is rotated sideways or upside-down, set "suggestedRotationDeg" to 90, 180, or 270 (the degree rotation needed to make the image upright for human reading). If upright, set 0.
+2. "ptr": Purchase rate per pack/unit. If missing on invoice, calculate as ~70% of MRP.
+3. "price": MRP per pack/unit.
+4. "quantity": Quantity bought.
+5. "category": Must be one of ["Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Other"].
+6. "expiryDate": Convert 08/28 or Aug-28 to ISO YYYY-MM-DD format (e.g. 2028-08-28).
 `;
 
     const response = await ai.models.generateContent({
@@ -118,9 +120,14 @@ Rules:
         }))
       : [];
 
+    const suggestedRotation = [0, 90, 180, 270].includes(Number(data.suggestedRotationDeg))
+      ? Number(data.suggestedRotationDeg)
+      : 0;
+
     return res.status(200).json({
       success: true,
       engine: "Gemini Vision AI ✨",
+      suggestedRotationDeg: suggestedRotation,
       stockist: data.stockist || "",
       invNo: data.invNo || "",
       invoiceDate: data.invoiceDate || "",
