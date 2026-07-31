@@ -69,7 +69,7 @@ export default function NewBillCalculator() {
         hour12: false,
         hour: "2-digit",
         minute: "2-digit",
-      })
+      }),
     );
   }, [fetchMedicines]);
 
@@ -160,11 +160,15 @@ export default function NewBillCalculator() {
       });
       if (data.success) {
         const inStockSubstitutes = (data.medicines || []).filter(
-          (m) => m.status === "Active" && m.quantity > 0
+          (m) => m.status === "Active" && m.quantity > 0,
         );
         setSubstituteResults(inStockSubstitutes);
         if (inStockSubstitutes.length === 0) {
-          showSimpleToast("No Substitutes", "No active in-stock substitutes found for this salt composition.", "warning");
+          showSimpleToast(
+            "No Substitutes",
+            "No active in-stock substitutes found for this salt composition.",
+            "warning",
+          );
         }
       }
     } catch (err) {
@@ -180,7 +184,11 @@ export default function NewBillCalculator() {
     if (!pastBill || !pastBill.items || pastBill.items.length === 0) return;
 
     if (billItems.length > 0) {
-      if (!window.confirm("This will overwrite your current billing calculator draft. Do you want to continue?")) {
+      if (
+        !window.confirm(
+          "This will overwrite your current billing calculator draft. Do you want to continue?",
+        )
+      ) {
         return;
       }
     }
@@ -194,15 +202,21 @@ export default function NewBillCalculator() {
         (m) =>
           (m._id && m._id === pastItem.medicineId) ||
           (m.id && m.id === pastItem.medicineId) ||
-          (m.name === pastItem.name && m.batch === pastItem.batch)
+          (m.name === pastItem.name && m.batch === pastItem.batch),
       );
 
-      if (!currentMed || currentMed.status !== "Active" || currentMed.quantity === 0) {
+      if (
+        !currentMed ||
+        currentMed.status !== "Active" ||
+        currentMed.quantity === 0
+      ) {
         missingMeds.push(pastItem.name);
       } else {
         const qtyToBill = Math.min(pastItem.quantity, currentMed.quantity);
         if (qtyToBill < pastItem.quantity) {
-          stockShortages.push(`${pastItem.name} (Billed ${qtyToBill}/${pastItem.quantity} due to stock limits)`);
+          stockShortages.push(
+            `${pastItem.name} (Billed ${qtyToBill}/${pastItem.quantity} due to stock limits)`,
+          );
         }
 
         repeatedItems.push({
@@ -218,13 +232,14 @@ export default function NewBillCalculator() {
       setBillItems(repeatedItems);
       setPatientHistoryModalOpen(false);
 
-      if (!patientName || patientName === "CASH CUSTOMER") setPatientName(pastBill.patientName);
+      if (!patientName || patientName === "CASH CUSTOMER")
+        setPatientName(pastBill.patientName);
       if (!patientAddress) setPatientAddress(pastBill.patientAddress || "");
 
       showSimpleToast(
         "Repeat Bill Loaded",
         `Successfully loaded ${repeatedItems.length} items from past invoice.`,
-        "success"
+        "success",
       );
 
       if (missingMeds.length > 0 || stockShortages.length > 0) {
@@ -241,7 +256,7 @@ export default function NewBillCalculator() {
       showSimpleToast(
         "Cannot Repeat Bill",
         "All medications from this past bill are currently out of stock or inactive.",
-        "danger"
+        "danger",
       );
     }
   };
@@ -252,20 +267,34 @@ export default function NewBillCalculator() {
     if (!selectedMed) return;
 
     if (billQty <= 0) {
-      showSimpleToast("Invalid Quantity", "Quantity must be at least 1.", "danger");
+      showSimpleToast(
+        "Invalid Quantity",
+        "Quantity must be at least 1.",
+        "danger",
+      );
       return;
     }
 
     if (billQty > selectedMed.quantity) {
-      showSimpleToast("Stock Insufficient", `Only ${selectedMed.quantity} units of "${selectedMed.name}" are available in stock.`, "danger");
+      showSimpleToast(
+        "Stock Insufficient",
+        `Only ${selectedMed.quantity} units of "${selectedMed.name}" are available in stock.`,
+        "danger",
+      );
       return;
     }
 
     const existsIndex = billItems.findIndex(
-      (item) => item.medicine._id === selectedMed._id || item.medicine.id === selectedMed.id
+      (item) =>
+        item.medicine._id === selectedMed._id ||
+        item.medicine.id === selectedMed.id,
     );
     if (existsIndex > -1) {
-      showSimpleToast("Already Added", "This medicine is already added to the bill. Edit or delete the existing row.", "warning");
+      showSimpleToast(
+        "Already Added",
+        "This medicine is already added to the bill. Edit or delete the existing row.",
+        "warning",
+      );
       return;
     }
 
@@ -330,7 +359,7 @@ export default function NewBillCalculator() {
         hour12: false,
         hour: "2-digit",
         minute: "2-digit",
-      })
+      }),
     );
 
     setPatientName("");
@@ -343,7 +372,11 @@ export default function NewBillCalculator() {
 
   const handleGenerateInvoice = async (mode = "print") => {
     if (billItems.length === 0) {
-      showSimpleToast("Empty Bill", "Please add at least one medicine to the bill.", "danger");
+      showSimpleToast(
+        "Empty Bill",
+        "Please add at least one medicine to the bill.",
+        "danger",
+      );
       return;
     }
 
@@ -420,18 +453,30 @@ export default function NewBillCalculator() {
 
               element.classList.remove("pdf-generation-in-progress");
               resetBillForm();
-              showSimpleToast("Success", "Invoice downloaded successfully!", "success");
+              showSimpleToast(
+                "Success",
+                "Invoice downloaded successfully!",
+                "success",
+              );
             })
             .catch((err) => {
               console.error("Canvas capture failed:", err);
               element.classList.remove("pdf-generation-in-progress");
-              showSimpleToast("PDF Error", "Failed to capture invoice canvas.", "danger");
+              showSimpleToast(
+                "PDF Error",
+                "Failed to capture invoice canvas.",
+                "danger",
+              );
             });
         })
         .catch((err) => {
           console.error("Failed to load libraries:", err);
           element.classList.remove("pdf-generation-in-progress");
-          showSimpleToast("Library Error", "Failed to load PDF libraries.", "danger");
+          showSimpleToast(
+            "Library Error",
+            "Failed to load PDF libraries.",
+            "danger",
+          );
         });
     }, 150);
   };
@@ -472,7 +517,14 @@ export default function NewBillCalculator() {
       <div className="details-grid">
         {/* Left Panel: Invoice metadata */}
         <div className="details-card card-panel">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "16px",
+            }}
+          >
             <h3 className="analytics-section-title" style={{ margin: 0 }}>
               <i className="fa-solid fa-file-invoice"></i> Invoice Details
             </h3>
@@ -486,13 +538,16 @@ export default function NewBillCalculator() {
                 display: "flex",
                 alignItems: "center",
                 gap: "4px",
-                cursor: "pointer"
+                cursor: "pointer",
               }}
               onClick={async () => {
                 setIsFetchingHistory(true);
                 setPatientHistoryModalOpen(true);
                 try {
-                  const { data } = await billApi.getAll({ search: patientMobile || patientName || "", limit: 50 });
+                  const { data } = await billApi.getAll({
+                    search: patientMobile || patientName || "",
+                    limit: 50,
+                  });
                   if (data.success) {
                     setPatientHistoryBills(data.bills || []);
                   }
@@ -512,11 +567,21 @@ export default function NewBillCalculator() {
             <div className="form-grid" style={{ marginBottom: "16px" }}>
               <div className="form-group">
                 <label>Invoice Number</label>
-                <input type="text" value={invoiceNo} disabled style={{ opacity: 0.7 }} />
+                <input
+                  type="text"
+                  value={invoiceNo}
+                  disabled
+                  style={{ opacity: 0.7 }}
+                />
               </div>
               <div className="form-group">
                 <label>Bill Issue Date &amp; Time</label>
-                <input type="text" value={`${billDate} ${billTime}`} disabled style={{ opacity: 0.7 }} />
+                <input
+                  type="text"
+                  value={`${billDate} ${billTime}`}
+                  disabled
+                  style={{ opacity: 0.7 }}
+                />
               </div>
               <div className="form-group">
                 <label>Patient Name</label>
@@ -541,7 +606,9 @@ export default function NewBillCalculator() {
                 <input
                   type="text"
                   value={patientMobile}
-                  onChange={(e) => setPatientMobile(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) =>
+                    setPatientMobile(e.target.value.replace(/\D/g, ""))
+                  }
                   placeholder="Enter 10-digit Mobile"
                   maxLength="10"
                 />
@@ -574,18 +641,26 @@ export default function NewBillCalculator() {
                       display: "inline-flex",
                       alignItems: "center",
                       gap: "4px",
-                      fontWeight: "600"
+                      fontWeight: "600",
                     }}
                     onClick={() => setPatientHistoryModalOpen(true)}
                     title="Click to view purchase logs"
                   >
                     <i className="fa-solid fa-circle-info"></i>
-                    {patientHistoryBills.length} past purchases found. View History
+                    {patientHistoryBills.length} past purchases found. View
+                    History
                   </span>
                 )}
                 {isFetchingHistory && (
-                  <span style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
-                    <i className="fa-solid fa-spinner fa-spin"></i> Looking up customer…
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      color: "var(--text-muted)",
+                      marginTop: "4px",
+                    }}
+                  >
+                    <i className="fa-solid fa-spinner fa-spin"></i> Looking up
+                    customer…
                   </span>
                 )}
               </div>
@@ -625,9 +700,18 @@ export default function NewBillCalculator() {
           <hr className="details-divider" />
 
           {/* Search & Add Items form */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px", marginBottom: "10px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: "20px",
+              marginBottom: "10px",
+            }}
+          >
             <h3 className="analytics-section-title" style={{ margin: 0 }}>
-              <i className="fa-solid fa-cart-plus"></i> Search &amp; Add Medicines
+              <i className="fa-solid fa-cart-plus"></i> Search &amp; Add
+              Medicines
             </h3>
             <button
               type="button"
@@ -636,12 +720,26 @@ export default function NewBillCalculator() {
                 setSubstituteInitialQuery(searchQuery || "");
                 setIsSubstituteModalOpen(true);
               }}
-              style={{ background: "rgba(16, 185, 129, 0.12)", color: "#10b981", borderColor: "rgba(16, 185, 129, 0.3)", padding: "5px 12px", fontSize: "12px", fontWeight: 600 }}
+              style={{
+                background: "rgba(16, 185, 129, 0.12)",
+                color: "#10b981",
+                borderColor: "rgba(16, 185, 129, 0.3)",
+                padding: "5px 12px",
+                fontSize: "12px",
+                fontWeight: 600,
+              }}
             >
-              <i className="fa-solid fa-flask" style={{ marginRight: "4px" }}></i> 🧪 Find Salt Substitute
+              <i
+                className="fa-solid fa-flask"
+                style={{ marginRight: "4px" }}
+              ></i>{" "}
+              🧪 Find Salt Substitute
             </button>
           </div>
-          <div className="form-group" style={{ position: "relative", marginBottom: "16px" }}>
+          <div
+            className="form-group"
+            style={{ position: "relative", marginBottom: "16px" }}
+          >
             <label>Search Medicine (Name / Batch)</label>
             <input
               type="text"
@@ -653,10 +751,16 @@ export default function NewBillCalculator() {
             {searchResults.length > 0 && (
               <ul className="billing-search-results">
                 {searchResults.map((med) => (
-                  <li key={med._id || med.id} onClick={() => handleSelectMedicine(med)}>
+                  <li
+                    key={med._id || med.id}
+                    onClick={() => handleSelectMedicine(med)}
+                  >
                     <div style={{ fontWeight: "600" }}>{med.name}</div>
-                    <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-                      Batch: {med.batch} | Exp: {formatDateDisplay(med.expiryDate)} | Price: ₹
+                    <div
+                      style={{ fontSize: "11px", color: "var(--text-muted)" }}
+                    >
+                      Batch: {med.batch} | Exp:{" "}
+                      {formatDateDisplay(med.expiryDate)} | Price: ₹
                       {med.price.toFixed(2)} | Avail: {med.quantity}
                     </div>
                   </li>
@@ -666,12 +770,20 @@ export default function NewBillCalculator() {
           </div>
 
           {selectedMed && (
-            <form onSubmit={handleAddItem} className="modal-form" style={{ padding: 0 }}>
+            <form
+              onSubmit={handleAddItem}
+              className="modal-form"
+              style={{ padding: 0 }}
+            >
               <div className="billing-selected-item-info">
                 <strong>Selected:</strong> {selectedMed.name}{" "}
                 <span className="category-label">{selectedMed.category}</span>
-                <div className="timeline-desc-text" style={{ marginTop: "4px" }}>
-                  Batch: {selectedMed.batch} | Expiry: {formatDateDisplay(selectedMed.expiryDate)} | Available Stock:{" "}
+                <div
+                  className="timeline-desc-text"
+                  style={{ marginTop: "4px" }}
+                >
+                  Batch: {selectedMed.batch} | Expiry:{" "}
+                  {formatDateDisplay(selectedMed.expiryDate)} | Available Stock:{" "}
                   {selectedMed.quantity} units
                 </div>
               </div>
@@ -699,7 +811,11 @@ export default function NewBillCalculator() {
                   />
                 </div>
               </div>
-              <button type="submit" className="btn btn-primary w-full" style={{ marginTop: "12px" }}>
+              <button
+                type="submit"
+                className="btn btn-primary w-full"
+                style={{ marginTop: "12px" }}
+              >
                 <i className="fa-solid fa-plus"></i> Add Item to Bill
               </button>
             </form>
@@ -709,16 +825,37 @@ export default function NewBillCalculator() {
 
           {/* Smart Substitute Finder */}
           <h3 className="analytics-section-title" style={{ marginTop: "20px" }}>
-            <i className="fa-solid fa-wand-magic-sparkles text-primary-color" style={{ color: "var(--primary)" }}></i>{" "}
+            <i
+              className="fa-solid fa-wand-magic-sparkles text-primary-color"
+              style={{ color: "var(--primary)" }}
+            ></i>{" "}
             Smart Substitute Finder
           </h3>
-          <p className="subtitle" style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "12px" }}>
-            Find equivalent in-stock medicines by chemical composition (salt) when a drug is out of stock.
+          <p
+            className="subtitle"
+            style={{
+              fontSize: "11px",
+              color: "var(--text-muted)",
+              marginBottom: "12px",
+            }}
+          >
+            Find equivalent in-stock medicines by chemical composition (salt)
+            when a drug is out of stock.
           </p>
 
-          <div className="form-group" style={{ position: "relative", marginBottom: "16px" }}>
+          <div
+            className="form-group"
+            style={{ position: "relative", marginBottom: "16px" }}
+          >
             <label>Search by Salt / Composition</label>
-            <form onSubmit={handleFindSubstitutes} style={{ position: "flex", display: "flex", alignItems: "center" }}>
+            <form
+              onSubmit={handleFindSubstitutes}
+              style={{
+                position: "flex",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
               <input
                 type="text"
                 value={substituteQuery}
@@ -742,7 +879,7 @@ export default function NewBillCalculator() {
                     cursor: "pointer",
                     fontSize: "16px",
                     padding: "4px",
-                    zIndex: 5
+                    zIndex: 5,
                   }}
                   title="Clear search"
                 >
@@ -761,7 +898,7 @@ export default function NewBillCalculator() {
                   padding: "6px",
                   zIndex: 5,
                   display: "flex",
-                  alignItems: "center"
+                  alignItems: "center",
                 }}
                 disabled={isSearchingSubstitutes}
                 title="Search equivalents"
@@ -776,7 +913,14 @@ export default function NewBillCalculator() {
           </div>
 
           {substituteResults.length > 0 && (
-            <div className="perf-list" style={{ maxHeight: "250px", overflowY: "auto", paddingRight: "4px" }}>
+            <div
+              className="perf-list"
+              style={{
+                maxHeight: "250px",
+                overflowY: "auto",
+                paddingRight: "4px",
+              }}
+            >
               {substituteResults.map((med) => (
                 <div
                   key={med._id || med.id}
@@ -786,20 +930,44 @@ export default function NewBillCalculator() {
                   title={`Click to select ${med.name} for billing`}
                 >
                   <div className="perf-details">
-                    <div className="perf-name" style={{ fontWeight: "600", color: "var(--text-primary)" }}>
+                    <div
+                      className="perf-name"
+                      style={{
+                        fontWeight: "600",
+                        color: "var(--text-primary)",
+                      }}
+                    >
                       {med.name}
                     </div>
-                    <div className="perf-category" style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
+                    <div
+                      className="perf-category"
+                      style={{
+                        fontSize: "11px",
+                        color: "var(--text-muted)",
+                        marginTop: "2px",
+                      }}
+                    >
                       Salt: {med.composition} | Batch: {med.batch}
                     </div>
                   </div>
                   <div className="perf-stats" style={{ textAlign: "right" }}>
-                    <div className="perf-value" style={{ fontWeight: "600", color: "var(--text-primary)" }}>
+                    <div
+                      className="perf-value"
+                      style={{
+                        fontWeight: "600",
+                        color: "var(--text-primary)",
+                      }}
+                    >
                       ₹{med.price.toFixed(2)}
                     </div>
                     <div
                       className="perf-subtext"
-                      style={{ fontSize: "11px", color: "#10b981", fontWeight: "600", marginTop: "2px" }}
+                      style={{
+                        fontSize: "11px",
+                        color: "#10b981",
+                        fontWeight: "600",
+                        marginTop: "2px",
+                      }}
                     >
                       {med.quantity} in stock
                     </div>
@@ -838,7 +1006,13 @@ export default function NewBillCalculator() {
                 <tbody>
                   {billItems.length === 0 ? (
                     <tr>
-                      <td colSpan="6" style={{ textAlign: "center", color: "var(--text-muted)" }}>
+                      <td
+                        colSpan="6"
+                        style={{
+                          textAlign: "center",
+                          color: "var(--text-muted)",
+                        }}
+                      >
                         No items added yet.
                       </td>
                     </tr>
@@ -890,7 +1064,9 @@ export default function NewBillCalculator() {
                   min="0"
                   max="100"
                   value={discountPercent}
-                  onChange={(e) => setDiscountPercent(parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    setDiscountPercent(parseFloat(e.target.value) || 0)
+                  }
                   style={{
                     width: "80px",
                     padding: "4px 8px",
@@ -904,11 +1080,15 @@ export default function NewBillCalculator() {
               </div>
               <div className="val-stat-item">
                 <span className="val-stat-label">Discount Amount</span>
-                <span className="val-stat-value">₹{discountAmount.toFixed(2)}</span>
+                <span className="val-stat-value">
+                  ₹{discountAmount.toFixed(2)}
+                </span>
               </div>
               <div className="val-stat-item">
                 <span className="val-stat-label">Calculated Taxable Value</span>
-                <span className="val-stat-value">₹{totalTaxableValue.toFixed(2)}</span>
+                <span className="val-stat-value">
+                  ₹{totalTaxableValue.toFixed(2)}
+                </span>
               </div>
               <div className="val-stat-item">
                 <span className="val-stat-label">CGST (Tax breakdown)</span>
@@ -920,11 +1100,16 @@ export default function NewBillCalculator() {
               </div>
               <div className="val-stat-item total-profit-item">
                 <span className="val-stat-label">Grand Total (Net)</span>
-                <span className="val-stat-value text-primary-color font-large">₹{netTotal.toFixed(2)}</span>
+                <span className="val-stat-value text-primary-color font-large">
+                  ₹{netTotal.toFixed(2)}
+                </span>
               </div>
             </div>
 
-            <div className="billing-actions-group" style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
+            <div
+              className="billing-actions-group"
+              style={{ display: "flex", gap: "12px", marginTop: "20px" }}
+            >
               <button
                 type="button"
                 className="btn btn-primary"
@@ -982,7 +1167,10 @@ export default function NewBillCalculator() {
             background: "rgba(0,0,0,0.5)",
           }}
         >
-          <div className="modal-card" style={{ width: "90%", maxWidth: "700px", maxHeight: "85vh" }}>
+          <div
+            className="modal-card"
+            style={{ width: "90%", maxWidth: "700px", maxHeight: "85vh" }}
+          >
             <div className="modal-header">
               <h3>Patient Purchase History</h3>
               <button
@@ -994,13 +1182,27 @@ export default function NewBillCalculator() {
               </button>
             </div>
 
-            <div className="modal-form" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div
+              className="modal-form"
+              style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+            >
               <div className="form-group" style={{ marginBottom: "10px" }}>
                 <label>Lookup Phone Number / Patient Name</label>
-                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <div
+                  style={{
+                    position: "relative",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
                   <i
                     className="fa-solid fa-magnifying-glass"
-                    style={{ position: "absolute", left: "12px", color: "var(--text-muted)", zIndex: 1 }}
+                    style={{
+                      position: "absolute",
+                      left: "12px",
+                      color: "var(--text-muted)",
+                      zIndex: 1,
+                    }}
                   ></i>
                   <input
                     type="text"
@@ -1012,7 +1214,10 @@ export default function NewBillCalculator() {
                       if (val.trim()) {
                         setIsFetchingHistory(true);
                         try {
-                          const { data } = await billApi.getAll({ search: val.trim(), limit: 50 });
+                          const { data } = await billApi.getAll({
+                            search: val.trim(),
+                            limit: 50,
+                          });
                           if (data.success) {
                             setPatientHistoryBills(data.bills || []);
                           }
@@ -1030,18 +1235,39 @@ export default function NewBillCalculator() {
 
               {isFetchingHistory ? (
                 <div style={{ textAlign: "center", padding: "40px 0" }}>
-                  <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: "28px", color: "var(--primary)" }}></i>
-                  <p style={{ marginTop: "12px", color: "var(--text-muted)", fontSize: "13px" }}>
+                  <i
+                    className="fa-solid fa-spinner fa-spin"
+                    style={{ fontSize: "28px", color: "var(--primary)" }}
+                  ></i>
+                  <p
+                    style={{
+                      marginTop: "12px",
+                      color: "var(--text-muted)",
+                      fontSize: "13px",
+                    }}
+                  >
                     Retrieving past purchase logs...
                   </p>
                 </div>
               ) : patientHistoryBills.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "40px 0",
+                    color: "var(--text-muted)",
+                  }}
+                >
                   <i
                     className="fa-solid fa-folder-open"
-                    style={{ fontSize: "36px", opacity: 0.5, marginBottom: "12px" }}
+                    style={{
+                      fontSize: "36px",
+                      opacity: 0.5,
+                      marginBottom: "12px",
+                    }}
                   ></i>
-                  <p style={{ fontSize: "13px" }}>No purchase logs found for this query.</p>
+                  <p style={{ fontSize: "13px" }}>
+                    No purchase logs found for this query.
+                  </p>
                 </div>
               ) : (
                 <div
@@ -1072,18 +1298,43 @@ export default function NewBillCalculator() {
                         }}
                       >
                         <div>
-                          <strong style={{ fontSize: "14px", color: "var(--text-primary)" }}>
+                          <strong
+                            style={{
+                              fontSize: "14px",
+                              color: "var(--text-primary)",
+                            }}
+                          >
                             Invoice: {bill.invoiceNo}
                           </strong>
-                          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
-                            Patient: {bill.patientName} | Mobile: {bill.patientMobile || "N/A"}
+                          <div
+                            style={{
+                              fontSize: "11px",
+                              color: "var(--text-muted)",
+                              marginTop: "2px",
+                            }}
+                          >
+                            Patient: {bill.patientName} | Mobile:{" "}
+                            {bill.patientMobile || "N/A"}
                           </div>
-                          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
-                            Date: {formatDateTimeDisplay(bill.billDate)} | Mode: {bill.paymentMode}
+                          <div
+                            style={{
+                              fontSize: "11px",
+                              color: "var(--text-muted)",
+                              marginTop: "2px",
+                            }}
+                          >
+                            Date: {formatDateTimeDisplay(bill.billDate)} | Mode:{" "}
+                            {bill.paymentMode}
                           </div>
                         </div>
                         <div style={{ textAlign: "right" }}>
-                          <div style={{ fontWeight: "700", fontSize: "14px", color: "var(--primary)" }}>
+                          <div
+                            style={{
+                              fontWeight: "700",
+                              fontSize: "14px",
+                              color: "var(--primary)",
+                            }}
+                          >
                             ₹{bill.netTotal.toFixed(2)}
                           </div>
                           <button
@@ -1107,7 +1358,11 @@ export default function NewBillCalculator() {
                       </div>
 
                       <div
-                        style={{ borderTop: "1px dashed var(--border-color)", paddingTop: "8px", marginTop: "8px" }}
+                        style={{
+                          borderTop: "1px dashed var(--border-color)",
+                          paddingTop: "8px",
+                          marginTop: "8px",
+                        }}
                       >
                         <span
                           style={{
@@ -1129,13 +1384,29 @@ export default function NewBillCalculator() {
                         >
                           {bill.items.map((item, idx) => (
                             <React.Fragment key={idx}>
-                              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                              <span
+                                style={{
+                                  fontSize: "12px",
+                                  color: "var(--text-secondary)",
+                                }}
+                              >
                                 {item.name}{" "}
-                                <span style={{ color: "var(--text-muted)", fontSize: "10px" }}>
+                                <span
+                                  style={{
+                                    color: "var(--text-muted)",
+                                    fontSize: "10px",
+                                  }}
+                                >
                                   (Batch: {item.batch})
                                 </span>
                               </span>
-                              <span style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-primary)" }}>
+                              <span
+                                style={{
+                                  fontSize: "12px",
+                                  fontWeight: "600",
+                                  color: "var(--text-primary)",
+                                }}
+                              >
                                 {item.quantity} x ₹{item.price.toFixed(2)}
                               </span>
                             </React.Fragment>
@@ -1148,8 +1419,18 @@ export default function NewBillCalculator() {
               )}
             </div>
 
-            <div className="modal-footer" style={{ borderTop: "1px solid var(--border-color)", padding: "16px 24px" }}>
-              <button type="button" className="btn btn-outline" onClick={() => setPatientHistoryModalOpen(false)}>
+            <div
+              className="modal-footer"
+              style={{
+                borderTop: "1px solid var(--border-color)",
+                padding: "16px 24px",
+              }}
+            >
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setPatientHistoryModalOpen(false)}
+              >
                 Close
               </button>
             </div>
@@ -1161,15 +1442,27 @@ export default function NewBillCalculator() {
       <div className="print-only invoice-print-wrapper">
         <div className="print-header">
           <div className="print-header-left">
-            <img src="/logo.png" alt="Anika Pharmacy Logo" className="print-logo" />
+            <img
+              src="/logo.png"
+              alt="Anika Pharmacy Logo"
+              className="print-logo"
+            />
             <div className="print-brand-details">
               <h1 className="print-brand">ANIKA PHARMACY</h1>
-              <p className="print-brand-address">Pandeybaba bazar, Kadipur Road</p>
+              <p className="print-brand-address">
+                Pandeybaba bazar, Kadipur Road
+              </p>
               <p className="print-brand-address">Sultanpur, UP - 228145</p>
-              <p className="print-brand-contact">Phone : 9795358689, 6386470668</p>
-              <p className="print-brand-contact">E-Mail : vikaskr.verma27@gmail.com</p>
+              <p className="print-brand-contact">
+                Phone : 9795358689, 6386470668
+              </p>
+              <p className="print-brand-contact">
+                E-Mail : vikaskr.verma27@gmail.com
+              </p>
               <p className="print-brand-gstin">GST No. : N/A</p>
-              <p className="print-brand-dl">D.L.No. : UP44200000460, UP44210000461</p>
+              <p className="print-brand-dl">
+                D.L.No. : UP44200000460, UP44210000461
+              </p>
             </div>
           </div>
           <div className="print-header-right">
@@ -1191,14 +1484,29 @@ export default function NewBillCalculator() {
             >
               Billed To:
             </div>
-            <div style={{ fontSize: "13px", fontWeight: "bold", color: "#000" }}>
-              {activePrint.patientName ? activePrint.patientName.toUpperCase() : "CASH CUSTOMER"}
+            <div
+              style={{ fontSize: "13px", fontWeight: "bold", color: "#000" }}
+            >
+              {activePrint.patientName
+                ? activePrint.patientName.toUpperCase()
+                : "CASH CUSTOMER"}
             </div>
             {activePrint.patientAddress && (
-              <div style={{ fontSize: "11px", color: "#333", marginTop: "2px" }}>{activePrint.patientAddress}</div>
+              <div
+                style={{ fontSize: "11px", color: "#333", marginTop: "2px" }}
+              >
+                {activePrint.patientAddress}
+              </div>
             )}
             {activePrint.doctorName && (
-              <div style={{ fontSize: "11px", color: "#000", marginTop: "4px", fontWeight: "bold" }}>
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "#000",
+                  marginTop: "4px",
+                  fontWeight: "bold",
+                }}
+              >
                 Dr. Ref: {activePrint.doctorName.toUpperCase()}
               </div>
             )}
@@ -1213,12 +1521,19 @@ export default function NewBillCalculator() {
           >
             <div>
               <strong>Invoice No. :</strong>{" "}
-              <span style={{ fontFamily: "monospace", fontSize: "12px", fontWeight: "bold" }}>
+              <span
+                style={{
+                  fontFamily: "monospace",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                }}
+              >
                 {activePrint.invoiceNo}
               </span>
             </div>
             <div>
-              <strong>Date :</strong> {activePrint.billDate.split("-").reverse().join("-")}
+              <strong>Date :</strong>{" "}
+              {activePrint.billDate.split("-").reverse().join("-")}
             </div>
             <div>
               <strong>Bill Issue Time :</strong> {activePrint.billTime}
@@ -1246,7 +1561,8 @@ export default function NewBillCalculator() {
           <tbody>
             {activePrint.items.map((item, idx) => {
               const rate = item.gstRate;
-              const itemDiscount = item.amount * (activePrint.discountPercent / 100);
+              const itemDiscount =
+                item.amount * (activePrint.discountPercent / 100);
               const itemNet = item.amount - itemDiscount;
               const taxable = itemNet / (1 + rate / 100);
               const gstBreakdownPercent = rate / 2;
@@ -1271,15 +1587,27 @@ export default function NewBillCalculator() {
                       : ""}
                   </td>
                   <td style={{ textAlign: "center" }}>{item.quantity}</td>
-                  <td style={{ textAlign: "right" }}>{item.price.toFixed(2)}</td>
-                  <td style={{ textAlign: "right" }}>{item.price.toFixed(2)}</td>
-                  <td style={{ textAlign: "center" }}>{gstBreakdownPercent.toFixed(2)}%</td>
-                  <td style={{ textAlign: "center" }}>{gstBreakdownPercent.toFixed(2)}%</td>
-                  <td style={{ textAlign: "right" }}>{item.amount.toFixed(2)}</td>
+                  <td style={{ textAlign: "right" }}>
+                    {item.price.toFixed(2)}
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    {item.price.toFixed(2)}
+                  </td>
+                  <td style={{ textAlign: "center" }}>
+                    {gstBreakdownPercent.toFixed(2)}%
+                  </td>
+                  <td style={{ textAlign: "center" }}>
+                    {gstBreakdownPercent.toFixed(2)}%
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    {item.amount.toFixed(2)}
+                  </td>
                 </tr>
               );
             })}
-            {Array.from({ length: Math.max(0, 10 - activePrint.items.length) }).map((_, i) => (
+            {Array.from({
+              length: Math.max(0, 10 - activePrint.items.length),
+            }).map((_, i) => (
               <tr key={i} className="empty-row">
                 <td>&nbsp;</td>
                 <td>&nbsp;</td>
@@ -1301,12 +1629,18 @@ export default function NewBillCalculator() {
         <div className="print-footer-grid">
           <div className="print-footer-left">
             <div className="tax-summary-clause">
-              GST {activePrint.taxableValue.toFixed(2)} * {activePrint.discountPercent.toFixed(0)}% ={" "}
+              GST {activePrint.taxableValue.toFixed(2)} *{" "}
+              {activePrint.discountPercent.toFixed(0)}% ={" "}
               {activePrint.discountAmount.toFixed(2)} Discount
             </div>
-            <div className="tax-summary-clause" style={{ marginTop: "4px", textTransform: "uppercase" }}>
-              GST INCLUSIVE BREAKDOWN: Taxable Value: ₹{activePrint.taxableValue.toFixed(2)} | SGST: ₹
-              {activePrint.sgst.toFixed(2)} | CGST: ₹{activePrint.cgst.toFixed(2)}
+            <div
+              className="tax-summary-clause"
+              style={{ marginTop: "4px", textTransform: "uppercase" }}
+            >
+              GST INCLUSIVE BREAKDOWN: Taxable Value: ₹
+              {activePrint.taxableValue.toFixed(2)} | SGST: ₹
+              {activePrint.sgst.toFixed(2)} | CGST: ₹
+              {activePrint.cgst.toFixed(2)}
             </div>
             <div className="print-tc">
               <h4>Terms &amp; Conditions</h4>
