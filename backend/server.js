@@ -34,8 +34,8 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "15mb" }));
+app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 
 // Request logger (dev)
 if (process.env.NODE_ENV !== "production") {
@@ -54,6 +54,7 @@ app.use("/api/dashboard", require("./routes/notification.routes"));
 app.use("/api/bills", require("./routes/bill.routes"));
 app.use("/api/suppliers", require("./routes/supplier.routes"));
 app.use("/api/customers", require("./routes/customer.routes"));
+app.use("/api/ocr", require("./routes/ocr.routes"));
 
 // Health check
 app.get("/api/health", (req, res) => {

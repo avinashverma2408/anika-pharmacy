@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { usePharmacyStore, showSimpleToast } from "../store/usePharmacyStore";
-import { medicineApi } from "../api/apiClient";
+import { medicineApi, ocrApi } from "../api/apiClient";
 
 const loadTesseractScript = () => {
   return new Promise((resolve) => {
@@ -14,40 +14,562 @@ const loadTesseractScript = () => {
 };
 
 /**
- * Rotates an image file on HTML5 Canvas by given degrees
- * so OCR receives an upright pixel layout.
+ * Preprocess bill image before OCR:
+ * 1) rotate upright
+ * 2) upscale / zoom small photos so tiny print is readable
+ * 3) mild contrast boost on grayscale canvas
  */
-const getRotatedFile = (fileObj, rotationDeg) => {
+const OCR_MIN_LONG_SIDE = 2200;
+const OCR_MAX_LONG_SIDE = 3600;
+const OCR_ZOOM_FACTOR = 2.2;
+
+const prepareImageForOcr = (fileObj, rotationDeg = 0) => {
   return new Promise((resolve) => {
-    if (!fileObj || rotationDeg % 360 === 0) return resolve(fileObj);
+    if (!fileObj) return resolve(null);
+
     const img = new Image();
-    img.src = URL.createObjectURL(fileObj);
+    const objectUrl = URL.createObjectURL(fileObj);
+
     img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      const rad = (rotationDeg * Math.PI) / 180;
+      try {
+        URL.revokeObjectURL(objectUrl);
 
-      if (rotationDeg % 180 !== 0) {
-        canvas.width = img.height;
-        canvas.height = img.width;
-      } else {
-        canvas.width = img.width;
-        canvas.height = img.height;
+        const rad = ((rotationDeg % 360) * Math.PI) / 180;
+        const swapped = Math.abs(rotationDeg % 360) % 180 !== 0;
+        const baseW = swapped ? img.height : img.width;
+        const baseH = swapped ? img.width : img.height;
+        const longSide = Math.max(baseW, baseH);
+
+        // Zoom up small phone photos; cap very large images for memory
+        let scale = OCR_ZOOM_FACTOR;
+        if (longSide * scale < OCR_MIN_LONG_SIDE) {
+          scale = OCR_MIN_LONG_SIDE / longSide;
+        }
+        if (longSide * scale > OCR_MAX_LONG_SIDE) {
+          scale = OCR_MAX_LONG_SIDE / longSide;
+        }
+        // Already huge — still apply a light zoom if under min
+        scale = Math.max(1, scale);
+
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(baseW * scale);
+        canvas.height = Math.round(baseH * scale);
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (!ctx) return resolve(fileObj);
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        if (rad !== 0) ctx.rotate(rad);
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+        ctx.restore();
+
+        // Mild contrast / grayscale — helps Tesseract on faded print
+        try {
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          const contrast = 1.18;
+          const intercept = 128 * (1 - contrast);
+          for (let i = 0; i < data.length; i += 4) {
+            const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+            const v = Math.max(0, Math.min(255, gray * contrast + intercept));
+            data[i] = v;
+            data[i + 1] = v;
+            data[i + 2] = v;
+          }
+          ctx.putImageData(imageData, 0, 0);
+        } catch {
+          // Ignore if canvas is tainted / too large
+        }
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return resolve(fileObj);
+            resolve(
+              new File([blob], fileObj.name.replace(/\.\w+$/, "") + "-ocr.png", {
+                type: "image/png",
+              }),
+            );
+          },
+          "image/png",
+          1,
+        );
+      } catch {
+        resolve(fileObj);
       }
-
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate(rad);
-      ctx.drawImage(img, -img.width / 2, -img.height / 2);
-
-      canvas.toBlob((blob) => {
-        if (!blob) return resolve(fileObj);
-        const rotatedFile = new File([blob], fileObj.name, { type: fileObj.type || "image/png" });
-        resolve(rotatedFile);
-      }, fileObj.type || "image/png");
     };
-    img.onerror = () => resolve(fileObj);
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(fileObj);
+    };
+
+    img.src = objectUrl;
   });
 };
+
+/** @deprecated kept as thin wrapper for any older callers */
+const getRotatedFile = (fileObj, rotationDeg) =>
+  prepareImageForOcr(fileObj, rotationDeg);
+
+/**
+ * Detect unreadable OCR. Table pipes (|) are normal on tax invoices — do not treat as garbage.
+ */
+function getOcrQuality(rawText) {
+  const text = String(rawText || "");
+  const len = Math.max(1, text.length);
+  const priceHits = (text.match(/\d+[.,]\d{2}/g) || []).length;
+  const letterCount = (text.match(/[A-Za-z]/g) || []).length;
+  const weirdCount = (text.match(/[§£¢©®°¥€¿¡□■◆▲►◄]/g) || []).length;
+  const hsnHits = (text.match(/\b(?:3004|3003|3006|3005|2106|9018|9021)\d{0,4}\b/g) || []).length;
+  const batchHits = (text.match(/\b[A-Z]{1,6}\d{2,14}[A-Z0-9]*\b/g) || []).length;
+  const expHits = (text.match(/\b\d{1,2}[\/\-]\d{2,4}\b/g) || []).length;
+  const hasInvoiceMarkers =
+    /TAX\s*INVOICE|Description Of Goods|GST\s*No|Inv\.?\s*No|SUB\s*TOTAL|KETOROL|EYE DROP|TAB\b/i.test(
+      text,
+    );
+  const letterRatio = letterCount / len;
+  const weirdRatio = weirdCount / len;
+
+  const usable =
+    (priceHits >= 3 && letterRatio >= 0.18 && weirdRatio <= 0.1) ||
+    (priceHits >= 2 && hsnHits >= 2 && weirdRatio <= 0.12) ||
+    (priceHits >= 4 && hasInvoiceMarkers && weirdRatio <= 0.12) ||
+    // Batch/expiry heavy bills where HSN OCR failed
+    (priceHits >= 3 && batchHits >= 2 && expHits >= 2 && weirdRatio <= 0.12);
+
+  return { usable, priceHits, letterRatio, weirdRatio, hsnHits };
+}
+
+function cleanMedicineName(raw) {
+  return String(raw || "")
+    .replace(/^(?:\d+\.?\s*)?/, "")
+    .replace(/\b(TAB|TABS|TABLET|TABLETS|CAP|CAPS|CAPSULE|CAPSULES|SYP|SYRUP|INJ|INJECTION|GEL|DROP|DROPS|VAIL|VIAL|PACK|HSN|QTY|MRP|PTR|NET|BATCH|EXP|EXPIRY|NOS|BOX|STRIP|STRIPS)\b/gi, " ")
+    .replace(/[^A-Za-z0-9\s%+./-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isPlausibleMedicineName(name) {
+  if (!name || name.length < 3 || name.length > 60) return false;
+  if (
+    /BASEMENT|SHOP|PHONE|MAIL|GMAIL|CONTACT|ACCOUNT|DISPUTED|IFSC|BANK|TERMS|ROUND|TOTAL|INVOICE|GSTIN|ADDRESS|DESCRIPTION|GOODS|AUTHORISED|PHARMACY|LICENCE/i.test(
+      name,
+    )
+  ) {
+    return false;
+  }
+
+  const compact = name.replace(/\s+/g, "");
+  const letters = (compact.match(/[A-Za-z]/g) || []).length;
+  if (letters < 3) return false;
+  if (letters / Math.max(1, compact.length) < 0.5) return false;
+
+  const tokens = name.split(/\s+/).filter(Boolean);
+  const shortTokens = tokens.filter((t) => t.length <= 1).length;
+  if (tokens.length >= 3 && shortTokens / tokens.length >= 0.5) return false;
+
+  return true;
+}
+
+/** Common Indian pharmacy HSN prefixes (4–8 digits). Optional — OCR may miss HSN. */
+const HSN_RE = /\b((?:3004|3003|3006|3005|2106|9018|9021)\d{0,4})\b/;
+const BATCH_RE =
+  /\b([A-Z]{1,6}\d{2,14}[A-Z0-9]*|\d{5,14}[A-Z]|\d{1,4}[A-Z]{1,6}\d{1,10}|E\d{5,12})\b/i;
+const EXP_RE = /\b(\d{1,2}[\/\-]\d{2,4})\b/;
+/** Packs: 1*10, 1*200M, 1*10TA, 10GM, 15ML (OCR often truncates unit letters) */
+const PACK_RE =
+  /\b(\d+\s*[xX*×+]\s*\d+[A-Za-z]{0,6}|\d+\s*(?:GM|ML|TAB|TABS|CAPS?|STRIP|NOS?|SACHET))\b/i;
+/** Dose like 50/5 — not expiry (11/28) where the part after / is a 2-digit year */
+const DOSE_RATIO_RE = /\b(\d{1,3}\s*\/\s*\d(?:\.\d+)?)\b/;
+const DOSE_MG_RE = /\b(\d+\s*MG)\b/i;
+const COMMON_STRENGTHS = new Set([50, 75, 100, 120, 125, 150, 200, 250, 400, 500, 625, 650, 1000]);
+const GST_RATES = new Set([0, 5, 12, 18]);
+
+/** Header/footer noise — generic (not store-specific). */
+const BILL_NOISE_RE =
+  /ACCOUNT|ACC\s*NO|IFSC|STATE BANK|BANK DETAIL|DISPUTED|JURISDICTION|INTEREST|ROUND\s*OFF|GRAND\s*TOTAL|SUB\s*TOTAL|SUBTOTAL|TAXABLE|TERMS\s*&|DECLARATION|AUTHORISED|SIGNATORY|RECEIPT|DISPATCH|DUE\s*DATE|EWAY|BASEMENT|SHOP\s*NO|E-?Mail|GMAIL|EMAIL|Phone\s*:|MOBILE|CONTACT|FOOD\s*LICEN[CS]E|Description\s*Of\s*Goods|TAX\s*INVOICE|Book\s*No|GSTIN|DL\s*\.?\s*No|PAN\s*:|State\s*:|Page\s*\d/i;
+
+function normalizeInvoiceLine(line) {
+  return String(line || "")
+    .replace(/[\[\]{}()<>§]/g, " ")
+    .replace(/\|/g, " ")
+    .replace(/[~“”"'`«»]/g, " ")
+    // Pack multipliers only between digits — never rewrite letters in names (CIPLOX)
+    .replace(/[¥%]/g, "*")
+    .replace(/(\d)\s*[xX×*+]\s*(\d+)/g, "$1*$2")
+    // 1*200M / 1*10TA / 1*200T → 1*200 / 1*10 (keep pack, drop OCR unit junk)
+    .replace(/\b(\d+\*\d+)[A-Za-z]{1,6}\b/g, "$1")
+    .replace(/\b(\d+\*\d+)\s*(TAB|TABS|CAPS?|STRIP|ML|GM|NOS?)s?\b/gi, "$1")
+    // HSN glued to pack/batch: 1*175 30045033l61 / 30039012/14261561A
+    .replace(/\b((?:3004|3003|3006|3005|2106|9018|9021)\d{0,4})[\/\\|lI]\s*/gi, "$1 ")
+    .replace(/\b((?:3004|3003|3006|3005|2106|9018|9021)\d{0,4})(?=[A-Za-z])/gi, "$1 ")
+    .replace(/\.?\bTAB\b/gi, " TAB ")
+    .replace(/\bioML\b/gi, "10ML")
+    .replace(/\bS00\b/gi, "5.00")
+    .replace(/\bEs\.?\b/gi, " ")
+    .replace(/\bIFIL\b/gi, " ")
+    .replace(/(\d),(\d{2})\b/g, "$1.$2")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function guessCategory(lineText, medName) {
+  const src = `${lineText} ${medName}`;
+  if (/CAP|CAPSULE/i.test(src)) return "Capsule";
+  if (/SYP|SYRUP|DROP|LIQUID|LOTION|MOUTH/i.test(src)) return "Syrup";
+  if (/INJ|INJECTION|IV|VAIL|VIAL|SYRING/i.test(src)) return "Injection";
+  if (/GEL|CREAM|OINT|OINTMENT/i.test(src)) return "Ointment";
+  return "Tablet";
+}
+
+function parseExpiryToIso(raw) {
+  if (!raw) {
+    return new Date(Date.now() + 365 * 86400000).toISOString().split("T")[0];
+  }
+  const parts = String(raw).split(/[\/\-]/);
+  if (parts.length !== 2) {
+    return new Date(Date.now() + 365 * 86400000).toISOString().split("T")[0];
+  }
+  const month = parts[0].padStart(2, "0");
+  const year = parts[1].length === 2 ? `20${parts[1]}` : parts[1];
+  return `${year}-${month}-28`;
+}
+
+/** OCR often drops decimals: 2650→26.50, 350→3.50, 475→4.75 */
+function coerceInvoiceNumber(token, roleHint = "") {
+  const raw = String(token || "").replace(/,/g, "");
+  if (!raw) return null;
+  if (raw.includes(".")) {
+    const n = parseFloat(raw);
+    return Number.isFinite(n) ? n : null;
+  }
+  if (!/^\d+$/.test(raw)) return null;
+  const n = parseInt(raw, 10);
+
+  if (roleHint === "disc" && n >= 100 && n <= 4000) {
+    return parseFloat((n / 100).toFixed(2));
+  }
+
+  if (roleHint === "money" || roleHint === "rate") {
+    if (raw.length === 4) return parseFloat((n / 100).toFixed(2));
+    if (raw.length === 3 && /[05]0$/.test(raw) && n <= 500) {
+      return parseFloat((n / 100).toFixed(2));
+    }
+  }
+
+  return n;
+}
+
+function extractPackFromText(text) {
+  const multi = String(text || "").match(/\b(\d+\s*\*\s*\d+)\b/);
+  if (multi) return multi[1].replace(/\s+/g, "");
+  const unit = String(text || "").match(/\b(\d+\s*(?:GM|ML|TAB|TABS|CAPS?|STRIP|NOS?|SACHET))\b/i);
+  if (unit) return unit[1].replace(/\s+/g, "").toUpperCase();
+  return "1*10";
+}
+
+function cleanParsedMedName(raw) {
+  return String(raw || "")
+    .replace(/^\d+[\).:\-\s]+/, "")
+    .replace(/^[a-z]{1,3}\s+/i, "") // OCR junk prefix ("gd ")
+    .replace(EXP_RE, " ")
+    .replace(BATCH_RE, " ")
+    .replace(HSN_RE, " ")
+    // Trailing pack/OCR fragments: 200M, 10TA, l61
+    .replace(/\b\d{2,}[A-Za-z]{1,4}\b/g, " ")
+    .replace(/\b[lI]\d{1,4}\b/g, " ")
+    .replace(/\b(PACK|FIL|FREE|HSN|SAC|QTY|MRP|PTR|RATE|AMT|AMOUNT|NET|GST|CGST|SGST)\b/gi, " ")
+    .replace(/[^A-Za-z0-9\s%+./-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/(?:\s+[A-Za-z])+$/g, "")
+    .replace(/\s*\.+\s*$/g, "")
+    .trim();
+}
+
+/**
+ * Strip known anchors from a line, then leftover letter tokens ≈ medicine name.
+ * Works whether HSN/pack/batch appear before OR after the name.
+ * Preserves strengths like 50/5 and 5MG (not expiry dates).
+ */
+function extractMedicineName(line) {
+  let src = normalizeInvoiceLine(line)
+    .replace(/^[a-z]{1,3}\s+(?=\d)/i, "")
+    .replace(/^\d+[\).:\-\s]+/, "");
+  const kept = [];
+  src = src.replace(DOSE_RATIO_RE, (_, s) => {
+    kept.push(s.replace(/\s+/g, ""));
+    return ` __S${kept.length - 1}__ `;
+  });
+  src = src.replace(DOSE_MG_RE, (_, s) => {
+    kept.push(s.replace(/\s+/g, "").toUpperCase());
+    return ` __S${kept.length - 1}__ `;
+  });
+  // Bare strengths after brand: DOLO 650, AZITHRO 500, TRENEXA 500
+  src = src.replace(/([A-Za-z])\s+(\d{2,4})\b/g, (full, letter, n) => {
+    if (!COMMON_STRENGTHS.has(Number(n))) return full;
+    kept.push(n);
+    return `${letter} __S${kept.length - 1}__ `;
+  });
+
+  src = src
+    .replace(HSN_RE, " ")
+    .replace(EXP_RE, " ")
+    .replace(BATCH_RE, " ")
+    // Numeric-only batch between HSN-area and expiry (e.g. 111006)
+    .replace(/\b(\d{5,8})\b(?=\s+\d{1,2}[\/\-]\d{2,4})/g, " ")
+    .replace(PACK_RE, " ")
+    .replace(/\b\d+\s*\*\s*\d+\b/g, " ")
+    .replace(/\b\d+(?:\.\d{1,3})?\b/g, " ")
+    .replace(/\bTAB\b|\bCAPS?\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  kept.forEach((s, i) => {
+    src = src.replace(`__S${i}__`, s);
+  });
+
+  return cleanParsedMedName(src).replace(/\s*\/\s*$/g, "").trim();
+}
+
+/**
+ * Infer qty / rate / disc / gst / mrp from number tokens in ANY column order.
+ * Prefers qty→rate where rate is real money (not GST 5% / disc).
+ */
+function inferNumberRoles(line) {
+  let work = normalizeInvoiceLine(line)
+    .replace(/^[a-z]{1,3}\s+(?=\d)/i, "")
+    .replace(/^\d+[\).:\-\s]+/, "")
+    .replace(HSN_RE, " ")
+    .replace(EXP_RE, " ")
+    .replace(PACK_RE, " ")
+    .replace(/\b\d+\s*\*\s*\d+\b/g, " ")
+    .replace(DOSE_RATIO_RE, " ")
+    .replace(DOSE_MG_RE, " ")
+    .replace(BATCH_RE, " ")
+    .replace(/\b(\d{5,8})\b(?=\s+\d{1,2}[\/\-]\d{2,4})/g, " ");
+
+  // Drop bare strengths that sit beside letters (already in name)
+  work = work.replace(/([A-Za-z])\s+(\d{2,4})\b/g, (full, letter, n) =>
+    COMMON_STRENGTHS.has(Number(n)) ? letter : full,
+  );
+
+  const rawNums = work.match(/\d+(?:\.\d{1,2})?/g) || [];
+  if (rawNums.length < 2) return null;
+
+  const parsed = rawNums.map((raw) => {
+    const hasDot = raw.includes(".");
+    const asQty = coerceInvoiceNumber(raw, "qty");
+    const asRate = coerceInvoiceNumber(raw, "rate");
+    return {
+      raw,
+      hasDot,
+      intish: !hasDot || /\.0+$/.test(raw),
+      asQty,
+      asRate,
+    };
+  });
+
+  const isQtyLike = (p) =>
+    p.asQty != null &&
+    p.asQty >= 1 &&
+    p.asQty <= 500 &&
+    (p.intish || p.asQty === Math.round(p.asQty)) &&
+    !COMMON_STRENGTHS.has(p.asQty);
+  const isRateLike = (p) => p.asRate != null && p.asRate >= 1 && p.asRate < 20000;
+  const isGstVal = (v) => GST_RATES.has(v);
+  const isDiscVal = (v) => v != null && v > 0 && v <= 40 && !GST_RATES.has(v);
+
+  // Score qty→rate candidates — never treat GST%/tiny disc as PTR
+  let best = null;
+  for (let i = 0; i < parsed.length - 1; i++) {
+    if (!isQtyLike(parsed[i]) && !(parsed[i].asQty >= 1 && parsed[i].asQty <= 100 && parsed[i].intish)) {
+      continue;
+    }
+    const qtyCand = parsed[i];
+    const qtyVal = qtyCand.asQty;
+    if (COMMON_STRENGTHS.has(qtyVal) && !(parsed[i + 1] && parsed[i + 1].hasDot)) continue;
+
+    let rateIdx = i + 1;
+    // qty, free, rate — free is a small bonus qty, never GST% (0/5/12/18)
+    if (
+      parsed[i + 2] &&
+      parsed[i + 1].asQty != null &&
+      parsed[i + 1].asQty <= 50 &&
+      parsed[i + 1].intish &&
+      !isGstVal(parsed[i + 1].asQty) &&
+      isRateLike(parsed[i + 2]) &&
+      (parsed[i + 2].hasDot || String(parsed[i + 2].raw).length >= 3) &&
+      !isGstVal(parsed[i + 2].asRate) &&
+      parsed[i + 2].asRate >= 8
+    ) {
+      rateIdx = i + 2;
+    } else if (!isRateLike(parsed[i + 1])) {
+      continue;
+    }
+
+    const rate = parsed[rateIdx].asRate;
+    if (rate == null || rate < 1) continue;
+    // Don't accept GST column as PTR
+    if (isGstVal(rate)) continue;
+
+    let score = 0;
+    if (parsed[rateIdx].hasDot) score += 10;
+    else if (/^\d{3,4}$/.test(parsed[rateIdx].raw)) score += 14;
+    if (qtyVal <= 100) score += 5;
+    if (qtyVal <= 30) score += 5;
+    if (qtyVal > 50) score -= 12; // amounts mistaken as qty
+    if (qtyVal > 100) score -= 20;
+    if (COMMON_STRENGTHS.has(qtyVal)) score -= 12;
+    if (qtyCand.hasDot && /\.0+$/.test(qtyCand.raw)) score += 4;
+    if (rate > 0 && rate < 8) score -= 8;
+    if (rate >= 20) score += 6;
+    if (rate >= 40) score += 4;
+    // Typical columns after PTR: disc% then GST% (0/5/12/18)
+    const a1 = parsed[rateIdx + 1];
+    const a2 = parsed[rateIdx + 2];
+    if (a1 && (isGstVal(a1.asRate) || isDiscVal(a1.asRate) || a1.asRate === 0)) score += 14;
+    if (a2 && isGstVal(a2.asRate)) score += 10;
+    score += Math.max(0, 6 - i * 2);
+
+    if (!best || score > best.score) {
+      best = { score, qty: Math.round(qtyVal), ptr: rate, startAfter: rateIdx + 1 };
+    }
+  }
+
+  let qty;
+  let ptr;
+  let startAfter;
+
+  if (best && best.score >= 5) {
+    qty = best.qty;
+    ptr = best.ptr;
+    startAfter = best.startAfter;
+  } else {
+    // Fallback: first qty-like + first non-GST money with decimal
+    const moneys = parsed.filter(
+      (p) => isRateLike(p) && (p.hasDot || String(p.raw).length >= 3) && !isGstVal(p.asRate) && p.asRate >= 8,
+    );
+    const qtys = parsed.filter(isQtyLike);
+    if (!moneys.length) return null;
+    ptr = moneys[0].asRate;
+    qty = qtys.length ? Math.round(qtys[0].asQty) : 1;
+    startAfter = parsed.indexOf(moneys[0]) + 1;
+  }
+
+  let disc = 0;
+  let gstRate = 5;
+  const moneyVals = [];
+
+  for (let i = startAfter; i < parsed.length; i++) {
+    const p = parsed[i];
+    const v = p.asRate != null ? p.asRate : p.asQty;
+    if (v == null) continue;
+    if (isGstVal(v) && (p.intish || p.hasDot)) {
+      gstRate = v === 0 ? gstRate : v;
+      continue;
+    }
+    if (isDiscVal(v) && disc === 0) {
+      disc = v;
+      continue;
+    }
+    if (v > 1 && v < 100000) moneyVals.push(v);
+  }
+
+  let mrp = 0;
+  if (moneyVals.length >= 2) {
+    const ge = moneyVals.filter((m) => m >= ptr);
+    mrp = ge.length ? ge[ge.length - 1] : moneyVals[moneyVals.length - 1];
+  } else if (moneyVals.length === 1) {
+    mrp = Math.max(ptr, moneyVals[0]);
+  } else {
+    mrp = ptr;
+  }
+  if (mrp < ptr) mrp = ptr;
+
+  qty = Math.max(1, Math.round(Number(qty) || 1));
+  if (qty > 500) qty = 1;
+
+  return { qty, ptr, disc, gstRate, mrp };
+}
+
+/**
+ * Format-agnostic medicine row parser.
+ * Every store prints columns differently — we anchor on field TYPES (name, pack,
+ * HSN, batch, expiry, money), not on a single fixed column layout.
+ */
+function parseMedicineLineAnyFormat(line, idx) {
+  const t = normalizeInvoiceLine(line);
+  if (t.length < 8) return null;
+  if (BILL_NOISE_RE.test(t) && !HSN_RE.test(t) && !BATCH_RE.test(t)) return null;
+
+  const medName = extractMedicineName(t);
+  if (!isPlausibleMedicineName(medName)) return null;
+
+  // Need some evidence this is a product row, not an address
+  const hasPrice = /\d+(?:\.\d{1,2})?/.test(t);
+  const hasExp = EXP_RE.test(t);
+  const hasBatch = BATCH_RE.test(t);
+  const hasHsn = HSN_RE.test(t);
+  const hasPack = PACK_RE.test(t) || /\d+\*\d+/.test(t);
+  if (!hasPrice) return null;
+  if (!(hasHsn || hasExp || hasBatch || hasPack)) {
+    // Still allow if there are multiple money values + a solid name
+    const moneyHits = (t.match(/\d+\.\d{2}/g) || []).length;
+    if (moneyHits < 2) return null;
+  }
+
+  const roles = inferNumberRoles(t);
+  if (!roles || !roles.ptr || roles.ptr <= 0) return null;
+
+  const hsnMatch = t.match(HSN_RE);
+  const expMatch = t.match(EXP_RE);
+  const batchMatch =
+    t.match(BATCH_RE) ||
+    t.match(/\b(\d{5,8})\b(?=\s+\d{1,2}[\/\-]\d{2,4})/);
+
+  return {
+    id: Date.now() + idx,
+    name: medName.slice(0, 50),
+    category: guessCategory(t, medName),
+    batch: batchMatch ? batchMatch[1].toUpperCase() : `B-${100 + idx}`,
+    price: Math.max(0.01, parseFloat(roles.mrp) || parseFloat(roles.ptr) || 10),
+    ptr: Math.max(0.01, parseFloat(roles.ptr) || 0),
+    quantity: roles.qty,
+    expiryDate: parseExpiryToIso(expMatch?.[1]),
+    hsn: hsnMatch ? hsnMatch[1] : "3004",
+    pack: extractPackFromText(t),
+    gstRate: roles.gstRate || 5,
+    discountPercent: roles.disc || 0,
+    composition: "",
+    status: "Active",
+  };
+}
+
+function isLikelyMedicineLine(line) {
+  if (!line || line.length < 8) return false;
+  if ((line.match(/[£¢§©®°¥€]/g) || []).length >= 2) return false;
+  if (BILL_NOISE_RE.test(line) && !HSN_RE.test(line) && !BATCH_RE.test(line)) return false;
+
+  const t = normalizeInvoiceLine(line);
+  const hasHsn = HSN_RE.test(t);
+  const hasPrice = /\d+(?:[.,]\d{2})?/.test(t);
+  const hasExpiry = EXP_RE.test(t);
+  const hasBatch = BATCH_RE.test(t);
+  const hasPack = PACK_RE.test(t) || /\d+\*\d+/.test(t);
+  const hasWord = /[A-Za-z]{3,}/.test(t);
+
+  if (!hasWord || !hasPrice) return false;
+  if (hasHsn || hasExpiry || hasBatch || hasPack) return true;
+  // Name + several prices (HSN/batch OCR failed)
+  return (t.match(/\d+\.\d{2}/g) || []).length >= 2;
+}
 
 /**
  * EXTRACT FOOTER TOTALS DIRECTLY FROM OCR TEXT (BOTTOM-UP PRECEDENCE)
@@ -125,13 +647,14 @@ function extractDirectOcrFooterTotals(rawText, items = []) {
 }
 
 /**
- * 100% PURE DYNAMIC OCR BILL PARSER ENGINE
+ * Dynamic OCR bill parser — only keeps lines that look like real medicine rows.
  */
 function parsePureDynamicBill(rawText) {
   if (!rawText || !rawText.trim()) {
-    return { stockist: "", invNo: "", items: [] };
+    return { stockist: "", invNo: "", items: [], ocrUsable: false };
   }
 
+  const quality = getOcrQuality(rawText);
   const lines = rawText
     .split("\n")
     .map((l) => l.trim())
@@ -139,10 +662,13 @@ function parsePureDynamicBill(rawText) {
 
   // 1. DISTRIBUTOR / STOCKIST EXTRACTION FROM HEADER
   let stockist = "";
-  const headerLines = lines.slice(0, 10);
-  const stockistLine = headerLines.find((l) =>
-    /PHARMA|MEDICAL|DISTRIBUTOR|AGENCIES|ENTERPRISES|TRADERS|HEALTHCARE|DRUGS|PVT|LTD|LIMITED|CHEMIST|STORE|BIOTECH|LAB|LABS/i.test(l) &&
-    !/BASEMENT|SHOP|ROAD|STREET|MAIL|GMAIL|PHONE|DL NO|GSTIN/i.test(l)
+  const headerLines = lines.slice(0, 15);
+  const stockistLine = headerLines.find(
+    (l) =>
+      /PHARMA|MEDICAL|DISTRIBUTOR|AGENCIES|ENTERPRISES|TRADERS|HEALTHCARE|DRUGS|PVT|LTD|LIMITED|CHEMIST|STORE|BIOTECH|LAB|LABS/i.test(
+        l,
+      ) &&
+      !/BASEMENT|SHOP|ROAD|STREET|MAIL|GMAIL|PHONE|DL\s*NO|GSTIN|Inv\.?\s*No|TAX INVOICE/i.test(l),
   );
 
   if (stockistLine) {
@@ -150,136 +676,114 @@ function parsePureDynamicBill(rawText) {
       .replace(/^(GSTIN|TAX|INVOICE|BILL|SUPPLIER|STOCKIST|M\/S|TO|FROM|BOOK NO[:\.\d]*|Ms)[:\s]*/i, "")
       .replace(/[^A-Za-z0-9\s&.-]/g, "")
       .trim();
-  } else if (lines.length > 0) {
-    stockist = lines[0].replace(/[^A-Za-z0-9\s&.-]/g, "").trim();
   }
 
   // 2. INVOICE NUMBER EXTRACTION
   let invNo = "";
-  const invRegex = /(?:INVOICE|BILL|INV|BOOK|NO|NUM)\s*(?:NO|NUM|\.)?[:\s#-]*([A-Z0-9/-]{3,20})/i;
-  const matchInv = rawText.match(invRegex);
-  if (matchInv && matchInv[1] && !/INVOICE|BILL|PHARMA|MEDICAL/i.test(matchInv[1])) {
-    invNo = matchInv[1].toUpperCase();
-  } else {
-    const invLine = lines.find((l) => /INV|BILL|BOOK|NO/i.test(l) && /\d+/.test(l) && !/PHONE|MOBILE|GSTIN|DL/i.test(l));
-    if (invLine) {
-      const matchNum = invLine.match(/([A-Z0-9-]{4,15})/i);
-      if (matchNum) invNo = matchNum[1].toUpperCase();
-    }
+  const invMatch =
+    rawText.match(/Inv\.?\s*No\.?\s*[:\-]?\s*([A-Z0-9\/-]{3,20})/i) ||
+    rawText.match(/(?:INVOICE|BILL)\s*(?:NO|NUM|\.)?\s*[:\-]?\s*([A-Z0-9\/-]{3,20})/i);
+  if (invMatch?.[1] && !/INVOICE|BILL|PHARMA|MEDICAL|TAX/i.test(invMatch[1])) {
+    invNo = invMatch[1].toUpperCase();
   }
 
-  // 3. MEDICINE LINE ITEMS EXTRACTION WITH STRICT NOISE FILTERING
+  // Unreadable scan → do not invent fake rows
+  if (!quality.usable) {
+    return { stockist, invNo, items: [], ocrUsable: false };
+  }
+
+  // 3. MEDICINE LINE ITEMS
   const items = [];
+  const seenNames = new Set();
+
   const candidateLines = lines.filter((line) => {
-    const isHeaderFooterOrNoise = /ACCOUNT|ACC NO|IFSC|STATE BANK|BANK|DISPUTED|JURISDICTION|INTEREST|ROUND OFF|GRAND TOTAL|SUBTOTAL|SUB TOTAL|TAXABLE|TERMS|DECLARATION|AUTHORISED|RECEIPT|DISPATCH|DUE DATE|EWAY|BASEMENT|SHOP|ROAD|SULTANPUR|STREET|ADDRESS|DISTT|PIN|STATE|TEL|FAX|MAIL|GMAIL|EMAIL|PHONE|MOBILE|CONTACT|PH:|MOB:|UP44|DL NO|BOOK NO/i.test(line);
-    const hasLetters = /[A-Za-z]{3,}/.test(line);
-    return !isHeaderFooterOrNoise && hasLetters;
+    if (BILL_NOISE_RE.test(line) && !HSN_RE.test(line) && !BATCH_RE.test(line)) {
+      return false;
+    }
+    return isLikelyMedicineLine(line);
   });
 
   candidateLines.forEach((lineText, idx) => {
-    // Ignore lines with huge account numbers like 40083254749
-    if (/\d{7,}/.test(lineText) && !/BATCH|EXP|EXPIRY/i.test(lineText)) return;
+    // Skip pure account/phone number rows (9+ digits) with no medicine anchors
+    if (/\d{9,}/.test(lineText) && !HSN_RE.test(lineText) && !BATCH_RE.test(lineText)) {
+      return;
+    }
 
+    const parsed = parseMedicineLineAnyFormat(lineText, idx);
+    if (parsed) {
+      const key = parsed.name.toLowerCase();
+      if (!seenNames.has(key)) {
+        seenNames.add(key);
+        items.push(parsed);
+      }
+      return;
+    }
+
+    // Loose fallback when anchors are messy but name + prices exist
     const numbers = lineText.match(/\d+(?:\.\d+)?/g) || [];
-
-    const batchMatch = lineText.match(/\b([A-Z0-9]{4,14}(?:-[A-Z0-9]{1,4})?)\b/i);
-    let batch = batchMatch ? batchMatch[1].toUpperCase() : `B-${100 + idx}`;
-
-    let medName = lineText
-      .replace(/^(?:\d+\.?\s*)?/, "")
-      .replace(/\b(TAB|CAP|SYP|INJ|GEL|DROP|VAIL|VIAL|PACK|HSN|QTY|MRP|PTR|NET|BATCH|EXP|EXPIRY|NOS|BOX)\b/gi, "")
-      .replace(/[^A-Za-z0-9\s%+.-]/g, "")
-      .trim();
-
-    if (medName.length < 3 || /BASEMENT|SHOP|PHONE|MAIL|GMAIL|CONTACT|ACCOUNT|DISPUTED|IFSC|BANK|TERMS|ROUND|TOTAL/i.test(medName)) return;
-
-    let category = "Tablet";
-    if (/CAP|CAPSULE/i.test(lineText)) category = "Capsule";
-    else if (/SYP|SYRUP|DROP|LIQUID/i.test(lineText)) category = "Syrup";
-    else if (/INJ|INJECTION|IV|VAIL|VIAL/i.test(lineText)) category = "Injection";
-    else if (/GEL|CREAM|OINT|OINTMENT/i.test(lineText)) category = "Ointment";
-
     const decimalValues = (lineText.match(/\d+\.\d{2}/g) || []).map((v) => parseFloat(v));
-    let qty = parseInt(numbers[0], 10) || 1;
+    const batchMatch = lineText.match(BATCH_RE);
+    const batch = batchMatch ? batchMatch[1].toUpperCase() : "";
+
+    if (decimalValues.length === 0 && !batch) return;
+
+    const medName = extractMedicineName(lineText) || cleanMedicineName(normalizeInvoiceLine(lineText));
+    if (!isPlausibleMedicineName(medName)) return;
+    const key = medName.toLowerCase();
+    if (seenNames.has(key)) return;
+
+    let qty = 1;
     let ptr = 0.0;
     let mrp = 0.0;
     let disc = 0.0;
 
-    if (decimalValues.length >= 3) {
-      ptr = decimalValues[0];
-      
-      if (decimalValues[1] > 0 && decimalValues[1] <= 30 && decimalValues[1] !== 5.0) {
-        disc = decimalValues[1];
-      } else if (decimalValues.length >= 4 && decimalValues[2] > 0 && decimalValues[2] <= 30 && decimalValues[2] !== 5.0) {
-        disc = decimalValues[2];
-      }
+    const roles = inferNumberRoles(lineText);
+    if (roles) {
+      qty = roles.qty;
+      ptr = roles.ptr;
+      mrp = roles.mrp;
+      disc = roles.disc;
+    } else {
+      const leadingQty = lineText.match(/^\s*(?:\d+[\).\s|-]+)?(\d{1,4})\b/);
+      if (leadingQty) qty = parseInt(leadingQty[1], 10) || 1;
+      else if (numbers.length > 0) qty = parseInt(numbers[0], 10) || 1;
 
-      mrp = decimalValues[decimalValues.length - 1];
-      if (qty > 1 && Math.abs(mrp - ptr * qty) < 2.0 && decimalValues.length >= 4) {
-        mrp = decimalValues[decimalValues.length - 2];
-      }
-    } else if (decimalValues.length === 2) {
-      ptr = decimalValues[0];
-      mrp = decimalValues[1];
-    } else if (decimalValues.length === 1) {
-      mrp = decimalValues[0];
-      ptr = parseFloat((mrp * 0.70).toFixed(2));
-    } else if (numbers.length >= 3) {
-      qty = parseInt(numbers[0], 10) || 1;
-      ptr = parseFloat(numbers[1]) || 0.0;
-      mrp = parseFloat(numbers[2]) || (ptr * 1.35);
-    }
-
-    if (disc === 0) {
-      const explicitDiscMatch = lineText.match(/\b(4\.75|6\.00|7\.00|6|7)\b/);
-      if (explicitDiscMatch) {
-        disc = parseFloat(explicitDiscMatch[1]);
+      if (decimalValues.length >= 2) {
+        ptr = decimalValues[0];
+        mrp = decimalValues[decimalValues.length - 1];
+      } else if (decimalValues.length === 1) {
+        mrp = decimalValues[0];
+        ptr = parseFloat((mrp * 0.7).toFixed(2));
       }
     }
 
-    if (mrp > 0 && ptr >= mrp) {
-      const tempPtr = ptr;
-      ptr = parseFloat((mrp * 0.70).toFixed(2));
-      if (tempPtr < mrp * 1.5) {
-        mrp = tempPtr;
-        ptr = parseFloat((mrp * 0.70).toFixed(2));
-      }
-    }
+    if (ptr <= 0 && mrp <= 0) return;
+    if (ptr <= 0 && mrp > 0) ptr = parseFloat((mrp * 0.7).toFixed(2));
+    if (mrp > 0 && ptr > mrp) mrp = ptr;
 
-    if (ptr <= 0 && mrp > 0) {
-      ptr = parseFloat((mrp * 0.70).toFixed(2));
-    }
+    const expMatch = lineText.match(EXP_RE);
+    const hsnMatch = lineText.match(HSN_RE);
 
-    const expMatch = lineText.match(/(\d{1,2}[\/\-]\d{2,4})/);
-    let expiryDate = new Date(Date.now() + 365 * 86400000).toISOString().split("T")[0];
-    if (expMatch) {
-      const parts = expMatch[1].split(/[\/\-]/);
-      if (parts.length === 2) {
-        let month = parts[0].padStart(2, "0");
-        let year = parts[1].length === 2 ? `20${parts[1]}` : parts[1];
-        expiryDate = `${year}-${month}-28`;
-      }
-    }
-
+    seenNames.add(key);
     items.push({
       id: Date.now() + idx,
       name: medName.slice(0, 50),
-      category,
-      batch,
+      category: guessCategory(lineText, medName),
+      batch: batch || `B-${100 + items.length + 1}`,
       price: Math.max(0.01, parseFloat(mrp) || 10.0),
       ptr: Math.max(0.01, parseFloat(ptr) || 0.0),
       quantity: Math.max(1, parseInt(qty, 10) || 1),
-      expiryDate,
-      hsn: "3004",
-      pack: "1*10",
-      gstRate: 5,
+      expiryDate: parseExpiryToIso(expMatch?.[1]),
+      hsn: hsnMatch ? hsnMatch[1] : "3004",
+      pack: extractPackFromText(lineText),
+      gstRate: roles?.gstRate || 5,
       discountPercent: parseFloat(disc) || 0.0,
       composition: "",
       status: "Active",
     });
   });
 
-  return { stockist, invNo, items };
+  return { stockist, invNo, items, ocrUsable: true };
 }
 
 export default function BillUploadModal() {
@@ -299,6 +803,7 @@ export default function BillUploadModal() {
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState("");
   const [extractedItems, setExtractedItems] = useState([]);
+  const [ocrEngineName, setOcrEngineName] = useState("");
   const [directFooterTotals, setDirectFooterTotals] = useState({
     subtotal: 0,
     discount: 0,
@@ -323,6 +828,7 @@ export default function BillUploadModal() {
     setZoomScale(1);
     setStockistName("");
     setInvoiceNumber("");
+    setOcrEngineName("");
     setDirectFooterTotals({
       subtotal: 0,
       discount: 0,
@@ -339,6 +845,7 @@ export default function BillUploadModal() {
     setScanError("");
     setRawOcrText("");
     setExtractedItems([]);
+    setOcrEngineName("");
     setRotationDeg(0);
     setZoomScale(1);
     setStockistName("");
@@ -356,6 +863,14 @@ export default function BillUploadModal() {
     runSmartScan(file.name, url, file, 0);
   };
 
+  const fileToBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (err) => reject(err);
+    });
+
   const runSmartScan = async (filename = "", url = "", fileObj = null, degrees = rotationDeg) => {
     setIsScanning(true);
     setScanError("");
@@ -363,29 +878,79 @@ export default function BillUploadModal() {
     setExtractedItems([]);
     setStockistName("");
     setInvoiceNumber("");
+    setOcrEngineName("");
 
     try {
+      // Step 1: Try AI Vision OCR via backend (Gemini 2.5 Flash)
+      if (fileObj) {
+        try {
+          const base64 = await fileToBase64(fileObj);
+          const aiRes = await ocrApi.scanBill(base64, fileObj.type || "image/jpeg");
+          if (aiRes.data?.success) {
+            const items = Array.isArray(aiRes.data?.items) ? aiRes.data.items : [];
+            setStockistName(aiRes.data.stockist || "");
+            setInvoiceNumber(aiRes.data.invNo || "");
+            setInvoiceDate(aiRes.data.invoiceDate || new Date().toISOString().split("T")[0]);
+            setExtractedItems(items);
+            setOcrEngineName(aiRes.data.engine || "Gemini Vision AI ✨");
+            setRawOcrText(JSON.stringify(aiRes.data, null, 2));
+
+            const footerTotals = extractDirectOcrFooterTotals("", items);
+            setDirectFooterTotals(footerTotals);
+
+            if (items.length > 0) {
+              showSimpleToast(
+                "AI Vision Bill Scan! ✨",
+                `Extracted ${items.length} medicines using Gemini Vision AI!`,
+                "success"
+              );
+            } else {
+              showSimpleToast(
+                "AI Vision Scan Completed 📸",
+                "Gemini Vision processed the photo. If items were missed, try rotating upright or upload a clearer photo.",
+                "warning"
+              );
+            }
+            return;
+          }
+        } catch (aiErr) {
+          console.log("AI OCR API unavailable or key missing. Falling back to local OCR:", aiErr.message);
+        }
+      }
+
+      // Step 2: Fallback to Local Tesseract.js OCR
+      setOcrEngineName("Local OCR Engine ⚡");
       const Tesseract = await loadTesseractScript();
       let rawText = "";
 
       if (Tesseract && fileObj) {
-        // Rotate image on Canvas first if needed so OCR receives upright pixels
-        const processedFile = await getRotatedFile(fileObj, degrees);
+        // Zoom + rotate + contrast before OCR so tiny invoice print is readable
+        const processedFile = await prepareImageForOcr(fileObj, degrees);
         const worker = await Tesseract.createWorker("eng");
+        // Slightly favor accuracy on dense pharmacy bills
+        await worker.setParameters({
+          tessedit_pageseg_mode: "6",
+          preserve_interword_spaces: "1",
+        });
         const ret = await worker.recognize(processedFile);
         await worker.terminate();
 
         rawText = ret?.data?.text || "";
-        console.log("OCR Extracted Live Raw Text (Rotation:", degrees, "°):\n", rawText);
+        console.log(
+          "OCR Extracted Live Raw Text (Rotation:",
+          degrees,
+          "°, pre-zoomed):\n",
+          rawText,
+        );
       }
 
       setRawOcrText(rawText);
 
-      // 100% PURE DYNAMIC OCR PARSING
+      // Dynamic OCR parsing (rejects garbage / sideways scans)
       const parsed = parsePureDynamicBill(rawText);
-      const stockist = parsed.stockist || "SCANNED DISTRIBUTOR";
-      const invNo = parsed.invNo || `INV-${Math.floor(1000 + Math.random() * 9000)}`;
-      const items = parsed.items;
+      const stockist = parsed.stockist || "";
+      const invNo = parsed.invNo || "";
+      const items = parsed.items || [];
 
       // Extract footer totals DIRECTLY from OCR text (NOT calculated from items)
       const footerTotals = extractDirectOcrFooterTotals(rawText, items);
@@ -398,16 +963,15 @@ export default function BillUploadModal() {
       setExtractedItems(items);
 
       if (items.length === 0) {
-        showSimpleToast(
-          "Scan Complete 📸",
-          "No clean line items found in photo. You can add medicines manually using 'Add Row'.",
-          "warning"
-        );
+        const tip = parsed.ocrUsable === false
+          ? "Bill photo is not readable (blur / wrong angle). Rotate the image or upload a clearer invoice, then re-scan. Or add medicines with Add Row."
+          : "No clean medicine rows found. Rotate/re-scan a clearer bill, or add medicines manually with Add Row.";
+        showSimpleToast("Scan needs a clearer bill 📸", tip, "warning");
       } else {
         showSimpleToast(
           "Purchase Bill Scanned! 📸",
-          `Extracted ${items.length} medicines directly from OCR scan!`,
-          "success"
+          `Extracted ${items.length} medicines using local OCR engine.`,
+          "success",
         );
       }
     } catch (err) {
@@ -546,7 +1110,24 @@ export default function BillUploadModal() {
         {/* MODAL HEADER */}
         <div className="modal-header">
           <div>
-            <h3 style={{ margin: 0 }}>Scan & Auto-Add Purchase Bill</h3>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <h3 style={{ margin: 0 }}>Scan & Auto-Add Purchase Bill</h3>
+              {ocrEngineName && (
+                <span
+                  style={{
+                    padding: "3px 10px",
+                    borderRadius: "12px",
+                    fontSize: "11.5px",
+                    fontWeight: 700,
+                    background: ocrEngineName.includes("Gemini") ? "rgba(99, 102, 241, 0.15)" : "rgba(16, 185, 129, 0.15)",
+                    color: ocrEngineName.includes("Gemini") ? "#6366f1" : "var(--success)",
+                    border: `1px solid ${ocrEngineName.includes("Gemini") ? "rgba(99, 102, 241, 0.4)" : "rgba(16, 185, 129, 0.4)"}`,
+                  }}
+                >
+                  {ocrEngineName}
+                </span>
+              )}
+            </div>
             <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
               Upload purchase bill photo to dynamically extract medicine line items
             </span>

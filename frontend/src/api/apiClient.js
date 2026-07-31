@@ -133,4 +133,9 @@ export const customerApi = {
   syncFromBills: () => api.post("/customers/sync-from-bills"),
 };
 
+export const ocrApi = {
+  scanBill: (imageBase64, mimeType) =>
+    api.post("/ocr/scan-bill", { imageBase64, mimeType }, { timeout: 45000 }),
+};
+
 export default api;
