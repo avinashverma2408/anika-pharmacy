@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import ReactDOM from "react-dom";
 import { medicineApi } from "../api/apiClient";
 import { showSimpleToast } from "../store/usePharmacyStore";
 
@@ -59,43 +60,15 @@ export default function SubstituteFinderModal({ isOpen, onClose, initialQuery = 
 
   if (!isOpen) return null;
 
-  return (
+  return ReactDOM.createPortal(
     <div
       className="modal-backdrop show"
       id="substitute-finder-modal"
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: "100vw",
-        height: "100vh",
-        zIndex: 9999,
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "center",
-        padding: "40px 16px 24px 16px",
-        boxSizing: "border-box",
-        background: "rgba(11, 15, 25, 0.75)",
-        backdropFilter: "blur(6px)",
+      onClick={(e) => {
+        if (e.target.id === "substitute-finder-modal") onClose();
       }}
     >
-      <div
-        className="modal-card"
-        style={{
-          width: "min(780px, 94vw)",
-          maxWidth: "780px",
-          maxHeight: "85vh",
-          margin: "0 auto",
-          overflowY: "auto",
-          position: "relative",
-          borderRadius: "16px",
-          border: "1px solid var(--border-color)",
-          background: "var(--bg-card)",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
-        }}
-      >
+      <div className="modal-card" style={{ maxWidth: "780px", width: "100%" }}>
         {/* MODAL HEADER */}
         <div className="modal-header">
           <div>
@@ -375,6 +348,7 @@ export default function SubstituteFinderModal({ isOpen, onClose, initialQuery = 
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
