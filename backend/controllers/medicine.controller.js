@@ -282,3 +282,49 @@ exports.updateStatus = async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to update status.' });
     }
 };
+
+// GET /api/medicines/substitutes?query=...
+exports.getSubstitutes = async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query || !query.trim()) {
+            return res.json({ success: true, original: null, substitutes: [] });
+        }
+
+        const searchTerm = query.trim();
+
+        // 1. Find exact/partial match for requested medicine
+        const matchedMed = await Medicine.findOne({
+            status: { $ne: 'Inactive' },
+            $or: [
+                { name: { $regex: searchTerm, $options: 'i' } },
+                { composition: { $regex: searchTerm, $options: 'i' } }
+            ]
+        });
+
+        // Salt to search for: composition if available, or search term
+        const targetSalt = matchedMed?.composition?.trim() || searchTerm;
+        const saltKeyword = targetSalt.split(/\s+/)[0];
+
+        // 2. Find in-stock substitute medicines matching composition/salt
+        const substitutes = await Medicine.find({
+            status: 'Active',
+            quantity: { $gt: 0 },
+            _id: matchedMed ? { $ne: matchedMed._id } : { $exists: true },
+            $or: [
+                { composition: { $regex: saltKeyword, $options: 'i' } },
+                { name: { $regex: saltKeyword, $options: 'i' } }
+            ]
+        }).sort({ quantity: -1 }).limit(10);
+
+        res.json({
+            success: true,
+            targetSalt,
+            original: matchedMed ? { ...matchedMed.toObject(), id: matchedMed._id } : null,
+            substitutes: substitutes.map(m => ({ ...m.toObject(), id: m._id }))
+        });
+    } catch (err) {
+        console.error('Get substitutes error:', err);
+        res.status(500).json({ success: false, message: 'Failed to search substitutes.' });
+    }
+};

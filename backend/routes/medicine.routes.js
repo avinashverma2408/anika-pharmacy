@@ -13,6 +13,7 @@ const {
 router.use(protect);
 
 router.get('/counts',   medCtrl.getMedicineCounts);
+router.get('/substitutes', medCtrl.getSubstitutes);
 router.get('/',         medCtrl.getMedicines);
 router.post('/',        medicineRules,                   validate, medCtrl.addMedicine);
 router.put('/:id',      mongoIdParam('id'), medicineRules, validate, medCtrl.updateMedicine);

@@ -9,6 +9,7 @@ import {
 import { medicineApi } from "../api/apiClient";
 import ProductDetails from "./ProductDetails";
 import BillUploadModal from "./BillUploadModal";
+import SubstituteFinderModal from "./SubstituteFinderModal";
 
 const PAGE_SIZE = 10;
 
@@ -31,8 +32,8 @@ export default function InventoryTab() {
     setInventoryCategoryFilter: setCategoryFilter,
   } = usePharmacyStore();
 
-  // ── Local state ───────────────────────────────────────────────────────────
   const [currentPage, setCurrentPage] = useState(1);
+  const [isSubstituteFinderOpen, setIsSubstituteFinderOpen] = useState(false);
 
   // Server-fetched page data
   const [pageData, setPageData] = useState({
@@ -369,7 +370,14 @@ export default function InventoryTab() {
                 stock.
               </p>
             </div>
-            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+              <button
+                className="btn btn-outline"
+                onClick={() => setIsSubstituteFinderOpen(true)}
+                style={{ background: "rgba(16, 185, 129, 0.12)", color: "#10b981", borderColor: "rgba(16, 185, 129, 0.3)", fontWeight: 600 }}
+              >
+                <i className="fa-solid fa-flask" style={{ marginRight: "6px" }}></i> Salt / Substitute Finder
+              </button>
               <button
                 className="btn btn-primary"
                 id="inventory-scan-bill-btn"
@@ -1005,6 +1013,11 @@ export default function InventoryTab() {
           </div>
         </div>
       )}
+
+      <SubstituteFinderModal
+        isOpen={isSubstituteFinderOpen}
+        onClose={() => setIsSubstituteFinderOpen(false)}
+      />
     </section>
   );
 }

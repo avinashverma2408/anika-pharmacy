@@ -6,6 +6,7 @@ import {
   showSimpleToast,
 } from "../store/usePharmacyStore";
 import { billApi, medicineApi, customerApi } from "../api/apiClient";
+import SubstituteFinderModal from "./SubstituteFinderModal";
 
 export default function NewBillCalculator() {
   const {
@@ -18,6 +19,8 @@ export default function NewBillCalculator() {
 
   // Patient Information
   const [patientName, setPatientName] = useState("");
+  const [isSubstituteModalOpen, setIsSubstituteModalOpen] = useState(false);
+  const [substituteInitialQuery, setSubstituteInitialQuery] = useState("");
   const [patientMobile, setPatientMobile] = useState("");
   const [patientAddress, setPatientAddress] = useState("");
   const [doctorName, setDoctorName] = useState("");
@@ -622,9 +625,22 @@ export default function NewBillCalculator() {
           <hr className="details-divider" />
 
           {/* Search & Add Items form */}
-          <h3 className="analytics-section-title" style={{ marginTop: "20px" }}>
-            <i className="fa-solid fa-cart-plus"></i> Search &amp; Add Medicines
-          </h3>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px", marginBottom: "10px" }}>
+            <h3 className="analytics-section-title" style={{ margin: 0 }}>
+              <i className="fa-solid fa-cart-plus"></i> Search &amp; Add Medicines
+            </h3>
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => {
+                setSubstituteInitialQuery(searchQuery || "");
+                setIsSubstituteModalOpen(true);
+              }}
+              style={{ background: "rgba(16, 185, 129, 0.12)", color: "#10b981", borderColor: "rgba(16, 185, 129, 0.3)", padding: "5px 12px", fontSize: "12px", fontWeight: 600 }}
+            >
+              <i className="fa-solid fa-flask" style={{ marginRight: "4px" }}></i> 🧪 Find Salt Substitute
+            </button>
+          </div>
           <div className="form-group" style={{ position: "relative", marginBottom: "16px" }}>
             <label>Search Medicine (Name / Batch)</label>
             <input
@@ -1326,6 +1342,13 @@ export default function NewBillCalculator() {
           </div>
         </div>
       </div>
+
+      <SubstituteFinderModal
+        isOpen={isSubstituteModalOpen}
+        onClose={() => setIsSubstituteModalOpen(false)}
+        initialQuery={substituteInitialQuery}
+        onSelectSubstitute={(sub) => handleSelectMedicine(sub)}
+      />
     </>
   );
 }

@@ -87,6 +87,7 @@ export const authApi = {
 export const medicineApi = {
   getAll: (params = {}) => dedupedGet("/medicines", { params }),
   getCounts: (params = {}) => dedupedGet("/medicines/counts", { params }),
+  getSubstitutes: (query) => dedupedGet("/medicines/substitutes", { params: { query } }),
   add: (data) => api.post("/medicines", data),
   update: (id, data) => api.put(`/medicines/${id}`, data),
   delete: (id) => api.delete(`/medicines/${id}`),
