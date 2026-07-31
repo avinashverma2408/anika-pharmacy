@@ -1328,11 +1328,114 @@ export default function BillUploadModal() {
               </div>
             )}
 
-            {/* Scanning Progress */}
+            {/* Scanning Progress - Medical Store AI Scanner Loader */}
             {isScanning && (
-              <div className="form-group col-span-2 text-center" style={{ padding: "14px", background: "var(--bg-input)", borderRadius: "8px" }}>
-                <i className="fa-solid fa-spinner fa-spin" style={{ color: "var(--primary)", marginRight: "6px" }}></i>
-                <span style={{ fontSize: "13px", fontWeight: 600 }}>Reading live OCR text from bill photo...</span>
+              <div
+                className="form-group col-span-2"
+                style={{
+                  padding: "24px 20px",
+                  background: "linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%)",
+                  border: "1px solid rgba(16, 185, 129, 0.3)",
+                  borderRadius: "14px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  position: "relative",
+                  overflow: "hidden",
+                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
+                }}
+              >
+                {/* Animated Medical Laser Line */}
+                <div
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    right: 0,
+                    height: "2px",
+                    background: "linear-gradient(90deg, transparent, #10b981, #6366f1, #10b981, transparent)",
+                    boxShadow: "0 0 12px #10b981, 0 0 20px #6366f1",
+                    animation: "medicalLaserScan 2s ease-in-out infinite",
+                    zIndex: 2,
+                  }}
+                />
+
+                {/* Medical Pill/Cross Center Icon */}
+                <div style={{ position: "relative", marginBottom: "14px" }}>
+                  <div
+                    style={{
+                      width: "64px",
+                      height: "64px",
+                      borderRadius: "50%",
+                      background: "rgba(16, 185, 129, 0.12)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      animation: "pulseGlow 2s ease-in-out infinite",
+                    }}
+                  >
+                    <i className="fa-solid fa-capsules" style={{ fontSize: "28px", color: "#10b981", animation: "capsuleSpin 4s linear infinite" }}></i>
+                  </div>
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: "-2px",
+                      right: "-2px",
+                      background: "#6366f1",
+                      color: "#ffffff",
+                      width: "22px",
+                      height: "22px",
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "11px",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+                    }}
+                  >
+                    <i className="fa-solid fa-plus"></i>
+                  </div>
+                </div>
+
+                {/* Scanner Status Text */}
+                <h4 style={{ margin: "0 0 4px 0", fontSize: "15px", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "0.2px" }}>
+                  Scanning Medical Bill with AI Vision ✨
+                </h4>
+                <p style={{ margin: "0 0 14px 0", fontSize: "12.5px", color: "var(--text-muted)", textAlign: "center" }}>
+                  Extracting Medicine Brand Names, Batches, Expiries, PTR & Taxes...
+                </p>
+
+                {/* Feature Pills */}
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
+                  <span style={{ padding: "4px 10px", background: "rgba(16, 185, 129, 0.14)", border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: "12px", fontSize: "11px", fontWeight: 600, color: "#10b981" }}>
+                    💊 Medicine Names
+                  </span>
+                  <span style={{ padding: "4px 10px", background: "rgba(99, 102, 241, 0.14)", border: "1px solid rgba(99, 102, 241, 0.3)", borderRadius: "12px", fontSize: "11px", fontWeight: 600, color: "#818cf8" }}>
+                    🧪 Batch & Expiry
+                  </span>
+                  <span style={{ padding: "4px 10px", background: "rgba(245, 158, 11, 0.14)", border: "1px solid rgba(245, 158, 11, 0.3)", borderRadius: "12px", fontSize: "11px", fontWeight: 600, color: "#f59e0b" }}>
+                    🏷️ PTR & MRP
+                  </span>
+                  <span style={{ padding: "4px 10px", background: "rgba(14, 165, 233, 0.14)", border: "1px solid rgba(14, 165, 233, 0.3)", borderRadius: "12px", fontSize: "11px", fontWeight: 600, color: "#38bdf8" }}>
+                    📊 GST Tax Rates
+                  </span>
+                </div>
+
+                <style>{`
+                  @keyframes medicalLaserScan {
+                    0% { top: 4%; opacity: 0.3; }
+                    50% { top: 92%; opacity: 1; }
+                    100% { top: 4%; opacity: 0.3; }
+                  }
+                  @keyframes pulseGlow {
+                    0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
+                    50% { transform: scale(1.06); box-shadow: 0 0 25px rgba(99, 102, 241, 0.5); }
+                  }
+                  @keyframes capsuleSpin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                  }
+                `}</style>
               </div>
             )}
 
