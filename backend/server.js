@@ -1,4 +1,5 @@
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -424,6 +425,13 @@ async function startServer() {
         `🚀 Anika Pharmacy Backend running on http://localhost:${PORT}`,
       );
       console.log(`📋 API Docs: http://localhost:${PORT}/api/health`);
+    });
+
+    server.on("error", (err) => {
+      if (err.code === "EADDRINUSE") {
+        console.log(`\n💡 Note: Backend server is ALREADY running on http://localhost:${PORT}`);
+        process.exit(0);
+      }
     });
 
     // Graceful shutdown helper
