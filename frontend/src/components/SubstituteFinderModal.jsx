@@ -92,8 +92,8 @@ export default function SubstituteFinderModal({ isOpen, onClose, initialQuery = 
               Find 100% equivalent in-stock medicines by drug salt / composition
             </span>
           </div>
-          <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Close modal">
-            &times;
+          <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Close modal" title="Close Modal">
+            <i className="fa-solid fa-xmark"></i>
           </button>
         </div>
 
