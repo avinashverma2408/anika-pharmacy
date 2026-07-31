@@ -60,8 +60,42 @@ export default function SubstituteFinderModal({ isOpen, onClose, initialQuery = 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-backdrop show" id="substitute-finder-modal">
-      <div className="modal-card modal-card-lg" style={{ maxWidth: "780px" }}>
+    <div
+      className="modal-backdrop show"
+      id="substitute-finder-modal"
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: "100vw",
+        height: "100vh",
+        zIndex: 9999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "16px",
+        boxSizing: "border-box",
+        background: "rgba(11, 15, 25, 0.75)",
+        backdropFilter: "blur(6px)",
+      }}
+    >
+      <div
+        className="modal-card"
+        style={{
+          width: "min(780px, 94vw)",
+          maxWidth: "780px",
+          maxHeight: "90vh",
+          margin: "auto",
+          overflowY: "auto",
+          position: "relative",
+          borderRadius: "16px",
+          border: "1px solid var(--border-color)",
+          background: "var(--bg-card)",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+        }}
+      >
         {/* MODAL HEADER */}
         <div className="modal-header">
           <div>
