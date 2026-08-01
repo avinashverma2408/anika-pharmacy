@@ -998,9 +998,9 @@ export default function NewBillCalculator() {
                     <th>Name</th>
                     <th>Batch</th>
                     <th>Qty</th>
-                    <th>Price</th>
-                    <th>Amount</th>
-                    <th>NET</th>
+                    <th>Rate (₹)</th>
+                    <th>Gross Amt (₹)</th>
+                    <th>Net Amt (₹)</th>
                     <th className="text-right">Action</th>
                   </tr>
                 </thead>
@@ -1553,18 +1553,18 @@ export default function NewBillCalculator() {
           <thead>
             <tr>
               <th style={{ width: "3%" }}>SN</th>
-              <th style={{ width: "25%" }}>PRODUCT NAME</th>
+              <th style={{ width: "23%" }}>PRODUCT NAME</th>
               <th style={{ width: "6%" }}>PACK</th>
               <th style={{ width: "7%" }}>HSN</th>
               <th style={{ width: "9%" }}>BATCH</th>
               <th style={{ width: "7%" }}>EXP</th>
               <th style={{ width: "5%" }}>QTY</th>
               <th style={{ width: "6%" }}>MRP</th>
-              <th style={{ width: "6%" }}>RATE</th>
-              <th style={{ width: "8%" }}>NET AMT</th>
-              <th style={{ width: "4%" }}>SGST</th>
-              <th style={{ width: "4%" }}>CGST</th>
-              <th style={{ width: "10%" }}>AMOUNT</th>
+              <th style={{ width: "7%" }}>RATE</th>
+              <th style={{ width: "8%" }}>GROSS AMT</th>
+              <th style={{ width: "9%" }}>NET AMT</th>
+              <th style={{ width: "5%" }}>SGST</th>
+              <th style={{ width: "5%" }}>CGST</th>
             </tr>
           </thead>
           <tbody>
@@ -1600,7 +1600,10 @@ export default function NewBillCalculator() {
                     {item.price.toFixed(2)}
                   </td>
                   <td style={{ textAlign: "right" }}>
-                    {item.price.toFixed(2)}
+                    {(item.rateBilled || item.price).toFixed(2)}
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    {item.amount.toFixed(2)}
                   </td>
                   <td style={{ textAlign: "right", fontWeight: "600" }}>
                     {itemNet.toFixed(2)}
@@ -1610,9 +1613,6 @@ export default function NewBillCalculator() {
                   </td>
                   <td style={{ textAlign: "center" }}>
                     {gstBreakdownPercent.toFixed(2)}%
-                  </td>
-                  <td style={{ textAlign: "right" }}>
-                    {item.amount.toFixed(2)}
                   </td>
                 </tr>
               );

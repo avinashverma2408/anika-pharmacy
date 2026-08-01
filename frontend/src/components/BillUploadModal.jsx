@@ -1481,140 +1481,163 @@ export default function BillUploadModal() {
                   </div>
 
                   {/* HIGH-VISIBILITY SPACIOUS TABLE WITH FULL HORIZONTAL SCROLL & EXPANDED MIN-WIDTHS */}
-                  <div className="table-container" style={{ maxHeight: "300px", overflowY: "auto", overflowX: "auto", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
-                    <table className="data-table" style={{ fontSize: "13px", width: "100%", minWidth: "1180px", tableLayout: "fixed" }}>
+                  <div className="table-container" style={{ maxHeight: "350px", overflowY: "auto", overflowX: "auto", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
+                    <table className="data-table" style={{ fontSize: "13px", width: "100%", minWidth: "1500px", tableLayout: "fixed" }}>
                       <thead style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>
                         <tr>
-                          <th style={{ width: "230px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Medicine Name *</th>
-                          <th style={{ width: "115px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Category</th>
+                          <th style={{ width: "250px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Medicine Name *</th>
+                          <th style={{ width: "120px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Category</th>
                           <th style={{ width: "135px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Batch *</th>
                           <th style={{ width: "145px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Expiry *</th>
                           <th style={{ width: "75px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Qty *</th>
-                          <th style={{ width: "105px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>PTR (₹) *</th>
-                          <th style={{ width: "85px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Disc %</th>
-                          <th style={{ width: "105px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Net Amt (₹)</th>
+                          <th style={{ width: "120px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Rate / PTR (₹) *</th>
+                          <th style={{ width: "80px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Disc %</th>
+                          <th style={{ width: "115px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Net Rate (₹)</th>
+                          <th style={{ width: "120px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Net Amt (₹)</th>
                           <th style={{ width: "85px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>GST %</th>
-                          <th style={{ width: "105px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>MRP (₹)</th>
-                          <th style={{ width: "40px", textAlign: "center", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}></th>
+                          <th style={{ width: "110px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>MRP (₹)</th>
+                          <th style={{ width: "45px", textAlign: "center", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}></th>
                         </tr>
                       </thead>
                       <tbody>
-                        {extractedItems.map((item) => (
-                          <tr key={item.id}>
-                            <td style={{ width: "230px" }}>
-                              <input
-                                type="text"
-                                value={item.name}
-                                placeholder="Medicine Name"
-                                onChange={(e) => handleItemChange(item.id, "name", e.target.value)}
-                                style={{ padding: "7px 10px", fontSize: "12.5px", width: "100%", boxSizing: "border-box", fontWeight: 600 }}
-                              />
-                            </td>
-                            <td style={{ width: "115px" }}>
-                              <select
-                                value={item.category}
-                                onChange={(e) => handleItemChange(item.id, "category", e.target.value)}
-                                style={{ padding: "7px 6px", fontSize: "12px", width: "100%", boxSizing: "border-box" }}
-                              >
-                                <option value="Tablet">Tablet</option>
-                                <option value="Capsule">Capsule</option>
-                                <option value="Syrup">Syrup</option>
-                                <option value="Injection">Injection</option>
-                                <option value="Ointment">Ointment</option>
-                                <option value="Other">Other</option>
-                              </select>
-                            </td>
-                            <td style={{ width: "135px" }}>
-                              <input
-                                type="text"
-                                value={item.batch}
-                                placeholder="Batch"
-                                onChange={(e) => handleItemChange(item.id, "batch", e.target.value)}
-                                style={{ padding: "7px 8px", fontSize: "12.5px", width: "100%", boxSizing: "border-box" }}
-                              />
-                            </td>
-                            <td style={{ width: "145px" }}>
-                              <input
-                                type="date"
-                                value={item.expiryDate}
-                                onChange={(e) => handleItemChange(item.id, "expiryDate", e.target.value)}
-                                style={{ padding: "7px 6px", fontSize: "12px", width: "100%", boxSizing: "border-box" }}
-                              />
-                            </td>
-                            <td style={{ width: "75px" }}>
-                              <input
-                                type="number"
-                                value={item.quantity}
-                                onChange={(e) => handleItemChange(item.id, "quantity", e.target.value)}
-                                style={{ padding: "7px 6px", fontSize: "12.5px", width: "100%", boxSizing: "border-box", textAlign: "center" }}
-                              />
-                            </td>
-                            <td style={{ width: "105px" }}>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={item.ptr}
-                                placeholder="PTR"
-                                onChange={(e) => handleItemChange(item.id, "ptr", e.target.value)}
-                                style={{ padding: "7px 8px", fontSize: "13px", width: "100%", boxSizing: "border-box", fontWeight: 700, color: "var(--primary)" }}
-                              />
-                            </td>
-                            <td style={{ width: "85px" }}>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={item.discountPercent !== undefined && item.discountPercent !== null ? item.discountPercent : 0}
-                                onChange={(e) => handleItemChange(item.id, "discountPercent", e.target.value)}
-                                style={{ padding: "7px 6px", fontSize: "12.5px", width: "100%", boxSizing: "border-box", textAlign: "center" }}
-                              />
-                            </td>
-                            <td style={{ width: "105px" }}>
-                              <input
-                                type="text"
-                                readOnly
-                                value={`₹${(
-                                  (parseFloat(item.quantity) || 0) *
-                                  (parseFloat(item.ptr) || 0) *
-                                  (1 - (parseFloat(item.discountPercent) || 0) / 100)
-                                ).toFixed(2)}`}
-                                title="Calculated Net Amount"
-                                style={{
-                                  padding: "7px 8px",
-                                  fontSize: "12.5px",
-                                  width: "100%",
-                                  boxSizing: "border-box",
-                                  fontWeight: 600,
-                                  textAlign: "right",
-                                  background: "var(--bg-input)",
-                                  color: "var(--text-primary)",
-                                  opacity: 0.9,
-                                }}
-                              />
-                            </td>
-                            <td style={{ width: "85px" }}>
-                              <select
-                                value={item.gstRate || 5}
-                                onChange={(e) => handleItemChange(item.id, "gstRate", e.target.value)}
-                                style={{ padding: "7px 4px", fontSize: "12px", width: "100%", boxSizing: "border-box" }}
-                              >
-                                <option value="0">0%</option>
-                                <option value="5">5%</option>
-                                <option value="12">12%</option>
-                                <option value="18">18%</option>
-                                <option value="28">28%</option>
-                              </select>
-                            </td>
-                            <td style={{ width: "105px" }}>
-                              <input
-                                type="number"
-                                step="0.01"
+                        {extractedItems.map((item) => {
+                          const ptrVal = parseFloat(item.ptr) || 0;
+                          const discVal = parseFloat(item.discountPercent) || 0;
+                          const qtyVal = parseFloat(item.quantity) || 0;
+                          const unitNetRate = ptrVal * (1 - discVal / 100);
+                          const totalNetAmt = qtyVal * unitNetRate;
+
+                          return (
+                            <tr key={item.id}>
+                              <td style={{ width: "250px" }}>
+                                <input
+                                  type="text"
+                                  value={item.name}
+                                  placeholder="Medicine Name"
+                                  onChange={(e) => handleItemChange(item.id, "name", e.target.value)}
+                                  style={{ padding: "7px 10px", fontSize: "12.5px", width: "100%", boxSizing: "border-box", fontWeight: 600 }}
+                                />
+                              </td>
+                              <td style={{ width: "120px" }}>
+                                <select
+                                  value={item.category}
+                                  onChange={(e) => handleItemChange(item.id, "category", e.target.value)}
+                                  style={{ padding: "7px 6px", fontSize: "12px", width: "100%", boxSizing: "border-box" }}
+                                >
+                                  <option value="Tablet">Tablet</option>
+                                  <option value="Capsule">Capsule</option>
+                                  <option value="Syrup">Syrup</option>
+                                  <option value="Injection">Injection</option>
+                                  <option value="Ointment">Ointment</option>
+                                  <option value="Other">Other</option>
+                                </select>
+                              </td>
+                              <td style={{ width: "135px" }}>
+                                <input
+                                  type="text"
+                                  value={item.batch}
+                                  placeholder="Batch"
+                                  onChange={(e) => handleItemChange(item.id, "batch", e.target.value)}
+                                  style={{ padding: "7px 8px", fontSize: "12.5px", width: "100%", boxSizing: "border-box" }}
+                                />
+                              </td>
+                              <td style={{ width: "145px" }}>
+                                <input
+                                  type="date"
+                                  value={item.expiryDate}
+                                  onChange={(e) => handleItemChange(item.id, "expiryDate", e.target.value)}
+                                  style={{ padding: "7px 6px", fontSize: "12px", width: "100%", boxSizing: "border-box" }}
+                                />
+                              </td>
+                              <td style={{ width: "75px" }}>
+                                <input
+                                  type="number"
+                                  value={item.quantity}
+                                  onChange={(e) => handleItemChange(item.id, "quantity", e.target.value)}
+                                  style={{ padding: "7px 6px", fontSize: "12.5px", width: "100%", boxSizing: "border-box", textAlign: "center" }}
+                                />
+                              </td>
+                              <td style={{ width: "120px" }}>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={item.ptr}
+                                  placeholder="Rate/PTR"
+                                  onChange={(e) => handleItemChange(item.id, "ptr", e.target.value)}
+                                  style={{ padding: "7px 8px", fontSize: "13px", width: "100%", boxSizing: "border-box", fontWeight: 700, color: "var(--primary)" }}
+                                />
+                              </td>
+                              <td style={{ width: "80px" }}>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={item.discountPercent !== undefined && item.discountPercent !== null ? item.discountPercent : 0}
+                                  onChange={(e) => handleItemChange(item.id, "discountPercent", e.target.value)}
+                                  style={{ padding: "7px 6px", fontSize: "12.5px", width: "100%", boxSizing: "border-box", textAlign: "center" }}
+                                />
+                              </td>
+                              <td style={{ width: "115px" }}>
+                                <input
+                                  type="text"
+                                  readOnly
+                                  value={`₹${unitNetRate.toFixed(2)}`}
+                                  title="Net Rate per unit (PTR after Discount)"
+                                  style={{
+                                    padding: "7px 8px",
+                                    fontSize: "12.5px",
+                                    width: "100%",
+                                    boxSizing: "border-box",
+                                    fontWeight: 600,
+                                    textAlign: "right",
+                                    background: "var(--bg-input)",
+                                    color: "var(--primary)",
+                                    opacity: 0.95,
+                                  }}
+                                />
+                              </td>
+                              <td style={{ width: "120px" }}>
+                                <input
+                                  type="text"
+                                  readOnly
+                                  value={`₹${totalNetAmt.toFixed(2)}`}
+                                  title="Calculated Total Net Amount (Qty × Net Rate)"
+                                  style={{
+                                    padding: "7px 8px",
+                                    fontSize: "12.5px",
+                                    width: "100%",
+                                    boxSizing: "border-box",
+                                    fontWeight: 700,
+                                    textAlign: "right",
+                                    background: "var(--bg-input)",
+                                    color: "var(--text-primary)",
+                                    opacity: 0.95,
+                                  }}
+                                />
+                              </td>
+                              <td style={{ width: "85px" }}>
+                                <select
+                                  value={item.gstRate || 5}
+                                  onChange={(e) => handleItemChange(item.id, "gstRate", e.target.value)}
+                                  style={{ padding: "7px 4px", fontSize: "12px", width: "100%", boxSizing: "border-box" }}
+                                >
+                                  <option value="0">0%</option>
+                                  <option value="5">5%</option>
+                                  <option value="12">12%</option>
+                                  <option value="18">18%</option>
+                                  <option value="28">28%</option>
+                                </select>
+                              </td>
+                              <td style={{ width: "110px" }}>
+                                <input
+                                  type="number"
+                                  step="0.01"
                                 value={item.price}
                                 placeholder="MRP"
                                 onChange={(e) => handleItemChange(item.id, "price", e.target.value)}
                                 style={{ padding: "7px 8px", fontSize: "13px", width: "100%", boxSizing: "border-box", fontWeight: 700, color: "var(--text-primary)" }}
                               />
                             </td>
-                            <td style={{ width: "40px", textAlign: "center" }}>
+                            <td style={{ width: "45px", textAlign: "center" }}>
                               <button
                                 type="button"
                                 className="btn-icon-only delete"
@@ -1626,7 +1649,8 @@ export default function BillUploadModal() {
                               </button>
                             </td>
                           </tr>
-                        ))}
+                        );
+                      })}
                       </tbody>
                     </table>
                   </div>

@@ -375,12 +375,20 @@ async function autoSeedIfNeeded() {
       const names = await Medicine.distinct("stockistName", {
         stockistName: { $nin: [null, ""] },
       });
-      const unique = [...new Set(names.map((n) => String(n).trim()).filter(Boolean))];
+      const unique = [
+        ...new Set(names.map((n) => String(n).trim()).filter(Boolean)),
+      ];
       if (unique.length > 0) {
         await Supplier.insertMany(
-          unique.map((name) => ({ name, status: "Active", outstandingDues: 0 })),
+          unique.map((name) => ({
+            name,
+            status: "Active",
+            outstandingDues: 0,
+          })),
         );
-        console.log(`🏭 ${unique.length} suppliers auto-seeded from stockists.`);
+        console.log(
+          `🏭 ${unique.length} suppliers auto-seeded from stockists.`,
+        );
       }
     } else {
       console.log(
@@ -429,7 +437,9 @@ async function startServer() {
 
     server.on("error", (err) => {
       if (err.code === "EADDRINUSE") {
-        console.log(`\n💡 Note: Backend server is ALREADY running on http://localhost:${PORT}`);
+        console.log(
+          `\n💡 Note: Backend server is ALREADY running on http://localhost:${PORT}`,
+        );
         process.exit(0);
       }
     });
