@@ -1490,12 +1490,12 @@ export default function BillUploadModal() {
                           <th style={{ width: "135px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Batch *</th>
                           <th style={{ width: "145px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Expiry *</th>
                           <th style={{ width: "75px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Qty *</th>
-                          <th style={{ width: "120px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Rate / PTR (₹) *</th>
+                          <th style={{ width: "120px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Rate (₹) *</th>
                           <th style={{ width: "80px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Disc %</th>
-                          <th style={{ width: "115px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Net Rate (₹)</th>
-                          <th style={{ width: "120px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Net Amt (₹)</th>
+                          <th style={{ width: "115px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>NET (₹)</th>
+                          <th style={{ width: "120px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Amount (₹)</th>
                           <th style={{ width: "85px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>GST %</th>
-                          <th style={{ width: "110px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>MRP (₹)</th>
+                          <th style={{ width: "110px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Mrp (₹)</th>
                           <th style={{ width: "45px", textAlign: "center", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}></th>
                         </tr>
                       </thead>
@@ -1562,7 +1562,7 @@ export default function BillUploadModal() {
                                   type="number"
                                   step="0.01"
                                   value={item.ptr}
-                                  placeholder="Rate/PTR"
+                                  placeholder="Rate"
                                   onChange={(e) => handleItemChange(item.id, "ptr", e.target.value)}
                                   style={{ padding: "7px 8px", fontSize: "13px", width: "100%", boxSizing: "border-box", fontWeight: 700, color: "var(--primary)" }}
                                 />
@@ -1581,7 +1581,7 @@ export default function BillUploadModal() {
                                   type="text"
                                   readOnly
                                   value={`₹${unitNetRate.toFixed(2)}`}
-                                  title="Net Rate per unit (PTR after Discount)"
+                                  title="NET per unit (Rate after Discount/Scheme)"
                                   style={{
                                     padding: "7px 8px",
                                     fontSize: "12.5px",
@@ -1600,7 +1600,7 @@ export default function BillUploadModal() {
                                   type="text"
                                   readOnly
                                   value={`₹${totalNetAmt.toFixed(2)}`}
-                                  title="Calculated Total Net Amount (Qty × Net Rate)"
+                                  title="Calculated Total Amount (Qty × NET)"
                                   style={{
                                     padding: "7px 8px",
                                     fontSize: "12.5px",
@@ -1632,7 +1632,7 @@ export default function BillUploadModal() {
                                   type="number"
                                   step="0.01"
                                 value={item.price}
-                                placeholder="MRP"
+                                placeholder="Mrp"
                                 onChange={(e) => handleItemChange(item.id, "price", e.target.value)}
                                 style={{ padding: "7px 8px", fontSize: "13px", width: "100%", boxSizing: "border-box", fontWeight: 700, color: "var(--text-primary)" }}
                               />
