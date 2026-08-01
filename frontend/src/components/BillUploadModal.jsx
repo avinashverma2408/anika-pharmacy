@@ -1482,7 +1482,7 @@ export default function BillUploadModal() {
 
                   {/* HIGH-VISIBILITY SPACIOUS TABLE WITH FULL HORIZONTAL SCROLL & EXPANDED MIN-WIDTHS */}
                   <div className="table-container" style={{ maxHeight: "300px", overflowY: "auto", overflowX: "auto", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
-                    <table className="data-table" style={{ fontSize: "13px", width: "100%", minWidth: "1080px", tableLayout: "fixed" }}>
+                    <table className="data-table" style={{ fontSize: "13px", width: "100%", minWidth: "1180px", tableLayout: "fixed" }}>
                       <thead style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>
                         <tr>
                           <th style={{ width: "230px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Medicine Name *</th>
@@ -1492,6 +1492,7 @@ export default function BillUploadModal() {
                           <th style={{ width: "75px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Qty *</th>
                           <th style={{ width: "105px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>PTR (₹) *</th>
                           <th style={{ width: "85px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Disc %</th>
+                          <th style={{ width: "105px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>Net Amt (₹)</th>
                           <th style={{ width: "85px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>GST %</th>
                           <th style={{ width: "105px", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}>MRP (₹)</th>
                           <th style={{ width: "40px", textAlign: "center", position: "sticky", top: 0, zIndex: 10, background: "var(--bg-card)" }}></th>
@@ -1565,6 +1566,29 @@ export default function BillUploadModal() {
                                 value={item.discountPercent !== undefined && item.discountPercent !== null ? item.discountPercent : 0}
                                 onChange={(e) => handleItemChange(item.id, "discountPercent", e.target.value)}
                                 style={{ padding: "7px 6px", fontSize: "12.5px", width: "100%", boxSizing: "border-box", textAlign: "center" }}
+                              />
+                            </td>
+                            <td style={{ width: "105px" }}>
+                              <input
+                                type="text"
+                                readOnly
+                                value={`₹${(
+                                  (parseFloat(item.quantity) || 0) *
+                                  (parseFloat(item.ptr) || 0) *
+                                  (1 - (parseFloat(item.discountPercent) || 0) / 100)
+                                ).toFixed(2)}`}
+                                title="Calculated Net Amount"
+                                style={{
+                                  padding: "7px 8px",
+                                  fontSize: "12.5px",
+                                  width: "100%",
+                                  boxSizing: "border-box",
+                                  fontWeight: 600,
+                                  textAlign: "right",
+                                  background: "var(--bg-input)",
+                                  color: "var(--text-primary)",
+                                  opacity: 0.9,
+                                }}
                               />
                             </td>
                             <td style={{ width: "85px" }}>

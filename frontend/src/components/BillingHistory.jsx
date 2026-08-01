@@ -628,6 +628,7 @@ export default function BillingHistory() {
                     <th style={{ textAlign: "center", padding: "6px", color: "#000000" }}>Pack</th>
                     <th style={{ textAlign: "center", padding: "6px", color: "#000000" }}>Qty</th>
                     <th style={{ textAlign: "right", padding: "6px", color: "#000000" }}>Rate</th>
+                    <th style={{ textAlign: "right", padding: "6px", color: "#000000" }}>Net Amt</th>
                     <th style={{ textAlign: "center", padding: "6px", color: "#000000" }}>GST</th>
                     <th style={{ textAlign: "right", padding: "6px", color: "#000000" }}>Amount</th>
                   </tr>
@@ -642,6 +643,13 @@ export default function BillingHistory() {
                       <td style={{ textAlign: "center", padding: "6px", color: "#000000" }}>{item.pack || "1*10"}</td>
                       <td style={{ textAlign: "center", padding: "6px", color: "#000000" }}>{item.quantity}</td>
                       <td style={{ textAlign: "right", padding: "6px", color: "#000000" }}>₹{item.price?.toFixed(2)}</td>
+                      <td style={{ textAlign: "right", padding: "6px", color: "#000000" }}>
+                        ₹
+                        {(
+                          (item.amount || 0) -
+                          ((item.amount || 0) * (selectedBill.discountPercent || 0)) / 100
+                        ).toFixed(2)}
+                      </td>
                       <td style={{ textAlign: "center", padding: "6px", color: "#000000" }}>{item.gstRate || 5}%</td>
                       <td style={{ textAlign: "right", padding: "6px", color: "#000000" }}>
                         ₹{item.amount?.toFixed(2)}
@@ -785,17 +793,18 @@ export default function BillingHistory() {
             <thead>
               <tr>
                 <th style={{ width: "3%" }}>SN</th>
-                <th style={{ width: "30%" }}>PRODUCT NAME</th>
+                <th style={{ width: "25%" }}>PRODUCT NAME</th>
                 <th style={{ width: "6%" }}>PACK</th>
-                <th style={{ width: "8%" }}>HSN</th>
-                <th style={{ width: "10%" }}>BATCH</th>
-                <th style={{ width: "8%" }}>EXP</th>
+                <th style={{ width: "7%" }}>HSN</th>
+                <th style={{ width: "9%" }}>BATCH</th>
+                <th style={{ width: "7%" }}>EXP</th>
                 <th style={{ width: "5%" }}>QTY</th>
-                <th style={{ width: "7%" }}>MRP</th>
-                <th style={{ width: "7%" }}>RATE</th>
+                <th style={{ width: "6%" }}>MRP</th>
+                <th style={{ width: "6%" }}>RATE</th>
+                <th style={{ width: "8%" }}>NET AMT</th>
                 <th style={{ width: "4%" }}>SGST</th>
                 <th style={{ width: "4%" }}>CGST</th>
-                <th style={{ width: "8%" }}>AMOUNT</th>
+                <th style={{ width: "10%" }}>AMOUNT</th>
               </tr>
             </thead>
             <tbody>
@@ -825,6 +834,7 @@ export default function BillingHistory() {
                     <td style={{ textAlign: "center" }}>{item.quantity}</td>
                     <td style={{ textAlign: "right" }}>{item.price.toFixed(2)}</td>
                     <td style={{ textAlign: "right" }}>{item.price.toFixed(2)}</td>
+                    <td style={{ textAlign: "right", fontWeight: "600" }}>{itemNet.toFixed(2)}</td>
                     <td style={{ textAlign: "center" }}>{gstBreakdownPercent.toFixed(2)}%</td>
                     <td style={{ textAlign: "center" }}>{gstBreakdownPercent.toFixed(2)}%</td>
                     <td style={{ textAlign: "right" }}>{item.amount.toFixed(2)}</td>
@@ -833,6 +843,7 @@ export default function BillingHistory() {
               })}
               {Array.from({ length: Math.max(0, 10 - activePrint.items.length) }).map((_, i) => (
                 <tr key={i} className="empty-row">
+                  <td>&nbsp;</td>
                   <td>&nbsp;</td>
                   <td>&nbsp;</td>
                   <td>&nbsp;</td>

@@ -1000,6 +1000,7 @@ export default function NewBillCalculator() {
                     <th>Qty</th>
                     <th>Price</th>
                     <th>Amount</th>
+                    <th>NET</th>
                     <th className="text-right">Action</th>
                   </tr>
                 </thead>
@@ -1007,7 +1008,7 @@ export default function NewBillCalculator() {
                   {billItems.length === 0 ? (
                     <tr>
                       <td
-                        colSpan="6"
+                        colSpan="7"
                         style={{
                           textAlign: "center",
                           color: "var(--text-muted)",
@@ -1028,6 +1029,13 @@ export default function NewBillCalculator() {
                         <td>{item.quantityBilled}</td>
                         <td>₹{item.rateBilled.toFixed(2)}</td>
                         <td>₹{item.amount.toFixed(2)}</td>
+                        <td>
+                          ₹
+                          {(
+                            item.amount -
+                            (item.amount * (discountPercent || 0)) / 100
+                          ).toFixed(2)}
+                        </td>
                         <td className="text-right">
                           <button
                             type="button"
@@ -1545,17 +1553,18 @@ export default function NewBillCalculator() {
           <thead>
             <tr>
               <th style={{ width: "3%" }}>SN</th>
-              <th style={{ width: "30%" }}>PRODUCT NAME</th>
+              <th style={{ width: "25%" }}>PRODUCT NAME</th>
               <th style={{ width: "6%" }}>PACK</th>
-              <th style={{ width: "8%" }}>HSN</th>
-              <th style={{ width: "10%" }}>BATCH</th>
-              <th style={{ width: "8%" }}>EXP</th>
+              <th style={{ width: "7%" }}>HSN</th>
+              <th style={{ width: "9%" }}>BATCH</th>
+              <th style={{ width: "7%" }}>EXP</th>
               <th style={{ width: "5%" }}>QTY</th>
-              <th style={{ width: "7%" }}>MRP</th>
-              <th style={{ width: "7%" }}>RATE</th>
+              <th style={{ width: "6%" }}>MRP</th>
+              <th style={{ width: "6%" }}>RATE</th>
+              <th style={{ width: "8%" }}>NET AMT</th>
               <th style={{ width: "4%" }}>SGST</th>
               <th style={{ width: "4%" }}>CGST</th>
-              <th style={{ width: "8%" }}>AMOUNT</th>
+              <th style={{ width: "10%" }}>AMOUNT</th>
             </tr>
           </thead>
           <tbody>
@@ -1593,6 +1602,9 @@ export default function NewBillCalculator() {
                   <td style={{ textAlign: "right" }}>
                     {item.price.toFixed(2)}
                   </td>
+                  <td style={{ textAlign: "right", fontWeight: "600" }}>
+                    {itemNet.toFixed(2)}
+                  </td>
                   <td style={{ textAlign: "center" }}>
                     {gstBreakdownPercent.toFixed(2)}%
                   </td>
@@ -1609,6 +1621,7 @@ export default function NewBillCalculator() {
               length: Math.max(0, 10 - activePrint.items.length),
             }).map((_, i) => (
               <tr key={i} className="empty-row">
+                <td>&nbsp;</td>
                 <td>&nbsp;</td>
                 <td>&nbsp;</td>
                 <td>&nbsp;</td>
