@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "postbuild": "node -e \"require('fs').copyFileSync('../frontend/vercel.json','dist/vercel.json')\" || echo done",
+    "postbuild": "node -e \"try { const fs = require('fs'); if (fs.existsSync('vercel.json')) fs.copyFileSync('vercel.json', 'dist/vercel.json'); else if (fs.existsSync('../vercel.json')) fs.copyFileSync('../vercel.json', 'dist/vercel.json'); } catch(e) {}\"",
     "deploy": "vite build && npx vercel dist --prod --yes --scope=anika-pharmacy --project=anika-pharmacy",
     "lint": "eslint .",
     "preview": "vite preview"
