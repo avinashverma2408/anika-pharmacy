@@ -384,119 +384,132 @@ function inferNumberRoles(line) {
     !COMMON_STRENGTHS.has(p.asQty);
   const isRateLike = (p) => p.asRate != null && p.asRate >= 1 && p.asRate < 20000;
   const isGstVal = (v) => GST_RATES.has(v);
-  const isDiscVal = (v) => v != null && v > 0 && v <= 40 && !GST_RATES.has(v);
+  const isDiscVal = (v) => v != null && v >= 0 && v <= 40;
 
-  // Score qty→rate candidates — never treat GST%/tiny disc as PTR
-  let best = null;
+  let bestCandidate = null;
+
   for (let i = 0; i < parsed.length - 1; i++) {
-    if (!isQtyLike(parsed[i]) && !(parsed[i].asQty >= 1 && parsed[i].asQty <= 100 && parsed[i].intish)) {
-      continue;
-    }
-    const qtyCand = parsed[i];
-    const qtyVal = qtyCand.asQty;
-    if (COMMON_STRENGTHS.has(qtyVal) && !(parsed[i + 1] && parsed[i + 1].hasDot)) continue;
+    if (!isQtyLike(parsed[i])) continue;
 
-    let rateIdx = i + 1;
-    // qty, free, rate — free is a small bonus qty, never GST% (0/5/12/18)
+    const qtyVal = Math.round(parsed[i].asQty);
+    let startIdx = i + 1;
+
+    // Check if next token is free qty (small int <= 50)
     if (
-      parsed[i + 2] &&
-      parsed[i + 1].asQty != null &&
-      parsed[i + 1].asQty <= 50 &&
-      parsed[i + 1].intish &&
-      !isGstVal(parsed[i + 1].asQty) &&
-      isRateLike(parsed[i + 2]) &&
-      (parsed[i + 2].hasDot || String(parsed[i + 2].raw).length >= 3) &&
-      !isGstVal(parsed[i + 2].asRate) &&
-      parsed[i + 2].asRate >= 8
+      parsed[startIdx + 1] &&
+      parsed[startIdx].asQty != null &&
+      parsed[startIdx].asQty <= 50 &&
+      parsed[startIdx].intish &&
+      !isGstVal(parsed[startIdx].asQty) &&
+      isRateLike(parsed[startIdx + 1])
     ) {
-      rateIdx = i + 2;
-    } else if (!isRateLike(parsed[i + 1])) {
-      continue;
+      startIdx++;
     }
 
-    const rate = parsed[rateIdx].asRate;
-    if (rate == null || rate < 1) continue;
-    // Don't accept GST column as PTR
-    if (isGstVal(rate)) continue;
+    if (!parsed[startIdx] || !isRateLike(parsed[startIdx])) continue;
 
-    let score = 0;
-    if (parsed[rateIdx].hasDot) score += 10;
-    else if (/^\d{3,4}$/.test(parsed[rateIdx].raw)) score += 14;
-    if (qtyVal <= 100) score += 5;
-    if (qtyVal <= 30) score += 5;
-    if (qtyVal > 50) score -= 12; // amounts mistaken as qty
-    if (qtyVal > 100) score -= 20;
-    if (COMMON_STRENGTHS.has(qtyVal)) score -= 12;
-    if (qtyCand.hasDot && /\.0+$/.test(qtyCand.raw)) score += 4;
-    if (rate > 0 && rate < 8) score -= 8;
-    if (rate >= 20) score += 6;
-    if (rate >= 40) score += 4;
-    // Typical columns after PTR: disc% then GST% (0/5/12/18)
-    const a1 = parsed[rateIdx + 1];
-    const a2 = parsed[rateIdx + 2];
-    if (a1 && (isGstVal(a1.asRate) || isDiscVal(a1.asRate) || a1.asRate === 0)) score += 14;
-    if (a2 && isGstVal(a2.asRate)) score += 10;
-    score += Math.max(0, 6 - i * 2);
+    let ptr = parsed[startIdx].asRate;
+    if (ptr == null || ptr < 0.1 || isGstVal(ptr)) continue;
 
-    if (!best || score > best.score) {
-      best = { score, qty: Math.round(qtyVal), ptr: rate, startAfter: rateIdx + 1 };
+    // Remaining tokens after rate
+    let disc = 0;
+    let explicitNet = null;
+    let gstRate = 5;
+    let amount = null;
+    let mrp = null;
+
+    const moneyRemaining = [];
+
+    for (let j = startIdx + 1; j < parsed.length; j++) {
+      const p = parsed[j];
+      const val = p.asRate != null ? p.asRate : p.asQty;
+      if (val == null) continue;
+
+      // 1. Disc% check (first percentage <= 40 after rate)
+      if (disc === 0 && explicitNet === null && isDiscVal(val) && !isGstVal(val) && p.hasDot) {
+        disc = val;
+        continue;
+      }
+      if (disc === 0 && explicitNet === null && val > 0 && val <= 35 && j === startIdx + 1) {
+        disc = val;
+        continue;
+      }
+
+      // 2. GST% check
+      if (isGstVal(val) && (p.intish || p.hasDot)) {
+        gstRate = val === 0 ? gstRate : val;
+        continue;
+      }
+
+      // 3. Money values (Net rate, amount, mrp)
+      if (val >= 0.5) {
+        moneyRemaining.push(val);
+      }
+    }
+
+    // Analyze moneyRemaining to distinguish Net, Line Amount, and Unit MRP
+    for (const m of moneyRemaining) {
+      const expectedNet = ptr * (1 - disc / 100);
+      const expectedAmt = qtyVal * expectedNet;
+
+      // If m matches expected net rate per unit
+      if (explicitNet === null && Math.abs(m - expectedNet) <= Math.max(1.5, expectedNet * 0.05)) {
+        explicitNet = m;
+        continue;
+      }
+
+      // If m matches line total amount (qty * net)
+      if (amount === null && qtyVal > 1 && Math.abs(m - expectedAmt) <= Math.max(3.0, expectedAmt * 0.05)) {
+        amount = m;
+        continue;
+      }
+
+      // Otherwise candidate for MRP (if >= net and not equal to line amount)
+      if (m >= (explicitNet || ptr) * 0.85) {
+        if (qtyVal > 1 && Math.abs(m - expectedAmt) <= 2.0) {
+          amount = m; // It's line amount, not unit MRP
+        } else {
+          mrp = m; // Valid unit MRP
+        }
+      }
+    }
+
+    if (!explicitNet) {
+      explicitNet = parseFloat((ptr * (1 - disc / 100)).toFixed(2));
+    }
+    if (!mrp) {
+      mrp = Math.max(ptr, explicitNet);
+    }
+
+    let score = 10;
+    if (parsed[startIdx].hasDot) score += 10;
+    if (explicitNet && Math.abs(explicitNet - ptr * (1 - disc / 100)) < 1) score += 15;
+    if (mrp >= ptr) score += 10;
+
+    if (!bestCandidate || score > bestCandidate.score) {
+      bestCandidate = {
+        score,
+        qty: qtyVal,
+        ptr,
+        disc,
+        net: explicitNet,
+        gstRate,
+        mrp,
+      };
     }
   }
 
-  let qty;
-  let ptr;
-  let startAfter;
-
-  if (best && best.score >= 5) {
-    qty = best.qty;
-    ptr = best.ptr;
-    startAfter = best.startAfter;
-  } else {
-    // Fallback: first qty-like + first non-GST money with decimal
-    const moneys = parsed.filter(
-      (p) => isRateLike(p) && (p.hasDot || String(p.raw).length >= 3) && !isGstVal(p.asRate) && p.asRate >= 8,
-    );
-    const qtys = parsed.filter(isQtyLike);
-    if (!moneys.length) return null;
-    ptr = moneys[0].asRate;
-    qty = qtys.length ? Math.round(qtys[0].asQty) : 1;
-    startAfter = parsed.indexOf(moneys[0]) + 1;
+  if (bestCandidate) {
+    return {
+      qty: bestCandidate.qty,
+      ptr: bestCandidate.ptr,
+      disc: bestCandidate.disc,
+      gstRate: bestCandidate.gstRate,
+      mrp: bestCandidate.mrp,
+    };
   }
 
-  let disc = 0;
-  let gstRate = 5;
-  const moneyVals = [];
-
-  for (let i = startAfter; i < parsed.length; i++) {
-    const p = parsed[i];
-    const v = p.asRate != null ? p.asRate : p.asQty;
-    if (v == null) continue;
-    if (isGstVal(v) && (p.intish || p.hasDot)) {
-      gstRate = v === 0 ? gstRate : v;
-      continue;
-    }
-    if (isDiscVal(v) && disc === 0) {
-      disc = v;
-      continue;
-    }
-    if (v > 1 && v < 100000) moneyVals.push(v);
-  }
-
-  let mrp = 0;
-  if (moneyVals.length >= 2) {
-    const ge = moneyVals.filter((m) => m >= ptr);
-    mrp = ge.length ? ge[ge.length - 1] : moneyVals[moneyVals.length - 1];
-  } else if (moneyVals.length === 1) {
-    mrp = Math.max(ptr, moneyVals[0]);
-  } else {
-    mrp = ptr;
-  }
-  if (mrp < ptr) mrp = ptr;
-
-  qty = Math.max(1, Math.round(Number(qty) || 1));
-  if (qty > 500) qty = 1;
-
-  return { qty, ptr, disc, gstRate, mrp };
+  return null;
 }
 
 /**
