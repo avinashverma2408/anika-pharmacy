@@ -1868,85 +1868,7 @@ body {
   }
 }
 
-/* --- Responsive Media Queries --- */
-@media (max-width: 1024px) {
-  .dashboard-split {
-    grid-template-columns: 1fr;
-  }
-}
 
-@media (max-width: 768px) {
-  .app-container {
-    flex-direction: column;
-  }
-
-  .sidebar {
-    width: 100%;
-    height: auto;
-    position: relative;
-    border-right: none;
-    border-bottom: 1px solid var(--border-color);
-  }
-
-  .sidebar-menu {
-    flex-direction: row;
-    overflow-x: auto;
-    padding: 12px;
-    gap: 6px;
-  }
-
-  .menu-item {
-    padding: 8px 12px;
-    font-size: 12px;
-    white-space: nowrap;
-  }
-
-  .sidebar-footer {
-    display: none;
-  }
-
-  .main-content {
-    width: 100%;
-    padding: 16px;
-  }
-
-  .top-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .header-search {
-    max-width: 100%;
-  }
-
-  .header-actions {
-    justify-content: space-between;
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .sim-generator-buttons {
-    grid-template-columns: 1fr;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .col-span-2 {
-    grid-column: span 1;
-  }
-
-  .modal-footer {
-    flex-wrap: wrap;
-  }
-
-  .modal-footer .btn {
-    flex: 1 1 auto;
-  }
-}
 
 @media (max-width: 480px) {
   .stats-grid {
@@ -5141,6 +5063,59 @@ body {
     display: grid !important;
     grid-template-columns: 1fr !important;
     gap: 16px !important;
+  }
+
+  /* Calendar Mobile Grid & Header Responsiveness */
+  .calendar-header-toolbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 12px 14px !important;
+  }
+
+  .calendar-nav-buttons {
+    justify-content: space-between !important;
+    width: 100% !important;
+  }
+
+  .calendar-title-display {
+    font-size: 16px !important;
+    min-width: 140px !important;
+  }
+
+  .reset-system-date-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .calendar-legend-bar {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 8px 12px !important;
+    padding: 10px !important;
+  }
+
+  .calendar-grid-container {
+    padding: 12px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .calendar-weekdays-header {
+    min-width: 620px !important;
+    font-size: 11px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .calendar-days-grid {
+    min-width: 620px !important;
+    grid-auto-rows: minmax(90px, 105px) !important;
+    gap: 6px !important;
+  }
+
+  .calendar-day-cell {
+    padding: 6px !important;
+    min-height: 90px !important;
   }
 }
 
