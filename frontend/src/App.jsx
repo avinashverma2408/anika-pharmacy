@@ -9,6 +9,8 @@ import BillUploadModal from "./components/BillUploadModal";
 import AuthPage from "./components/AuthPage";
 import TabFallback from "./components/TabFallback";
 
+import MobileBottomNav from "./components/MobileBottomNav";
+
 /* Route-level code splitting — only the active workspace ships to the browser */
 const DashboardTab = lazy(() => import("./components/DashboardTab"));
 const InventoryTab = lazy(() => import("./components/InventoryTab"));
@@ -151,6 +153,7 @@ export default function App() {
           <ProductModals />
           <LogoutModal />
           <BillUploadModal />
+          <MobileBottomNav />
         </div>
       )}
       <div className="toast-container" id="toast-container" />
