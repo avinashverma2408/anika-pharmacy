@@ -8,6 +8,21 @@ import {
 import { billApi, medicineApi, customerApi } from "../api/apiClient";
 import SubstituteFinderModal from "./SubstituteFinderModal";
 
+const parsePackUnits = (packStr) => {
+  if (!packStr) return 10;
+  const multMatch = String(packStr).match(/\d+\s*[\*xX]\s*(\d+)/);
+  if (multMatch && multMatch[1]) {
+    const val = parseInt(multMatch[1], 10);
+    if (val > 0) return val;
+  }
+  const numbers = String(packStr).match(/\d+/g);
+  if (numbers && numbers.length > 0) {
+    const val = parseInt(numbers[numbers.length - 1], 10);
+    if (val > 0) return val;
+  }
+  return 10;
+};
+
 export default function NewBillCalculator() {
   const {
     medicines,
@@ -48,6 +63,8 @@ export default function NewBillCalculator() {
   const [selectedMed, setSelectedMed] = useState(null);
   const [billQty, setBillQty] = useState(1);
   const [billRate, setBillRate] = useState("");
+  const [unitType, setUnitType] = useState("Tablet"); // "Tablet" (Loose) or "Strip" (Patta)
+  const [packSize, setPackSize] = useState(10);
 
   // Smart Substitute states
   const [substituteQuery, setSubstituteQuery] = useState("");
@@ -138,10 +155,32 @@ export default function NewBillCalculator() {
   // Handle medicine selection
   const handleSelectMedicine = (med) => {
     setSelectedMed(med);
-    setBillRate(med.price);
+    const pSize = parsePackUnits(med.pack);
+    setPackSize(pSize);
+    setUnitType("Tablet");
     setBillQty(1);
+    setBillRate((med.price / pSize).toFixed(2));
     setSearchQuery("");
     setSearchResults([]);
+  };
+
+  const handleUnitTypeChange = (type) => {
+    setUnitType(type);
+    setBillQty(1);
+    if (!selectedMed) return;
+    if (type === "Strip") {
+      setBillRate(selectedMed.price.toFixed(2));
+    } else {
+      setBillRate((selectedMed.price / packSize).toFixed(2));
+    }
+  };
+
+  const handlePackSizeChange = (newSize) => {
+    const size = Math.max(1, parseInt(newSize) || 1);
+    setPackSize(size);
+    if (selectedMed && unitType === "Tablet") {
+      setBillRate((selectedMed.price / size).toFixed(2));
+    }
   };
 
   // Handle Smart Substitute search
@@ -266,7 +305,8 @@ export default function NewBillCalculator() {
     e.preventDefault();
     if (!selectedMed) return;
 
-    if (billQty <= 0) {
+    const qty = parseInt(billQty) || 0;
+    if (qty <= 0) {
       showSimpleToast(
         "Invalid Quantity",
         "Quantity must be at least 1.",
@@ -275,12 +315,17 @@ export default function NewBillCalculator() {
       return;
     }
 
-    if (billQty > selectedMed.quantity) {
-      showSimpleToast(
-        "Stock Insufficient",
-        `Only ${selectedMed.quantity} units of "${selectedMed.name}" are available in stock.`,
-        "danger",
-      );
+    const unitsNeeded = unitType === "Strip" ? qty * packSize : qty;
+
+    if (unitsNeeded > selectedMed.quantity) {
+      const availStrips = Math.floor(selectedMed.quantity / packSize);
+      const availTab = selectedMed.quantity % packSize;
+      const stockDesc =
+        unitType === "Strip"
+          ? `Only ${selectedMed.quantity} units (${availStrips} strips + ${availTab} tab) available.`
+          : `Only ${selectedMed.quantity} tablets available in stock.`;
+
+      showSimpleToast("Stock Insufficient", stockDesc, "danger");
       return;
     }
 
@@ -298,14 +343,23 @@ export default function NewBillCalculator() {
       return;
     }
 
-    const itemAmount = billQty * parseFloat(billRate);
+    const rate = parseFloat(billRate) || 0;
+    const itemAmount = qty * rate;
+    const qtyLabel =
+      unitType === "Strip"
+        ? `${qty} Strip${qty > 1 ? "s" : ""} (${qty * packSize} Tab)`
+        : `${qty} Tab (Loose)`;
 
     setBillItems([
       ...billItems,
       {
         medicine: selectedMed,
-        quantityBilled: parseInt(billQty),
-        rateBilled: parseFloat(billRate),
+        unitType,
+        packSize,
+        qtyInput: qty,
+        quantityBilled: unitsNeeded,
+        rateBilled: rate,
+        qtyLabel,
         amount: itemAmount,
       },
     ]);
@@ -484,11 +538,11 @@ export default function NewBillCalculator() {
   const getNormalizedItems = () => {
     return billItems.map((item) => ({
       name: item.medicine.name,
-      pack: item.medicine.pack || "1*10",
+      pack: item.medicine.pack || `1*${item.packSize || 10}`,
       hsn: item.medicine.hsn || "N/A",
       batch: item.medicine.batch,
       expiryDate: item.medicine.expiryDate || "",
-      quantity: item.quantityBilled,
+      quantity: item.qtyLabel || item.quantityBilled,
       price: item.rateBilled,
       gstRate: item.medicine.gstRate || 5,
       amount: item.amount,
@@ -783,25 +837,103 @@ export default function NewBillCalculator() {
                   style={{ marginTop: "4px" }}
                 >
                   Batch: {selectedMed.batch} | Expiry:{" "}
-                  {formatDateDisplay(selectedMed.expiryDate)} | Available Stock:{" "}
-                  {selectedMed.quantity} units
+                  {formatDateDisplay(selectedMed.expiryDate)} | Pack: {selectedMed.pack || `1*${packSize}`}
+                </div>
+                <div
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    color: "var(--primary)",
+                    marginTop: "4px",
+                  }}
+                >
+                  Available Stock: {selectedMed.quantity} units ({Math.floor(selectedMed.quantity / packSize)} strips + {selectedMed.quantity % packSize} loose tabs)
+                </div>
+              </div>
+
+              {/* Billing Mode Switcher (Tablet vs Strip) */}
+              <div
+                style={{
+                  marginTop: "12px",
+                  padding: "10px",
+                  borderRadius: "8px",
+                  background: "var(--bg-input, rgba(255,255,255,0.04))",
+                  border: "1px solid var(--border-color)",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    marginBottom: "8px",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  Select Billing Mode:
+                </div>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    className={`btn ${unitType === "Tablet" ? "btn-primary" : "btn-outline"}`}
+                    onClick={() => handleUnitTypeChange("Tablet")}
+                    style={{
+                      flex: 1,
+                      fontSize: "12px",
+                      padding: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    💊 Single Tablet (Loose)
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn ${unitType === "Strip" ? "btn-primary" : "btn-outline"}`}
+                    onClick={() => handleUnitTypeChange("Strip")}
+                    style={{
+                      flex: 1,
+                      fontSize: "12px",
+                      padding: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    📦 Full Strip / Patta ({packSize} Tab)
+                  </button>
                 </div>
               </div>
 
               <div className="form-grid" style={{ marginTop: "12px" }}>
                 <div className="form-group">
-                  <label>Billing Qty (Units)</label>
+                  <label>
+                    {unitType === "Strip"
+                      ? "Billing Qty (Strips / Patta)"
+                      : "Billing Qty (Tablets / Loose)"}
+                  </label>
                   <input
                     type="number"
                     min="1"
-                    max={selectedMed.quantity}
                     required
                     value={billQty}
-                    onChange={(e) => setBillQty(parseInt(e.target.value))}
+                    onChange={(e) => setBillQty(e.target.value)}
                   />
+                  <span style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
+                    {unitType === "Strip"
+                      ? `= ${((parseInt(billQty) || 0) * packSize)} total tablets deducted from stock`
+                      : `= ${parseInt(billQty) || 0} tablets deducted from stock`}
+                  </span>
                 </div>
+
                 <div className="form-group">
-                  <label>Unit Rate / MRP (₹)</label>
+                  <label>
+                    {unitType === "Strip"
+                      ? "Strip Rate / MRP (₹)"
+                      : "Per Tablet Rate (₹)"}
+                  </label>
                   <input
                     type="number"
                     step="0.01"
@@ -809,8 +941,43 @@ export default function NewBillCalculator() {
                     value={billRate}
                     onChange={(e) => setBillRate(e.target.value)}
                   />
+                  <span style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
+                    {unitType === "Strip"
+                      ? `Full Strip MRP (₹${selectedMed.price.toFixed(2)})`
+                      : `Strip MRP ₹${selectedMed.price.toFixed(2)} ÷ ${packSize} tabs`}
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <label>Pack Size (Tabs/Strip)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={packSize}
+                    onChange={(e) => handlePackSizeChange(e.target.value)}
+                  />
                 </div>
               </div>
+
+              <div
+                style={{
+                  marginTop: "8px",
+                  padding: "8px 12px",
+                  borderRadius: "6px",
+                  background: "rgba(16, 185, 129, 0.1)",
+                  color: "#10b981",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  display: "flex",
+                  justifyContent: "space-between",
+                }}
+              >
+                <span>Calculated Item Total:</span>
+                <span>
+                  ₹{((parseInt(billQty) || 0) * (parseFloat(billRate) || 0)).toFixed(2)}
+                </span>
+              </div>
+
               <button
                 type="submit"
                 className="btn btn-primary w-full"
@@ -1026,8 +1193,22 @@ export default function NewBillCalculator() {
                         <td>
                           <code>{item.medicine.batch}</code>
                         </td>
-                        <td>{item.quantityBilled}</td>
-                        <td>₹{item.rateBilled.toFixed(2)}</td>
+                        <td>{item.qtyLabel || item.quantityBilled}</td>
+                        <td>
+                          ₹{item.rateBilled.toFixed(2)}
+                          <span
+                            style={{
+                              fontSize: "10px",
+                              marginLeft: "4px",
+                              padding: "2px 5px",
+                              borderRadius: "4px",
+                              background: "rgba(255,255,255,0.08)",
+                              color: "var(--text-muted)",
+                            }}
+                          >
+                            {item.unitType === "Strip" ? "/Strip" : "/Tab"}
+                          </span>
+                        </td>
                         <td>₹{item.amount.toFixed(2)}</td>
                         <td>
                           ₹
