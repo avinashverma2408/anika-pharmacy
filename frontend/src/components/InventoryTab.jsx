@@ -44,7 +44,7 @@ export default function InventoryTab() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(inventorySearch);
-    }, 350);
+    }, 1000);
     return () => clearTimeout(handler);
   }, [inventorySearch]);
 
@@ -75,25 +75,37 @@ export default function InventoryTab() {
       groups[stockist].push(med);
     });
 
-    return Object.entries(groups).map(([distributor, meds]) => {
-      const totalItems = meds.length;
-      const totalQuantity = meds.reduce((sum, m) => sum + (m.quantity || 0), 0);
-      const totalValue = meds.reduce((sum, m) => sum + (m.ptr || 0) * (m.quantity || 0), 0);
-      return {
-        distributor,
-        medicines: meds,
-        totalItems,
-        totalQuantity,
-        totalValue,
-      };
-    }).sort((a, b) => b.totalValue - a.totalValue);
+    return Object.entries(groups)
+      .map(([distributor, meds]) => {
+        const totalItems = meds.length;
+        const totalQuantity = meds.reduce(
+          (sum, m) => sum + (m.quantity || 0),
+          0,
+        );
+        const totalValue = meds.reduce(
+          (sum, m) => sum + (m.ptr || 0) * (m.quantity || 0),
+          0,
+        );
+        return {
+          distributor,
+          medicines: meds,
+          totalItems,
+          totalQuantity,
+          totalValue,
+        };
+      })
+      .sort((a, b) => b.totalValue - a.totalValue);
   };
 
   const vendorGroups = getVendorGroupedReturns();
 
   const handleDownloadVoucherCSV = (group) => {
     if (!group || !group.medicines || group.medicines.length === 0) {
-      showSimpleToast("No Data", "There are no medicines to export.", "warning");
+      showSimpleToast(
+        "No Data",
+        "There are no medicines to export.",
+        "warning",
+      );
       return;
     }
 
@@ -130,7 +142,9 @@ export default function InventoryTab() {
         ["Total Expired Value", `Rs. ${group.totalValue.toFixed(2)}`],
         [],
         headers.join(","),
-        ...rows.map((e) => e.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(",")),
+        ...rows.map((e) =>
+          e.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(","),
+        ),
       ].join("\n");
 
     const encodedUri = encodeURI(csvContent);
@@ -138,13 +152,17 @@ export default function InventoryTab() {
     link.setAttribute("href", encodedUri);
     link.setAttribute(
       "download",
-      `Vendor_Return_${group.distributor.replace(/\s+/g, "_")}.csv`
+      `Vendor_Return_${group.distributor.replace(/\s+/g, "_")}.csv`,
     );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
-    showSimpleToast("Export Success", "Voucher CSV report downloaded successfully!", "success");
+    showSimpleToast(
+      "Export Success",
+      "Voucher CSV report downloaded successfully!",
+      "success",
+    );
   };
 
   const handleDownloadVoucherPDF = (group) => {
@@ -174,21 +192,35 @@ export default function InventoryTab() {
               const pdf = new jsPDF("p", "mm", [210, Math.max(297, imgHeight)]);
 
               pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight);
-              pdf.save(`Vendor_Return_Voucher_${group.distributor.replace(/\s+/g, "_")}.pdf`);
+              pdf.save(
+                `Vendor_Return_Voucher_${group.distributor.replace(/\s+/g, "_")}.pdf`,
+              );
 
               element.classList.remove("pdf-generation-in-progress");
-              showSimpleToast("Success", "Return Voucher PDF downloaded successfully!", "success");
+              showSimpleToast(
+                "Success",
+                "Return Voucher PDF downloaded successfully!",
+                "success",
+              );
             })
             .catch((err) => {
               console.error("Canvas capture failed:", err);
               element.classList.remove("pdf-generation-in-progress");
-              showSimpleToast("PDF Error", "Failed to capture voucher layout.", "danger");
+              showSimpleToast(
+                "PDF Error",
+                "Failed to capture voucher layout.",
+                "danger",
+              );
             });
         })
         .catch((err) => {
           console.error("Failed to load PDF libraries:", err);
           element.classList.remove("pdf-generation-in-progress");
-          showSimpleToast("Library Error", "Failed to load PDF libraries.", "danger");
+          showSimpleToast(
+            "Library Error",
+            "Failed to load PDF libraries.",
+            "danger",
+          );
         });
     }, 150);
   };
@@ -196,7 +228,11 @@ export default function InventoryTab() {
   const handleMarkAsReturned = async (group) => {
     if (!group || !group.medicines || group.medicines.length === 0) return;
 
-    if (!window.confirm(`Are you sure you want to mark all expired items for "${group.distributor}" as Returned? This will set their quantity to 0 and update their status to Inactive.`)) {
+    if (
+      !window.confirm(
+        `Are you sure you want to mark all expired items for "${group.distributor}" as Returned? This will set their quantity to 0 and update their status to Inactive.`,
+      )
+    ) {
       return;
     }
 
@@ -222,11 +258,15 @@ export default function InventoryTab() {
       });
 
       await Promise.all(updatePromises);
-      showSimpleToast("Success", `All items for "${group.distributor}" marked as returned!`, "success");
-      
+      showSimpleToast(
+        "Success",
+        `All items for "${group.distributor}" marked as returned!`,
+        "success",
+      );
+
       setIsVoucherModalOpen(false);
       setSelectedDistributor(null);
-      
+
       // Refresh inventory list and notifications
       fetchPage(currentPage, subTab, categoryFilter, globalSearchQuery);
       usePharmacyStore.getState().fetchMedicines();
@@ -254,74 +294,78 @@ export default function InventoryTab() {
   const todayStr = simulatedDate;
 
   // ── Fetch page from server ─────────────────────────────────────────────────
-  const fetchPage = useCallback(async (page, tab, category, search, startD, endD, dType) => {
-    setIsLoading(true);
-    try {
-      const params = { page, limit: PAGE_SIZE };
-      const activeSearch = search !== undefined ? search : inventorySearch;
-      if (activeSearch) params.search = activeSearch;
-      if (category !== "all") params.category = category;
-      if (startD) params.startDate = startD;
-      if (endD) params.endDate = endD;
-      if (dType) params.dateType = dType;
+  const fetchPage = useCallback(
+    async (page, tab, category, search, startD, endD, dType) => {
+      setIsLoading(true);
+      try {
+        const params = { page, limit: PAGE_SIZE };
+        if (search) params.search = search;
+        if (category !== "all") params.category = category;
+        if (startD) params.startDate = startD;
+        if (endD) params.endDate = endD;
+        if (dType) params.dateType = dType;
 
-      if (tab === "active") {
-        params.status = "Active";
-        params.expiry = "safe";
-      } else if (tab === "expiring") {
-        params.status = "Active";
-        params.expiry = "expires-20";
-      } else if (tab === "expired" || tab === "vendor-returns") {
-        params.status = "all";
-        params.expiry = "expired";
-        if (tab === "vendor-returns") {
-          params.limit = 100;
+        if (tab === "active") {
+          params.status = "Active";
+          params.expiry = "safe";
+        } else if (tab === "expiring") {
+          params.status = "Active";
+          params.expiry = "expires-20";
+        } else if (tab === "expired" || tab === "vendor-returns") {
+          params.status = "all";
+          params.expiry = "expired";
+          if (tab === "vendor-returns") {
+            params.limit = 100;
+          }
+        } else if (tab === "outofstock") {
+          params.status = "Out of Stock";
+          params.expiry = "not-expired";
+        } else if (tab === "lowstock") {
+          params.stock = "low";
+        } else if (tab === "inactive") {
+          params.status = "Inactive";
+        } else if (tab === "all") {
+          params.status = "all";
         }
-      } else if (tab === "outofstock") {
-        params.status = "Out of Stock";
-        params.expiry = "not-expired";
-      } else if (tab === "lowstock") {
-        params.stock = "low";
-      } else if (tab === "inactive") {
-        params.status = "Inactive";
-      } else if (tab === "all") {
-        params.status = "all";
-      }
 
-      const { data } = await medicineApi.getAll(params);
-      setPageData({
-        medicines: data.medicines || [],
-        total: data.total || 0,
-        totalPages: data.totalPages || 1,
-      });
-    } catch {
-      setPageData({ medicines: [], total: 0, totalPages: 1 });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [inventorySearch]);
+        const { data } = await medicineApi.getAll(params);
+        setPageData({
+          medicines: data.medicines || [],
+          total: data.total || 0,
+          totalPages: data.totalPages || 1,
+        });
+      } catch {
+        setPageData({ medicines: [], total: 0, totalPages: 1 });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
 
   // ── Fetch tab counts — single efficient API call ────────────────────────────
-  const fetchCounts = useCallback(async (search, category, startD, endD, dType) => {
-    try {
-      const params = {};
-      const activeSearch = search !== undefined ? search : inventorySearch;
-      if (activeSearch) params.search = activeSearch;
-      if (category !== "all") params.category = category;
-      if (startD) params.startDate = startD;
-      if (endD) params.endDate = endD;
-      if (dType) params.dateType = dType;
+  const fetchCounts = useCallback(
+    async (search, category, startD, endD, dType) => {
+      try {
+        const params = {};
+        if (search) params.search = search;
+        if (category !== "all") params.category = category;
+        if (startD) params.startDate = startD;
+        if (endD) params.endDate = endD;
+        if (dType) params.dateType = dType;
 
-      const { data } = await medicineApi.getCounts(params);
-      if (data.success) {
-        const counts = data.counts || {};
-        counts["vendor-returns"] = counts.expired || 0;
-        setTabCounts(counts);
+        const { data } = await medicineApi.getCounts(params);
+        if (data.success) {
+          const counts = data.counts || {};
+          counts["vendor-returns"] = counts.expired || 0;
+          setTabCounts(counts);
+        }
+      } catch {
+        // Silently ignore count fetch errors
       }
-    } catch {
-      // Silently ignore count fetch errors
-    }
-  }, [inventorySearch]);
+    },
+    [],
+  );
 
   // ── Re-fetch whenever filters / page / simulatedDate / medicines change ───────
   const [prevSearchQuery, setPrevSearchQuery] = useState(globalSearchQuery);
@@ -333,7 +377,15 @@ export default function InventoryTab() {
 
   useEffect(() => {
     const activeSearch = debouncedSearch || globalSearchQuery;
-    fetchPage(currentPage, subTab, categoryFilter, activeSearch, startDate, endDate, dateType);
+    fetchPage(
+      currentPage,
+      subTab,
+      categoryFilter,
+      activeSearch,
+      startDate,
+      endDate,
+      dateType,
+    );
   }, [
     currentPage,
     subTab,
@@ -403,28 +455,59 @@ export default function InventoryTab() {
                 stock.
               </p>
             </div>
-            <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
               <button
                 className="btn btn-outline"
                 onClick={() => setIsSubstituteFinderOpen(true)}
-                style={{ background: "rgba(16, 185, 129, 0.12)", color: "#10b981", borderColor: "rgba(16, 185, 129, 0.3)", fontWeight: 600 }}
+                style={{
+                  background: "rgba(16, 185, 129, 0.12)",
+                  color: "#10b981",
+                  borderColor: "rgba(16, 185, 129, 0.3)",
+                  fontWeight: 600,
+                }}
               >
-                <i className="fa-solid fa-flask" style={{ marginRight: "6px" }}></i> Salt / Substitute Finder
+                <i
+                  className="fa-solid fa-flask"
+                  style={{ marginRight: "6px" }}
+                ></i>{" "}
+                Salt / Substitute Finder
               </button>
               <button
                 className="btn btn-primary"
                 id="inventory-scan-bill-btn"
                 onClick={() => setBillUploadOpen(true)}
-                style={{ background: "linear-gradient(135deg, #0284c7 0%, #2563eb 100%)", color: "#ffffff", fontWeight: 600, border: "none", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}
+                style={{
+                  background:
+                    "linear-gradient(135deg, #0284c7 0%, #2563eb 100%)",
+                  color: "#ffffff",
+                  fontWeight: 600,
+                  border: "none",
+                  boxShadow: "0 2px 8px rgba(37,99,235,0.3)",
+                }}
               >
-                <i className="fa-solid fa-file-invoice-dollar" style={{ marginRight: "6px" }}></i> Scan Purchase Bill
+                <i
+                  className="fa-solid fa-file-invoice-dollar"
+                  style={{ marginRight: "6px" }}
+                ></i>{" "}
+                Scan Purchase Bill
               </button>
               <button
                 className="btn btn-outline"
                 id="inventory-add-btn"
                 onClick={() => setAddModalOpen(true)}
               >
-                <i className="fa-solid fa-plus" style={{ marginRight: "6px" }}></i> Add Product
+                <i
+                  className="fa-solid fa-plus"
+                  style={{ marginRight: "6px" }}
+                ></i>{" "}
+                Add Product
               </button>
             </div>
           </div>
@@ -483,11 +566,28 @@ export default function InventoryTab() {
           </div>
 
           {subTab === "vendor-returns" ? (
-            <div className="vendor-returns-container" style={{ marginTop: "24px" }}>
+            <div
+              className="vendor-returns-container"
+              style={{ marginTop: "24px" }}
+            >
               {/* Summary Stats Cards */}
-              <div className="stats-grid" style={{ marginBottom: "24px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px" }}>
+              <div
+                className="stats-grid"
+                style={{
+                  marginBottom: "24px",
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: "20px",
+                }}
+              >
                 <div className="stat-card border-purple">
-                  <div className="stat-icon" style={{ background: "rgba(139, 92, 246, 0.15)", color: "#8b5cf6" }}>
+                  <div
+                    className="stat-icon"
+                    style={{
+                      background: "rgba(139, 92, 246, 0.15)",
+                      color: "#8b5cf6",
+                    }}
+                  >
                     <i className="fa-solid fa-tags"></i>
                   </div>
                   <div className="stat-info">
@@ -503,7 +603,10 @@ export default function InventoryTab() {
                   <div className="stat-info">
                     <span className="stat-label">Total Claim Value</span>
                     <h3 className="stat-value" style={{ color: "#10b981" }}>
-                      ₹{vendorGroups.reduce((sum, g) => sum + g.totalValue, 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      ₹
+                      {vendorGroups
+                        .reduce((sum, g) => sum + g.totalValue, 0)
+                        .toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </h3>
                   </div>
                 </div>
@@ -521,9 +624,19 @@ export default function InventoryTab() {
 
               {/* Distributors Summary Table */}
               <div className="table-container card-panel">
-                <div className="panel-header" style={{ borderBottom: "none", marginBottom: "16px", paddingBottom: 0 }}>
+                <div
+                  className="panel-header"
+                  style={{
+                    borderBottom: "none",
+                    marginBottom: "16px",
+                    paddingBottom: 0,
+                  }}
+                >
                   <div className="panel-title-group">
-                    <i className="fa-solid fa-list-check panel-icon" style={{ color: "#8b5cf6" }}></i>
+                    <i
+                      className="fa-solid fa-list-check panel-icon"
+                      style={{ color: "#8b5cf6" }}
+                    ></i>
                     <h3 style={{ margin: 0 }}>Distributor Grouped Returns</h3>
                   </div>
                 </div>
@@ -541,41 +654,78 @@ export default function InventoryTab() {
                   <tbody>
                     {isLoading ? (
                       <tr>
-                        <td colSpan="5" style={{ textAlign: "center", padding: "20px" }}>Loading returns data...</td>
+                        <td
+                          colSpan="5"
+                          style={{ textAlign: "center", padding: "20px" }}
+                        >
+                          Loading returns data...
+                        </td>
                       </tr>
                     ) : vendorGroups.length === 0 ? (
                       <tr>
-                        <td colSpan="5" style={{ textAlign: "center", padding: "20px", color: "var(--text-muted)" }}>
+                        <td
+                          colSpan="5"
+                          style={{
+                            textAlign: "center",
+                            padding: "20px",
+                            color: "var(--text-muted)",
+                          }}
+                        >
                           No expired stock found to return.
                         </td>
                       </tr>
                     ) : (
                       vendorGroups.map((group, idx) => (
                         <tr key={idx}>
-                          <td style={{ fontWeight: "600" }}>{group.distributor}</td>
+                          <td style={{ fontWeight: "600" }}>
+                            {group.distributor}
+                          </td>
                           <td>{group.totalItems} distinct items</td>
                           <td>{group.totalQuantity} units</td>
-                          <td style={{ fontWeight: "600", color: "var(--primary)" }}>
-                            ₹{group.totalValue.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          <td
+                            style={{
+                              fontWeight: "600",
+                              color: "var(--primary)",
+                            }}
+                          >
+                            ₹
+                            {group.totalValue.toLocaleString("en-IN", {
+                              minimumFractionDigits: 2,
+                            })}
                           </td>
                           <td className="text-right">
-                            <div className="action-btn-group" style={{ justifyContent: "flex-end" }}>
+                            <div
+                              className="action-btn-group"
+                              style={{ justifyContent: "flex-end" }}
+                            >
                               <button
                                 className="btn btn-outline btn-small"
-                                style={{ padding: "4px 8px", fontSize: "12px", marginRight: "6px" }}
+                                style={{
+                                  padding: "4px 8px",
+                                  fontSize: "12px",
+                                  marginRight: "6px",
+                                }}
                                 onClick={() => {
                                   setSelectedDistributor(group);
                                   setIsVoucherModalOpen(true);
                                 }}
                               >
-                                <i className="fa-solid fa-eye" style={{ marginRight: "4px" }}></i> View Checklist
+                                <i
+                                  className="fa-solid fa-eye"
+                                  style={{ marginRight: "4px" }}
+                                ></i>{" "}
+                                View Checklist
                               </button>
                               <button
                                 className="btn btn-outline btn-small"
                                 style={{ padding: "4px 8px", fontSize: "12px" }}
                                 onClick={() => handleDownloadVoucherCSV(group)}
                               >
-                                <i className="fa-solid fa-file-csv" style={{ marginRight: "4px" }}></i> CSV
+                                <i
+                                  className="fa-solid fa-file-csv"
+                                  style={{ marginRight: "4px" }}
+                                ></i>{" "}
+                                CSV
                               </button>
                             </div>
                           </td>
@@ -589,9 +739,24 @@ export default function InventoryTab() {
           ) : (
             <>
               {/* Search & Date Filter Toolbar */}
-              <div className="filter-toolbar card-panel inventory-filter-bar" style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", marginBottom: "16px" }}>
+              <div
+                className="filter-toolbar card-panel inventory-filter-bar"
+                style={{
+                  display: "flex",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  marginBottom: "16px",
+                }}
+              >
                 {/* Search Input Box */}
-                <div style={{ position: "relative", flex: "1 1 240px", minWidth: "220px" }}>
+                <div
+                  style={{
+                    position: "relative",
+                    flex: "1 1 240px",
+                    minWidth: "220px",
+                  }}
+                >
                   <i
                     className="fa-solid fa-magnifying-glass"
                     style={{
@@ -648,12 +813,19 @@ export default function InventoryTab() {
                 </div>
 
                 {/* Category Dropdown */}
-                <div className="filter-group inventory-category-group" style={{ margin: 0 }}>
+                <div
+                  className="filter-group inventory-category-group"
+                  style={{ margin: 0 }}
+                >
                   <select
                     id="filter-category"
                     value={categoryFilter}
                     onChange={(e) => handleCategoryChange(e.target.value)}
-                    style={{ height: "36px", fontSize: "13px", padding: "0 10px" }}
+                    style={{
+                      height: "36px",
+                      fontSize: "13px",
+                      padding: "0 10px",
+                    }}
                   >
                     <option value="all">All Categories</option>
                     <option value="Tablet">Tablets</option>
@@ -667,7 +839,14 @@ export default function InventoryTab() {
                 </div>
 
                 {/* Date Filter Type Switcher */}
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    flexWrap: "wrap",
+                  }}
+                >
                   <select
                     value={dateType}
                     onChange={(e) => {
@@ -709,7 +888,11 @@ export default function InventoryTab() {
                     }}
                   />
 
-                  <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>to</span>
+                  <span
+                    style={{ fontSize: "12px", color: "var(--text-muted)" }}
+                  >
+                    to
+                  </span>
 
                   {/* To Date */}
                   <input
@@ -736,7 +919,11 @@ export default function InventoryTab() {
                   id="reset-filters-btn"
                   className="btn btn-outline inventory-reset-btn"
                   onClick={handleResetFilters}
-                  style={{ height: "36px", padding: "0 12px", fontSize: "12px" }}
+                  style={{
+                    height: "36px",
+                    padding: "0 12px",
+                    fontSize: "12px",
+                  }}
                 >
                   <i className="fa-solid fa-rotate-left"></i> Reset
                 </button>
@@ -878,7 +1065,9 @@ export default function InventoryTab() {
                                 >
                                   <option value="Active">Active</option>
                                   <option value="Inactive">Inactive</option>
-                                  <option value="Out of Stock">Out of Stock</option>
+                                  <option value="Out of Stock">
+                                    Out of Stock
+                                  </option>
                                 </select>
                               </td>
                               <td className="text-right">
@@ -902,7 +1091,9 @@ export default function InventoryTab() {
                                   <button
                                     className="btn-icon-only delete"
                                     title="Delete Medicine"
-                                    onClick={() => setDeleteModalOpen(true, med)}
+                                    onClick={() =>
+                                      setDeleteModalOpen(true, med)
+                                    }
                                   >
                                     <i className="fa-solid fa-trash-can"></i>
                                   </button>
@@ -940,7 +1131,9 @@ export default function InventoryTab() {
                       </button>
                       <button
                         className="pagination-btn"
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        onClick={() =>
+                          setCurrentPage((p) => Math.max(1, p - 1))
+                        }
                         disabled={safePage === 1}
                         title="Previous"
                       >
@@ -1032,10 +1225,26 @@ export default function InventoryTab() {
               position: "relative",
             }}
           >
-            <div className="modal-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border-color)", paddingBottom: "12px", marginBottom: "16px" }}>
+            <div
+              className="modal-header"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                borderBottom: "1px solid var(--border-color)",
+                paddingBottom: "12px",
+                marginBottom: "16px",
+              }}
+            >
               <h3 style={{ margin: 0 }}>Vendor Return Checklist</h3>
               <button
-                style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "var(--text-primary)" }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "20px",
+                  cursor: "pointer",
+                  color: "var(--text-primary)",
+                }}
                 onClick={() => {
                   setSelectedDistributor(null);
                   setIsVoucherModalOpen(false);
@@ -1045,23 +1254,57 @@ export default function InventoryTab() {
               </button>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", marginBottom: "20px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "10px",
+                marginBottom: "20px",
+              }}
+            >
               <div>
-                <h4 style={{ margin: 0, fontSize: "16px" }}>{selectedDistributor.distributor}</h4>
-                <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--text-muted)" }}>
-                  Return Voucher Checklist | Total Expired Batches: {selectedDistributor.totalItems}
+                <h4 style={{ margin: 0, fontSize: "16px" }}>
+                  {selectedDistributor.distributor}
+                </h4>
+                <p
+                  style={{
+                    margin: "4px 0 0",
+                    fontSize: "12px",
+                    color: "var(--text-muted)",
+                  }}
+                >
+                  Return Voucher Checklist | Total Expired Batches:{" "}
+                  {selectedDistributor.totalItems}
                 </p>
               </div>
               <div style={{ display: "flex", gap: "8px" }} className="no-print">
-                <button className="btn btn-outline" onClick={() => handleDownloadVoucherCSV(selectedDistributor)}>
-                  <i className="fa-solid fa-file-csv" style={{ marginRight: "6px" }}></i> Export CSV
+                <button
+                  className="btn btn-outline"
+                  onClick={() => handleDownloadVoucherCSV(selectedDistributor)}
+                >
+                  <i
+                    className="fa-solid fa-file-csv"
+                    style={{ marginRight: "6px" }}
+                  ></i>{" "}
+                  Export CSV
                 </button>
-                <button className="btn btn-outline" onClick={() => handleDownloadVoucherPDF(selectedDistributor)}>
-                  <i className="fa-solid fa-file-pdf" style={{ marginRight: "6px" }}></i> Download PDF
+                <button
+                  className="btn btn-outline"
+                  onClick={() => handleDownloadVoucherPDF(selectedDistributor)}
+                >
+                  <i
+                    className="fa-solid fa-file-pdf"
+                    style={{ marginRight: "6px" }}
+                  ></i>{" "}
+                  Download PDF
                 </button>
                 <button
                   className="btn btn-primary"
-                  style={{ background: "var(--danger)", border: "1px solid var(--danger)" }}
+                  style={{
+                    background: "var(--danger)",
+                    border: "1px solid var(--danger)",
+                  }}
                   onClick={() => handleMarkAsReturned(selectedDistributor)}
                   disabled={isMarkingReturned}
                 >
@@ -1070,7 +1313,15 @@ export default function InventoryTab() {
               </div>
             </div>
 
-            <div className="table-container" style={{ maxHeight: "350px", overflowY: "auto", border: "1px solid var(--border-color)", borderRadius: "6px" }}>
+            <div
+              className="table-container"
+              style={{
+                maxHeight: "350px",
+                overflowY: "auto",
+                border: "1px solid var(--border-color)",
+                borderRadius: "6px",
+              }}
+            >
               <table className="data-table">
                 <thead>
                   <tr>
@@ -1089,12 +1340,20 @@ export default function InventoryTab() {
                     return (
                       <tr key={idx}>
                         <td style={{ fontWeight: "500" }}>{m.name}</td>
-                        <td><code>{m.batch}</code></td>
+                        <td>
+                          <code>{m.batch}</code>
+                        </td>
                         <td>{formatDateDisplay(m.expiryDate)}</td>
                         <td>{m.quantity}</td>
                         <td>₹{(m.ptr || 0).toFixed(2)}</td>
                         <td>{m.gstRate || 5}%</td>
-                        <td style={{ textAlign: "right", fontWeight: "600", color: "var(--primary)" }}>
+                        <td
+                          style={{
+                            textAlign: "right",
+                            fontWeight: "600",
+                            color: "var(--primary)",
+                          }}
+                        >
                           ₹{totalVal.toFixed(2)}
                         </td>
                       </tr>
@@ -1104,8 +1363,21 @@ export default function InventoryTab() {
               </table>
             </div>
 
-            <div style={{ marginTop: "20px", display: "flex", justifyContent: "flex-end", fontSize: "15px", fontWeight: "700" }}>
-              <span>Total Refund Claim: ₹{selectedDistributor.totalValue.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+            <div
+              style={{
+                marginTop: "20px",
+                display: "flex",
+                justifyContent: "flex-end",
+                fontSize: "15px",
+                fontWeight: "700",
+              }}
+            >
+              <span>
+                Total Refund Claim: ₹
+                {selectedDistributor.totalValue.toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                })}
+              </span>
             </div>
           </div>
         </div>
@@ -1114,20 +1386,65 @@ export default function InventoryTab() {
       {/* ── PRINT-ONLY VENDOR VOUCHER LAYOUT ── */}
       {selectedDistributor && (
         <div className="print-only voucher-print-wrapper">
-          <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "2px solid #000", paddingBottom: "12px", marginBottom: "20px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              borderBottom: "2px solid #000",
+              paddingBottom: "12px",
+              marginBottom: "20px",
+            }}
+          >
             <div>
-              <h1 style={{ fontSize: "18px", fontWeight: "800", margin: 0, color: "#000000" }}>ANIKA PHARMACY</h1>
-              <p style={{ margin: "2px 0 0", fontSize: "9px", color: "#555555" }}>Pandeybaba bazar, Kadipur Road | Sultanpur, UP - 228145</p>
-              <p style={{ margin: "2px 0 0", fontSize: "9px", color: "#555555" }}>Phone : 9795358689, 6386470668</p>
+              <h1
+                style={{
+                  fontSize: "18px",
+                  fontWeight: "800",
+                  margin: 0,
+                  color: "#000000",
+                }}
+              >
+                ANIKA PHARMACY
+              </h1>
+              <p
+                style={{ margin: "2px 0 0", fontSize: "9px", color: "#555555" }}
+              >
+                Pandeybaba bazar, Kadipur Road | Sultanpur, UP - 228145
+              </p>
+              <p
+                style={{ margin: "2px 0 0", fontSize: "9px", color: "#555555" }}
+              >
+                Phone : 9795358689, 6386470668
+              </p>
             </div>
             <div style={{ textAlign: "right" }}>
-              <h2 style={{ fontSize: "14px", fontWeight: "700", margin: 0, color: "#000000" }}>EXPIRED STOCK RETURN VOUCHER</h2>
-              <p style={{ margin: "2px 0 0", fontSize: "9px", color: "#555555" }}>Date: {new Date().toLocaleDateString("en-GB")}</p>
-              <p style={{ margin: "2px 0 0", fontSize: "9px", color: "#555555" }}><strong>To: {selectedDistributor.distributor}</strong></p>
+              <h2
+                style={{
+                  fontSize: "14px",
+                  fontWeight: "700",
+                  margin: 0,
+                  color: "#000000",
+                }}
+              >
+                EXPIRED STOCK RETURN VOUCHER
+              </h2>
+              <p
+                style={{ margin: "2px 0 0", fontSize: "9px", color: "#555555" }}
+              >
+                Date: {new Date().toLocaleDateString("en-GB")}
+              </p>
+              <p
+                style={{ margin: "2px 0 0", fontSize: "9px", color: "#555555" }}
+              >
+                <strong>To: {selectedDistributor.distributor}</strong>
+              </p>
             </div>
           </div>
 
-          <table className="reports-print-table" style={{ marginTop: "15px", marginBottom: "25px" }}>
+          <table
+            className="reports-print-table"
+            style={{ marginTop: "15px", marginBottom: "25px" }}
+          >
             <thead>
               <tr>
                 <th>Medicine Name</th>
@@ -1144,28 +1461,80 @@ export default function InventoryTab() {
                 const totalVal = (m.ptr || 0) * (m.quantity || 0);
                 return (
                   <tr key={idx}>
-                    <td><strong>{m.name}</strong></td>
+                    <td>
+                      <strong>{m.name}</strong>
+                    </td>
                     <td>{m.batch}</td>
-                    <td>{new Date(m.expiryDate).toLocaleDateString("en-GB")}</td>
+                    <td>
+                      {new Date(m.expiryDate).toLocaleDateString("en-GB")}
+                    </td>
                     <td>{m.quantity} Units</td>
-                    <td style={{ textAlign: "right" }}>₹{(m.ptr || 0).toFixed(2)}</td>
+                    <td style={{ textAlign: "right" }}>
+                      ₹{(m.ptr || 0).toFixed(2)}
+                    </td>
                     <td style={{ textAlign: "right" }}>{m.gstRate || 5}%</td>
-                    <td style={{ textAlign: "right", fontWeight: "700" }}>₹{totalVal.toFixed(2)}</td>
+                    <td style={{ textAlign: "right", fontWeight: "700" }}>
+                      ₹{totalVal.toFixed(2)}
+                    </td>
                   </tr>
                 );
               })}
               <tr style={{ borderTop: "2px solid #000000" }}>
-                <td colSpan="6" style={{ textAlign: "right", fontWeight: "800", padding: "10px 8px", color: "#000000", background: "none" }}>Grand Total Claim Value:</td>
-                <td style={{ textAlign: "right", fontWeight: "800", padding: "10px 8px", color: "#000000", background: "none" }}>₹{selectedDistributor.totalValue.toFixed(2)}</td>
+                <td
+                  colSpan="6"
+                  style={{
+                    textAlign: "right",
+                    fontWeight: "800",
+                    padding: "10px 8px",
+                    color: "#000000",
+                    background: "none",
+                  }}
+                >
+                  Grand Total Claim Value:
+                </td>
+                <td
+                  style={{
+                    textAlign: "right",
+                    fontWeight: "800",
+                    padding: "10px 8px",
+                    color: "#000000",
+                    background: "none",
+                  }}
+                >
+                  ₹{selectedDistributor.totalValue.toFixed(2)}
+                </td>
               </tr>
             </tbody>
           </table>
 
-          <div style={{ marginTop: "80px", display: "flex", justifyContent: "space-between", fontSize: "10px" }}>
-            <div style={{ width: "40%", borderTop: "1px solid #000", textAlign: "center", paddingTop: "6px", color: "#555555" }}>
+          <div
+            style={{
+              marginTop: "80px",
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: "10px",
+            }}
+          >
+            <div
+              style={{
+                width: "40%",
+                borderTop: "1px solid #000",
+                textAlign: "center",
+                paddingTop: "6px",
+                color: "#555555",
+              }}
+            >
               Store Signature (Anika Pharmacy)
             </div>
-            <div style={{ width: "40%", borderTop: "1px solid #000", textAlign: "center", paddingTop: "6px", color: "#555555" }}>
+            <div
+              style={{
+                width: "40%",
+                borderTop: "1px solid #000",
+                textAlign: "center",
+                paddingTop: "6px",
+                color: "#555555",
+              }}
+            >
               Received / Verified By (Distributor)
             </div>
           </div>
