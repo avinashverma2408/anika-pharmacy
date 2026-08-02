@@ -330,18 +330,21 @@ export default function DashboardTab() {
   const previousMonthData = monthlyBreakdown[monthlyBreakdown.length - 2];
   const currentMonthVal = currentMonthData
     ? chartMetric === "revenue"
-      ? currentMonthData.revenue
-      : currentMonthData.profit
+      ? Math.max(0, currentMonthData.revenue || 0)
+      : currentMonthData.profit || 0
     : 0;
   const prevMonthVal = previousMonthData
     ? chartMetric === "revenue"
-      ? previousMonthData.revenue
-      : previousMonthData.profit
+      ? Math.max(0, previousMonthData.revenue || 0)
+      : previousMonthData.profit || 0
     : 0;
-  const percentageChange =
-    prevMonthVal > 0
-      ? ((currentMonthVal - prevMonthVal) / prevMonthVal) * 100
-      : 0;
+  
+  let percentageChange = 0;
+  if (prevMonthVal > 0) {
+    percentageChange = ((currentMonthVal - prevMonthVal) / prevMonthVal) * 100;
+    if (percentageChange > 999) percentageChange = 999;
+    if (percentageChange < -999) percentageChange = -999;
+  }
 
   const maxVal = Math.max(
     ...monthlyBreakdown.map((d) =>
@@ -571,9 +574,10 @@ export default function DashboardTab() {
                     fontWeight: "700",
                   }}
                 >
-                  ₹
-                  {currentMonthVal.toLocaleString("en-IN", {
+                  {currentMonthVal < 0 ? "-" : ""}₹
+                  {Math.abs(currentMonthVal).toLocaleString("en-IN", {
                     minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
                   })}
                 </span>
                 {prevMonthVal > 0 && (
@@ -617,7 +621,7 @@ export default function DashboardTab() {
             <svg
               viewBox={`0 0 ${chartWidth} ${chartHeight}`}
               className="analytics-svg-chart"
-              style={{ overflow: "hidden" }}
+              style={{ overflow: "visible" }}
             >
               <defs>
                 <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
@@ -804,44 +808,58 @@ export default function DashboardTab() {
                     </text>
 
                     {/* Pure SVG Tooltip on Hover */}
-                    <g className="chart-tooltip">
-                      <rect
-                        x={x + barWidth / 2 - 60}
-                        y={y - 45}
-                        width={120}
-                        height={38}
-                        rx="6"
-                        fill="var(--bg-card-hover)"
-                        stroke={
-                          chartMetric === "revenue"
-                            ? "var(--primary)"
-                            : "#10b981"
-                        }
-                        strokeWidth="1"
-                        style={{
-                          filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
-                        }}
-                      />
-                      <text
-                        x={x + barWidth / 2}
-                        y={y - 32}
-                        textAnchor="middle"
-                        fill="var(--text-primary)"
-                        fontSize="10"
-                        fontWeight="bold"
-                      >
-                        ₹{val.toLocaleString("en-IN")}
-                      </text>
-                      <text
-                        x={x + barWidth / 2}
-                        y={y - 20}
-                        textAnchor="middle"
-                        fill="var(--text-muted)"
-                        fontSize="9"
-                      >
-                        {item.count} Invoices
-                      </text>
-                    </g>
+                    {(() => {
+                      // Position tooltip below bar top if bar is near top edge of chart (y < 55)
+                      const rectY = y < 55 ? y + 10 : y - 45;
+                      const text1Y = rectY + 15;
+                      const text2Y = rectY + 28;
+                      const rectX = Math.max(10, Math.min(chartWidth - 130, x + barWidth / 2 - 60));
+                      const textX = rectX + 60;
+
+                      return (
+                        <g className="chart-tooltip">
+                          <rect
+                            x={rectX}
+                            y={rectY}
+                            width={120}
+                            height={38}
+                            rx="6"
+                            fill="#1e293b"
+                            stroke={
+                              chartMetric === "revenue"
+                                ? "#06b6d4"
+                                : "#10b981"
+                            }
+                            strokeWidth="1.5"
+                            style={{
+                              filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.5))",
+                            }}
+                          />
+                          <text
+                            x={textX}
+                            y={text1Y}
+                            textAnchor="middle"
+                            fill="#ffffff"
+                            fontSize="10.5"
+                            fontWeight="bold"
+                          >
+                            ₹{Math.max(0, val).toLocaleString("en-IN", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </text>
+                          <text
+                            x={textX}
+                            y={text2Y}
+                            textAnchor="middle"
+                            fill="#94a3b8"
+                            fontSize="9"
+                          >
+                            {item.count} Invoice{item.count === 1 ? "" : "s"}
+                          </text>
+                        </g>
+                      );
+                    })()}
                   </g>
                 );
               })}
