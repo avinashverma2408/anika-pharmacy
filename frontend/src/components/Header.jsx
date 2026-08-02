@@ -20,11 +20,14 @@ export default function Header() {
   const globalSearchQuery = usePharmacyStore((s) => s.globalSearchQuery);
   const setGlobalSearchQuery = usePharmacyStore((s) => s.setGlobalSearchQuery);
   const toggleMobileSidebar = usePharmacyStore((s) => s.toggleMobileSidebar);
+  const setLogoutModalOpen = usePharmacyStore((s) => s.setLogoutModalOpen);
 
   const [searchDraft, setSearchDraft] = useState(globalSearchQuery);
   const debouncedSearch = useDebouncedValue(searchDraft, 280);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const profileRef = useRef(null);
 
   const unreadCount = notifications.reduce(
     (count, n) => count + (n.read ? 0 : 1),
@@ -45,6 +48,9 @@ export default function Header() {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -185,6 +191,74 @@ export default function Header() {
             <i className="fa-solid fa-sun sun-icon"></i>
           )}
         </button>
+
+        {/* Header User Profile & Logout Drawer Dropdown */}
+        <div className="header-user-container" ref={profileRef}>
+          <button
+            type="button"
+            className="header-avatar-btn"
+            onClick={() => setIsProfileOpen((prev) => !prev)}
+            aria-label="User Profile Menu"
+          >
+            <div className="header-avatar">AP</div>
+            <i className="fa-solid fa-chevron-down avatar-arrow"></i>
+          </button>
+
+          {isProfileOpen && (
+            <div className="header-profile-dropdown show">
+              <div className="header-profile-user-info">
+                <div className="header-avatar-lg">AP</div>
+                <div>
+                  <div className="profile-name">Admin Portal</div>
+                  <div className="profile-role">Store Manager</div>
+                  <div className="profile-status">
+                    <span className="status-online-dot"></span> Online
+                  </div>
+                </div>
+              </div>
+
+              <div className="header-profile-menu">
+                <button
+                  type="button"
+                  className="header-profile-item"
+                  onClick={() => {
+                    setActiveTab("settings");
+                    setIsProfileOpen(false);
+                  }}
+                >
+                  <i className="fa-solid fa-gear"></i>
+                  <span>Store Settings</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="header-profile-item"
+                  onClick={() => {
+                    setActiveTab("notifications-log");
+                    setIsProfileOpen(false);
+                  }}
+                >
+                  <i className="fa-solid fa-bell-concierge"></i>
+                  <span>Alert Logs</span>
+                </button>
+
+                <div className="header-profile-divider"></div>
+
+                <button
+                  type="button"
+                  className="header-profile-item logout-item"
+                  onClick={() => {
+                    setIsProfileOpen(false);
+                    setLogoutModalOpen(true);
+                  }}
+                >
+                  <i className="fa-solid fa-right-from-bracket"></i>
+                  <span>Logout Portal</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="date-card">
           <i className="fa-solid fa-calendar-days"></i>
