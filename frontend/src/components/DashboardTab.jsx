@@ -346,20 +346,22 @@ export default function DashboardTab() {
     if (percentageChange < -999) percentageChange = -999;
   }
 
-  const maxVal = Math.max(
+  const maxRawVal = Math.max(
     ...monthlyBreakdown.map((d) =>
       chartMetric === "revenue" ? d.revenue : d.profit,
     ),
     1,
   );
+  // Multiply maxVal by 1.3 to add 30% top headroom so bars and trendline sit lower
+  const maxVal = maxRawVal * 1.3;
 
   // SVG Bar Chart Dimensions
   const chartWidth = 500;
-  const chartHeight = 280;
+  const chartHeight = 300;
   const paddingLeft = 50;
   const paddingRight = 20;
-  const paddingTop = 20;
-  const paddingBottom = 30;
+  const paddingTop = 45;
+  const paddingBottom = 35;
 
   const graphWidth = chartWidth - paddingLeft - paddingRight;
   const graphHeight = chartHeight - paddingTop - paddingBottom;
