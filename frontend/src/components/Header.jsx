@@ -192,7 +192,27 @@ export default function Header() {
           )}
         </button>
 
-        {/* Header User Profile & Logout Drawer Dropdown */}
+        <div className="date-card">
+          <i className="fa-solid fa-calendar-days"></i>
+          <div className="date-details">
+            <span className="date-label">System Date</span>
+            <span className="date-value" id="current-system-date">
+              {formatDateDisplay(simulatedDate)}
+            </span>
+          </div>
+          {simulatedDate !== todayStr && (
+            <button
+              className="reset-system-date-btn"
+              onClick={() => setSimulatedDate(todayStr)}
+              title="Reset to real system date"
+            >
+              <i className="fa-solid fa-clock-rotate-left"></i>
+              Back to Safety
+            </button>
+          )}
+        </div>
+
+        {/* Header User Profile & Logout Drawer Dropdown (Far Right Edge) */}
         <div className="header-user-container" ref={profileRef}>
           <button
             type="button"
@@ -201,6 +221,7 @@ export default function Header() {
             aria-label="User Profile Menu"
           >
             <div className="header-avatar">AP</div>
+            <span className="header-avatar-name">Admin</span>
             <i className="fa-solid fa-chevron-down avatar-arrow"></i>
           </button>
 
@@ -257,26 +278,6 @@ export default function Header() {
                 </button>
               </div>
             </div>
-          )}
-        </div>
-
-        <div className="date-card">
-          <i className="fa-solid fa-calendar-days"></i>
-          <div className="date-details">
-            <span className="date-label">System Date</span>
-            <span className="date-value" id="current-system-date">
-              {formatDateDisplay(simulatedDate)}
-            </span>
-          </div>
-          {simulatedDate !== todayStr && (
-            <button
-              className="reset-system-date-btn"
-              onClick={() => setSimulatedDate(todayStr)}
-              title="Reset to real system date"
-            >
-              <i className="fa-solid fa-clock-rotate-left"></i>
-              Back to Safety
-            </button>
           )}
         </div>
       </div>
