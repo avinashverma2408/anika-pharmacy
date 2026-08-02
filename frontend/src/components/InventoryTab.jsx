@@ -34,6 +34,10 @@ export default function InventoryTab() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [isSubstituteFinderOpen, setIsSubstituteFinderOpen] = useState(false);
+  const [inventorySearch, setInventorySearch] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [dateType, setDateType] = useState("createdAt"); // "createdAt" or "expiryDate"
 
   // Server-fetched page data
   const [pageData, setPageData] = useState({
@@ -241,13 +245,16 @@ export default function InventoryTab() {
   const todayStr = simulatedDate;
 
   // ── Fetch page from server ─────────────────────────────────────────────────
-  const fetchPage = useCallback(async (page, tab, category, search) => {
+  const fetchPage = useCallback(async (page, tab, category, search, startD, endD, dType) => {
     setIsLoading(true);
     try {
-      // Build expiry + status params from sub-tab
       const params = { page, limit: PAGE_SIZE };
-      if (search) params.search = search;
+      const activeSearch = search !== undefined ? search : inventorySearch;
+      if (activeSearch) params.search = activeSearch;
       if (category !== "all") params.category = category;
+      if (startD) params.startDate = startD;
+      if (endD) params.endDate = endD;
+      if (dType) params.dateType = dType;
 
       if (tab === "active") {
         params.status = "Active";
@@ -259,7 +266,6 @@ export default function InventoryTab() {
         params.status = "all";
         params.expiry = "expired";
         if (tab === "vendor-returns") {
-          // Fetch up to 100 items to group them effectively on the client-side
           params.limit = 100;
         }
       } else if (tab === "outofstock") {
@@ -272,7 +278,6 @@ export default function InventoryTab() {
       } else if (tab === "all") {
         params.status = "all";
       }
-      // 'all' — no extra filter
 
       const { data } = await medicineApi.getAll(params);
       setPageData({
@@ -285,14 +290,18 @@ export default function InventoryTab() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [inventorySearch]);
 
   // ── Fetch tab counts — single efficient API call ────────────────────────────
-  const fetchCounts = useCallback(async (search, category) => {
+  const fetchCounts = useCallback(async (search, category, startD, endD, dType) => {
     try {
       const params = {};
-      if (search) params.search = search;
+      const activeSearch = search !== undefined ? search : inventorySearch;
+      if (activeSearch) params.search = activeSearch;
       if (category !== "all") params.category = category;
+      if (startD) params.startDate = startD;
+      if (endD) params.endDate = endD;
+      if (dType) params.dateType = dType;
 
       const { data } = await medicineApi.getCounts(params);
       if (data.success) {
@@ -303,32 +312,43 @@ export default function InventoryTab() {
     } catch {
       // Silently ignore count fetch errors
     }
-  }, []);
+  }, [inventorySearch]);
 
   // ── Re-fetch whenever filters / page / simulatedDate / medicines change ───────
   const [prevSearchQuery, setPrevSearchQuery] = useState(globalSearchQuery);
   if (globalSearchQuery !== prevSearchQuery) {
     setPrevSearchQuery(globalSearchQuery);
+    setInventorySearch(globalSearchQuery);
     setCurrentPage(1);
   }
 
   useEffect(() => {
-    fetchPage(currentPage, subTab, categoryFilter, globalSearchQuery);
+    const activeSearch = inventorySearch || globalSearchQuery;
+    fetchPage(currentPage, subTab, categoryFilter, activeSearch, startDate, endDate, dateType);
   }, [
     currentPage,
     subTab,
     categoryFilter,
+    inventorySearch,
     globalSearchQuery,
+    startDate,
+    endDate,
+    dateType,
     simulatedDate,
     storeMedicines,
     fetchPage,
   ]);
 
   useEffect(() => {
-    fetchCounts(globalSearchQuery, categoryFilter);
+    const activeSearch = inventorySearch || globalSearchQuery;
+    fetchCounts(activeSearch, categoryFilter, startDate, endDate, dateType);
   }, [
+    inventorySearch,
     globalSearchQuery,
     categoryFilter,
+    startDate,
+    endDate,
+    dateType,
     simulatedDate,
     storeMedicines,
     fetchCounts,
@@ -347,6 +367,10 @@ export default function InventoryTab() {
 
   const handleResetFilters = () => {
     setCategoryFilter("all");
+    setInventorySearch("");
+    setStartDate("");
+    setEndDate("");
+    setDateType("createdAt");
     setCurrentPage(1);
   };
 
@@ -555,14 +579,72 @@ export default function InventoryTab() {
             </div>
           ) : (
             <>
-              {/* Filter Toolbar */}
-              <div className="filter-toolbar card-panel inventory-filter-bar">
-                <div className="filter-group inventory-category-group">
-                  <label htmlFor="filter-category">Category</label>
+              {/* Search & Date Filter Toolbar */}
+              <div className="filter-toolbar card-panel inventory-filter-bar" style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", marginBottom: "16px" }}>
+                {/* Search Input Box */}
+                <div style={{ position: "relative", flex: "1 1 240px", minWidth: "220px" }}>
+                  <i
+                    className="fa-solid fa-magnifying-glass"
+                    style={{
+                      position: "absolute",
+                      left: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "var(--text-muted)",
+                      fontSize: "13px",
+                    }}
+                  ></i>
+                  <input
+                    type="text"
+                    placeholder="Search medicine, batch, salt, vendor..."
+                    value={inventorySearch}
+                    onChange={(e) => {
+                      setInventorySearch(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    style={{
+                      width: "100%",
+                      paddingLeft: "34px",
+                      paddingRight: inventorySearch ? "30px" : "12px",
+                      height: "36px",
+                      fontSize: "13px",
+                      background: "var(--bg-input)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-color)",
+                      borderRadius: "6px",
+                    }}
+                  />
+                  {inventorySearch && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInventorySearch("");
+                        setCurrentPage(1);
+                      }}
+                      style={{
+                        position: "absolute",
+                        right: "8px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        color: "var(--text-muted)",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                      }}
+                    >
+                      &times;
+                    </button>
+                  )}
+                </div>
+
+                {/* Category Dropdown */}
+                <div className="filter-group inventory-category-group" style={{ margin: 0 }}>
                   <select
                     id="filter-category"
                     value={categoryFilter}
                     onChange={(e) => handleCategoryChange(e.target.value)}
+                    style={{ height: "36px", fontSize: "13px", padding: "0 10px" }}
                   >
                     <option value="all">All Categories</option>
                     <option value="Tablet">Tablets</option>
@@ -575,10 +657,77 @@ export default function InventoryTab() {
                   </select>
                 </div>
 
+                {/* Date Filter Type Switcher */}
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                  <select
+                    value={dateType}
+                    onChange={(e) => {
+                      setDateType(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    style={{
+                      height: "36px",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      background: "var(--bg-input)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-color)",
+                      borderRadius: "6px",
+                      padding: "0 8px",
+                    }}
+                  >
+                    <option value="createdAt">📅 Added Date</option>
+                    <option value="expiryDate">⏳ Expiry Date</option>
+                  </select>
+
+                  {/* From Date */}
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    title="From Date"
+                    style={{
+                      height: "36px",
+                      fontSize: "12px",
+                      padding: "0 8px",
+                      background: "var(--bg-input)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-color)",
+                      borderRadius: "6px",
+                    }}
+                  />
+
+                  <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>to</span>
+
+                  {/* To Date */}
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    title="To Date"
+                    style={{
+                      height: "36px",
+                      fontSize: "12px",
+                      padding: "0 8px",
+                      background: "var(--bg-input)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-color)",
+                      borderRadius: "6px",
+                    }}
+                  />
+                </div>
+
                 <button
                   id="reset-filters-btn"
                   className="btn btn-outline inventory-reset-btn"
                   onClick={handleResetFilters}
+                  style={{ height: "36px", padding: "0 12px", fontSize: "12px" }}
                 >
                   <i className="fa-solid fa-rotate-left"></i> Reset
                 </button>

@@ -18,7 +18,7 @@ const parsePackUnits = (packStr) => {
   const numbers = String(packStr).match(/\d+/g);
   if (numbers && numbers.length > 0) {
     const val = parseInt(numbers[numbers.length - 1], 10);
-    if (val > 0) return val;
+    if (val > 1) return val;
   }
   return 10;
 };

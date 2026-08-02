@@ -4,6 +4,21 @@ import {
   getLocalDateString,
 } from "../store/usePharmacyStore";
 
+const parsePackUnits = (packStr) => {
+  if (!packStr) return 10;
+  const multMatch = String(packStr).match(/\d+\s*[\*xX]\s*(\d+)/);
+  if (multMatch && multMatch[1]) {
+    const val = parseInt(multMatch[1], 10);
+    if (val > 0) return val;
+  }
+  const numbers = String(packStr).match(/\d+/g);
+  if (numbers && numbers.length > 0) {
+    const val = parseInt(numbers[numbers.length - 1], 10);
+    if (val > 0) return val;
+  }
+  return 10;
+};
+
 export default function ProductModals() {
   const {
     isAddModalOpen,
@@ -28,6 +43,7 @@ export default function ProductModals() {
   const [addBatch, setAddBatch] = useState("");
   const [addPrice, setAddPrice] = useState("");
   const [addQuantity, setAddQuantity] = useState("");
+  const [addQtyUnit, setAddQtyUnit] = useState("Strips"); // "Strips" or "Tablets"
   const [addExpiry, setAddExpiry] = useState("");
   const [addStatus, setAddStatus] = useState("Active");
   const [addStockistName, setAddStockistName] = useState("");
@@ -44,6 +60,7 @@ export default function ProductModals() {
   const [editBatch, setEditBatch] = useState("");
   const [editPrice, setEditPrice] = useState("");
   const [editQuantity, setEditQuantity] = useState("");
+  const [editQtyUnit, setEditQtyUnit] = useState("Tablets");
   const [editExpiry, setEditExpiry] = useState("");
   const [editStatus, setEditStatus] = useState("Active");
   const [editStockistName, setEditStockistName] = useState("");
@@ -67,6 +84,7 @@ export default function ProductModals() {
       setEditBatch(editingProduct.batch || "");
       setEditPrice(editingProduct.price || "");
       setEditQuantity(editingProduct.quantity || "");
+      setEditQtyUnit("Tablets");
       setEditExpiry(
         editingProduct.expiryDate
           ? getLocalDateString(editingProduct.expiryDate)
@@ -93,18 +111,22 @@ export default function ProductModals() {
 
   const handleAddSubmit = async (e) => {
     e.preventDefault();
+    const packUnits = parsePackUnits(addPack || "1*10");
+    const rawQty = parseInt(addQuantity) || 0;
+    const finalQuantity = addQtyUnit === "Strips" ? rawQty * packUnits : rawQty;
+
     const success = await addMedicine({
       name: addName,
       category: addCategory,
       batch: addBatch,
       price: addPrice,
-      quantity: addQuantity,
+      quantity: finalQuantity,
       expiryDate: addExpiry,
       status: addStatus,
       stockistName: addStockistName,
       ptr: addPtr,
       hsn: addHsn,
-      pack: addPack,
+      pack: addPack || "1*10",
       gstRate: addGstRate,
       composition: addComposition,
       minStock: addMinStock,
@@ -115,6 +137,7 @@ export default function ProductModals() {
       setAddBatch("");
       setAddPrice("");
       setAddQuantity("");
+      setAddQtyUnit("Strips");
       setAddExpiry("");
       setAddStatus("Active");
       setAddStockistName("");
@@ -130,18 +153,22 @@ export default function ProductModals() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!editingProduct) return;
+    const packUnits = parsePackUnits(editPack || "1*10");
+    const rawQty = parseInt(editQuantity) || 0;
+    const finalQuantity = editQtyUnit === "Strips" ? rawQty * packUnits : rawQty;
+
     await updateMedicine(editingProduct._id || editingProduct.id, {
       name: editName,
       category: editCategory,
       batch: editBatch,
       price: editPrice,
-      quantity: editQuantity,
+      quantity: finalQuantity,
       expiryDate: editExpiry,
       status: editStatus,
       stockistName: editStockistName,
       ptr: editPtr,
       hsn: editHsn,
-      pack: editPack,
+      pack: editPack || "1*10",
       gstRate: editGstRate,
       composition: editComposition,
       minStock: editMinStock,
@@ -248,95 +275,7 @@ export default function ProductModals() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="add-quantity">
-                  Quantity <span className="required">*</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  required
-                  placeholder="e.g., 150"
-                  value={addQuantity}
-                  onChange={(e) => setAddQuantity(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="add-min-stock">Min Stock Alert</label>
-                <input
-                  type="number"
-                  id="add-min-stock"
-                  min="0"
-                  placeholder="e.g., 10"
-                  value={addMinStock}
-                  onChange={(e) => setAddMinStock(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="add-expiry">
-                  Expiry Date <span className="required">*</span>
-                </label>
-                <input
-                  type="date"
-                  id="add-expiry"
-                  required
-                  value={addExpiry}
-                  onChange={(e) => setAddExpiry(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="add-status">Status</label>
-                <select
-                  id="add-status"
-                  value={addStatus}
-                  onChange={(e) => setAddStatus(e.target.value)}
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                  <option value="Out of Stock">Out of Stock</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="add-stockist">Stockist Name</label>
-                <input
-                  type="text"
-                  id="add-stockist"
-                  list="supplier-datalist"
-                  placeholder="Select or type stockist"
-                  value={addStockistName}
-                  onChange={(e) => setAddStockistName(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="add-ptr">PTR (₹)</label>
-                <input
-                  type="number"
-                  id="add-ptr"
-                  min="0"
-                  step="0.01"
-                  placeholder="e.g., 38.50"
-                  value={addPtr}
-                  onChange={(e) => setAddPtr(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="add-hsn">HSN Code</label>
-                <input
-                  type="text"
-                  id="add-hsn"
-                  placeholder="e.g., 30045033"
-                  value={addHsn}
-                  onChange={(e) => setAddHsn(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="add-pack">Pack Size</label>
+                <label htmlFor="add-pack">Pack Size (e.g. 1*10)</label>
                 <input
                   type="text"
                   id="add-pack"
@@ -344,6 +283,61 @@ export default function ProductModals() {
                   value={addPack}
                   onChange={(e) => setAddPack(e.target.value)}
                 />
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px", display: "block" }}>
+                  = {parsePackUnits(addPack || "1*10")} tablets per strip
+                </span>
+              </div>
+
+              <div className="form-group col-span-2" style={{ background: "rgba(255,255,255,0.03)", padding: "10px", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
+                <label htmlFor="add-quantity" style={{ fontWeight: "600" }}>
+                  Quantity Added <span className="required">*</span>
+                </label>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    type="number"
+                    id="add-quantity"
+                    min="0"
+                    required
+                    placeholder={addQtyUnit === "Strips" ? "Enter number of strips (e.g., 5)" : "Enter total tablets (e.g., 50)"}
+                    value={addQuantity}
+                    onChange={(e) => setAddQuantity(e.target.value)}
+                    style={{ flex: 1 }}
+                  />
+                  <select
+                    value={addQtyUnit}
+                    onChange={(e) => setAddQtyUnit(e.target.value)}
+                    style={{
+                      width: "140px",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      background: "var(--bg-input)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-color)",
+                      borderRadius: "6px",
+                      padding: "6px 8px",
+                    }}
+                  >
+                    <option value="Strips">📦 Strips / Patta</option>
+                    <option value="Tablets">💊 Total Tablets</option>
+                  </select>
+                </div>
+                {addQuantity && (
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#10b981",
+                      fontWeight: "600",
+                      marginTop: "6px",
+                      padding: "4px 8px",
+                      borderRadius: "4px",
+                      background: "rgba(16, 185, 129, 0.1)",
+                    }}
+                  >
+                    {addQtyUnit === "Strips"
+                      ? `💡 Stock Saved: ${(parseInt(addQuantity) || 0) * parsePackUnits(addPack || "1*10")} Total Tablets (${parseInt(addQuantity) || 0} Strips × ${parsePackUnits(addPack || "1*10")} tab/strip)`
+                      : `💡 Stock Saved: ${parseInt(addQuantity) || 0} Total Tablets (${Math.floor((parseInt(addQuantity) || 0) / parsePackUnits(addPack || "1*10"))} Strips + ${(parseInt(addQuantity) || 0) % parsePackUnits(addPack || "1*10")} loose tabs)`}
+                  </div>
+                )}
               </div>
 
               <div className="form-group">
@@ -481,17 +475,56 @@ export default function ProductModals() {
                 />
               </div>
 
-              <div className="form-group">
-                <label htmlFor="edit-quantity">
+              <div className="form-group col-span-2" style={{ background: "rgba(255,255,255,0.03)", padding: "10px", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
+                <label htmlFor="edit-quantity" style={{ fontWeight: "600" }}>
                   Quantity <span className="required">*</span>
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  required
-                  value={editQuantity}
-                  onChange={(e) => setEditQuantity(e.target.value)}
-                />
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    type="number"
+                    id="edit-quantity"
+                    min="0"
+                    required
+                    placeholder={editQtyUnit === "Strips" ? "Enter number of strips" : "Enter total tablets"}
+                    value={editQuantity}
+                    onChange={(e) => setEditQuantity(e.target.value)}
+                    style={{ flex: 1 }}
+                  />
+                  <select
+                    value={editQtyUnit}
+                    onChange={(e) => setEditQtyUnit(e.target.value)}
+                    style={{
+                      width: "140px",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      background: "var(--bg-input)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border-color)",
+                      borderRadius: "6px",
+                      padding: "6px 8px",
+                    }}
+                  >
+                    <option value="Tablets">💊 Total Tablets</option>
+                    <option value="Strips">📦 Strips / Patta</option>
+                  </select>
+                </div>
+                {editQuantity && (
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#10b981",
+                      fontWeight: "600",
+                      marginTop: "6px",
+                      padding: "4px 8px",
+                      borderRadius: "4px",
+                      background: "rgba(16, 185, 129, 0.1)",
+                    }}
+                  >
+                    {editQtyUnit === "Strips"
+                      ? `💡 Saved Stock: ${(parseInt(editQuantity) || 0) * parsePackUnits(editPack || "1*10")} Total Tablets (${parseInt(editQuantity) || 0} Strips × ${parsePackUnits(editPack || "1*10")} tab/strip)`
+                      : `💡 Saved Stock: ${parseInt(editQuantity) || 0} Total Tablets (${Math.floor((parseInt(editQuantity) || 0) / parsePackUnits(editPack || "1*10"))} Strips + ${(parseInt(editQuantity) || 0) % parsePackUnits(editPack || "1*10")} loose tabs)`}
+                  </div>
+                )}
               </div>
 
               <div className="form-group">

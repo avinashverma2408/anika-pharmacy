@@ -11,16 +11,31 @@ import('../../shared/sharedUtils.js').then(utils => {
 // GET /api/medicines
 exports.getMedicines = async (req, res) => {
     try {
-        const { search, category, status, expiry, composition, stock, sort = 'createdAt', order = 'desc' } = req.query;
+        const { search, category, status, expiry, composition, stock, startDate, endDate, dateType = 'createdAt', sort = 'createdAt', order = 'desc' } = req.query;
 
         const filter = {};
+
+        // Date range filter for Created At or Expiry Date
+        if (startDate || endDate) {
+            const targetField = dateType === 'expiryDate' ? 'expiryDate' : 'createdAt';
+            filter[targetField] = filter[targetField] || {};
+            if (startDate) {
+                filter[targetField].$gte = new Date(startDate);
+            }
+            if (endDate) {
+                const endD = new Date(endDate);
+                endD.setHours(23, 59, 59, 999);
+                filter[targetField].$lte = endD;
+            }
+        }
 
         // Text search on name, batch, or composition
         if (search && search.trim()) {
             filter.$or = [
                 { name: { $regex: search.trim(), $options: 'i' } },
                 { batch: { $regex: search.trim(), $options: 'i' } },
-                { composition: { $regex: search.trim(), $options: 'i' } }
+                { composition: { $regex: search.trim(), $options: 'i' } },
+                { stockistName: { $regex: search.trim(), $options: 'i' } }
             ];
         }
 
