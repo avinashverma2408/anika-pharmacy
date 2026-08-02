@@ -18,63 +18,88 @@ export default function Sidebar() {
   const activeTab = usePharmacyStore((s) => s.activeTab);
   const setActiveTab = usePharmacyStore((s) => s.setActiveTab);
   const setLogoutModalOpen = usePharmacyStore((s) => s.setLogoutModalOpen);
+  const isMobileSidebarOpen = usePharmacyStore((s) => s.isMobileSidebarOpen);
+  const closeMobileSidebar = usePharmacyStore((s) => s.closeMobileSidebar);
 
   const items = useMemo(() => MENU_ITEMS, []);
 
   return (
-    <aside className="sidebar">
-      <div className="sidebar-brand">
-        <img
-          src="/logo.png"
-          alt="Anika Pharmacy Logo"
-          className="logo-icon-img"
-          loading="eager"
-          decoding="async"
+    <>
+      {/* Mobile Overlay Backdrop */}
+      {isMobileSidebarOpen && (
+        <div
+          className="sidebar-backdrop show"
+          onClick={closeMobileSidebar}
+          aria-hidden="true"
         />
-        <div className="brand-text">
-          <h1>Anika Pharmacy</h1>
-          <span>Medical Store Portal</span>
-        </div>
-      </div>
+      )}
 
-      <nav className="sidebar-menu" aria-label="Primary">
-        {items.map((item) => {
-          const isActive = activeTab === item.id;
-          return (
-            <a
-              key={item.id}
-              href={`#/${item.id}`}
-              className={`menu-item ${isActive ? "active" : ""}`}
-              aria-current={isActive ? "page" : undefined}
-              onClick={(e) => {
-                e.preventDefault();
-                if (!isActive) setActiveTab(item.id);
-              }}
-            >
-              <i className={`fa-solid ${item.icon}`} aria-hidden="true"></i>
-              <span>{item.label}</span>
-            </a>
-          );
-        })}
-      </nav>
-
-      <div className="sidebar-footer">
-        <div className="user-profile">
-          <div className="avatar">AP</div>
-          <div className="user-info">
-            <span className="user-name">Admin Portal</span>
-            <span className="user-role">Store Manager</span>
+      <aside className={`sidebar ${isMobileSidebarOpen ? "open" : ""}`}>
+        <div className="sidebar-brand">
+          <img
+            src="/logo.png"
+            alt="Anika Pharmacy Logo"
+            className="logo-icon-img"
+            loading="eager"
+            decoding="async"
+          />
+          <div className="brand-text">
+            <h1>Anika Pharmacy</h1>
+            <span>Medical Store Portal</span>
           </div>
+          <button
+            type="button"
+            className="mobile-sidebar-close-btn"
+            onClick={closeMobileSidebar}
+            aria-label="Close menu"
+          >
+            <i className="fa-solid fa-xmark"></i>
+          </button>
         </div>
-        <button
-          type="button"
-          className="logout-link"
-          onClick={() => setLogoutModalOpen(true)}
-        >
-          <i className="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
-          <span>Logout Portal</span>
-        </button>
-      </div>
-    </aside>
+
+        <nav className="sidebar-menu" aria-label="Primary">
+          {items.map((item) => {
+            const isActive = activeTab === item.id;
+            return (
+              <a
+                key={item.id}
+                href={`#/${item.id}`}
+                className={`menu-item ${isActive ? "active" : ""}`}
+                aria-current={isActive ? "page" : undefined}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveTab(item.id);
+                  closeMobileSidebar();
+                }}
+              >
+                <i className={`fa-solid ${item.icon}`} aria-hidden="true"></i>
+                <span>{item.label}</span>
+              </a>
+            );
+          })}
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="user-profile">
+            <div className="avatar">AP</div>
+            <div className="user-info">
+              <span className="user-name">Admin Portal</span>
+              <span className="user-role">Store Manager</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="logout-link"
+            onClick={() => {
+              closeMobileSidebar();
+              setLogoutModalOpen(true);
+            }}
+          >
+            <i className="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+            <span>Logout Portal</span>
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }

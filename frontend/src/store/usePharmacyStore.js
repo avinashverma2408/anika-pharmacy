@@ -177,6 +177,7 @@ const loadInitialState = () => {
     isBillUploadOpen: false,
     selectedMedicineForDetails: null,
     globalSearchQuery: "",
+    isMobileSidebarOpen: false,
 
     // Bills state
     bills: [],
@@ -409,13 +410,18 @@ export const usePharmacyStore = create((set, get) => ({
   // ── Navigation ────────────────────────────────────────────────────────────
   setActiveTab: (tab) => {
     window.location.hash = "/" + tab;
-    const updates = { activeTab: tab };
+    const updates = { activeTab: tab, isMobileSidebarOpen: false };
     if (tab !== "inventory") {
       updates.globalSearchQuery = "";
       updates.inventoryCategoryFilter = "all";
     }
     set(updates);
   },
+
+  toggleMobileSidebar: () =>
+    set((state) => ({ isMobileSidebarOpen: !state.isMobileSidebarOpen })),
+
+  closeMobileSidebar: () => set({ isMobileSidebarOpen: false }),
 
   setInventorySubTab: (tab) => {
     set({ inventorySubTab: tab });

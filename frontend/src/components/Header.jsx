@@ -19,6 +19,7 @@ export default function Header() {
   const setActiveTab = usePharmacyStore((s) => s.setActiveTab);
   const globalSearchQuery = usePharmacyStore((s) => s.globalSearchQuery);
   const setGlobalSearchQuery = usePharmacyStore((s) => s.setGlobalSearchQuery);
+  const toggleMobileSidebar = usePharmacyStore((s) => s.toggleMobileSidebar);
 
   const [searchDraft, setSearchDraft] = useState(globalSearchQuery);
   const debouncedSearch = useDebouncedValue(searchDraft, 280);
@@ -62,16 +63,27 @@ export default function Header() {
 
   return (
     <header className="top-bar">
-      <div className="header-search">
-        <i className="fa-solid fa-magnifying-glass"></i>
-        <input
-          type="search"
-          id="global-search"
-          placeholder="Search medicines, batch numbers..."
-          value={searchDraft}
-          onChange={(e) => setSearchDraft(e.target.value)}
-          autoComplete="off"
-        />
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: "1 1 auto" }}>
+        <button
+          type="button"
+          className="mobile-hamburger-btn"
+          onClick={toggleMobileSidebar}
+          aria-label="Toggle navigation menu"
+        >
+          <i className="fa-solid fa-bars"></i>
+        </button>
+
+        <div className="header-search">
+          <i className="fa-solid fa-magnifying-glass"></i>
+          <input
+            type="search"
+            id="global-search"
+            placeholder="Search medicines, batch numbers..."
+            value={searchDraft}
+            onChange={(e) => setSearchDraft(e.target.value)}
+            autoComplete="off"
+          />
+        </div>
       </div>
 
       <div className="header-actions">
