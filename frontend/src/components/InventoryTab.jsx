@@ -35,9 +35,18 @@ export default function InventoryTab() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isSubstituteFinderOpen, setIsSubstituteFinderOpen] = useState(false);
   const [inventorySearch, setInventorySearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [dateType, setDateType] = useState("createdAt"); // "createdAt" or "expiryDate"
+
+  // 350ms debounce for inventory search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(inventorySearch);
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [inventorySearch]);
 
   // Server-fetched page data
   const [pageData, setPageData] = useState({
@@ -323,13 +332,13 @@ export default function InventoryTab() {
   }
 
   useEffect(() => {
-    const activeSearch = inventorySearch || globalSearchQuery;
+    const activeSearch = debouncedSearch || globalSearchQuery;
     fetchPage(currentPage, subTab, categoryFilter, activeSearch, startDate, endDate, dateType);
   }, [
     currentPage,
     subTab,
     categoryFilter,
-    inventorySearch,
+    debouncedSearch,
     globalSearchQuery,
     startDate,
     endDate,
@@ -340,10 +349,10 @@ export default function InventoryTab() {
   ]);
 
   useEffect(() => {
-    const activeSearch = inventorySearch || globalSearchQuery;
+    const activeSearch = debouncedSearch || globalSearchQuery;
     fetchCounts(activeSearch, categoryFilter, startDate, endDate, dateType);
   }, [
-    inventorySearch,
+    debouncedSearch,
     globalSearchQuery,
     categoryFilter,
     startDate,

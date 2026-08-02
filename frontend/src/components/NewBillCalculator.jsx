@@ -90,23 +90,33 @@ export default function NewBillCalculator() {
     );
   }, [fetchMedicines]);
 
-  // Filter active & in-stock medicines on search query
+  // Filter active & in-stock medicines on debounced search query
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+
   useEffect(() => {
-    if (!searchQuery.trim()) {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (!debouncedSearchQuery.trim()) {
       setSearchResults([]);
       return;
     }
 
-    const query = searchQuery.toLowerCase();
+    const query = debouncedSearchQuery.toLowerCase();
     const filtered = medicines.filter(
       (m) =>
         m.status === "Active" &&
         m.quantity > 0 &&
         (m.name.toLowerCase().includes(query) ||
-          m.batch.toLowerCase().includes(query)),
+          m.batch.toLowerCase().includes(query) ||
+          (m.composition && m.composition.toLowerCase().includes(query))),
     );
     setSearchResults(filtered);
-  }, [searchQuery, medicines]);
+  }, [debouncedSearchQuery, medicines]);
 
   // Auto-lookup customer + purchase history when mobile reaches 10 digits
   useEffect(() => {
