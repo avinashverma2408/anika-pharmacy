@@ -380,9 +380,13 @@ export default function DashboardTab() {
   const trendLinePoints = monthlyBreakdown.map((item, i) => {
     const x = paddingLeft + i * (barWidth + barGap) + barWidth / 2;
     const val = chartMetric === "revenue" ? item.revenue : item.profit;
-    const barHeight = (val / maxVal) * graphHeight;
-    const y = paddingTop + graphHeight - barHeight;
-    return { x, y };
+    const safeVal = Math.max(0, val);
+    const barHeight = Math.max(0, Math.min(graphHeight, (safeVal / maxVal) * graphHeight));
+    const y = Math.min(
+      paddingTop + graphHeight,
+      Math.max(paddingTop, paddingTop + graphHeight - barHeight)
+    );
+    return { x, y, rawVal: val };
   });
 
   let splinePath = "";
@@ -393,9 +397,9 @@ export default function DashboardTab() {
       const p0 = trendLinePoints[i];
       const p1 = trendLinePoints[i + 1];
       const cp1_x = p0.x + (p1.x - p0.x) / 2;
-      const cp1_y = p0.y;
+      const cp1_y = Math.min(paddingTop + graphHeight, p0.y);
       const cp2_x = p0.x + (p1.x - p0.x) / 2;
-      const cp2_y = p1.y;
+      const cp2_y = Math.min(paddingTop + graphHeight, p1.y);
       splinePath += ` C ${cp1_x} ${cp1_y}, ${cp2_x} ${cp2_y}, ${p1.x} ${p1.y}`;
     }
 
@@ -608,11 +612,12 @@ export default function DashboardTab() {
 
           <div
             className="chart-container"
-            style={{ position: "relative", height: chartHeight }}
+            style={{ position: "relative", height: chartHeight, overflow: "hidden" }}
           >
             <svg
               viewBox={`0 0 ${chartWidth} ${chartHeight}`}
               className="analytics-svg-chart"
+              style={{ overflow: "hidden" }}
             >
               <defs>
                 <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
@@ -739,9 +744,13 @@ export default function DashboardTab() {
               {/* Chart Bars */}
               {monthlyBreakdown.map((item, i) => {
                 const x = paddingLeft + i * (barWidth + barGap);
-                const val =
+                const rawVal =
                   chartMetric === "revenue" ? item.revenue : item.profit;
-                const barHeight = (val / maxVal) * graphHeight;
+                const val = Math.max(0, rawVal);
+                const barHeight = Math.max(
+                  0,
+                  Math.min(graphHeight, (val / maxVal) * graphHeight),
+                );
                 const y = paddingTop + graphHeight - barHeight;
 
                 return (
