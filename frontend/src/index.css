@@ -5117,6 +5117,19 @@ body {
     padding: 6px !important;
     min-height: 90px !important;
   }
+
+  /* Notification Dropdown Mobile Center Positioning */
+  .notif-dropdown {
+    position: fixed !important;
+    top: 60px !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    width: min(360px, 92vw) !important;
+    max-width: 92vw !important;
+    z-index: 99999 !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+  }
 }
 
 
