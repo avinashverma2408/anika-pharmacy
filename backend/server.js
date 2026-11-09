@@ -408,29 +408,38 @@ async function autoSeedIfNeeded() {
 async function startServer() {
   try {
     let mongoUri = process.env.MONGO_URI;
+    let connected = false;
 
+    // 1. Try external MONGO_URI if provided
     if (
-      !mongoUri ||
-      mongoUri.includes("your_mongodb_atlas_connection_string_here") ||
-      mongoUri.trim() === ""
+      mongoUri &&
+      !mongoUri.includes("your_mongodb_atlas_connection_string_here") &&
+      mongoUri.trim() !== ""
     ) {
-      console.log(
-        "ℹ️ No valid MONGO_URI found in environment. Starting in-memory MongoDB server...",
-      );
       try {
-        const { MongoMemoryServer } = require("mongodb-memory-server");
-        mongoServer = await MongoMemoryServer.create();
-        mongoUri = mongoServer.getUri();
-        console.log(`📡 In-Memory MongoDB Server started at: ${mongoUri}`);
-      } catch (memErr) {
-        console.error("❌ Failed to start In-Memory MongoDB:", memErr.message);
-        console.error("👉 Please set MONGO_URI in your environment variables (e.g. MongoDB Atlas connection string).");
-        throw memErr;
+        console.log("🔄 Connecting to MongoDB URI provided in environment...");
+        await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 6000 });
+        console.log("✅ MongoDB connected successfully to external database");
+        connected = true;
+      } catch (atlasErr) {
+        console.warn(
+          "⚠️ External MongoDB connection failed (expired/deleted/offline):",
+          atlasErr.message,
+        );
+        console.log("🔄 Falling back to in-memory MongoDB server...");
       }
     }
 
-    await mongoose.connect(mongoUri);
-    console.log("✅ MongoDB connected successfully");
+    // 2. Fallback to in-memory MongoDB if not connected
+    if (!connected) {
+      console.log("ℹ️ Starting in-memory MongoDB server...");
+      const { MongoMemoryServer } = require("mongodb-memory-server");
+      mongoServer = await MongoMemoryServer.create();
+      mongoUri = mongoServer.getUri();
+      console.log(`📡 In-Memory MongoDB Server started at: ${mongoUri}`);
+      await mongoose.connect(mongoUri);
+      console.log("✅ MongoDB connected successfully to in-memory database");
+    }
 
     // Auto-seed database if running in-memory or database is empty
     await autoSeedIfNeeded();
