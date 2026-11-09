@@ -99,6 +99,11 @@ async function autoSeedIfNeeded() {
 
       const admins = [
         {
+          email: "admin@anika.com",
+          passwordHash: DEFAULT_PASSWORD,
+          role: "admin",
+        },
+        {
           email: "admin@anika.yopmail.com",
           passwordHash: DEFAULT_PASSWORD,
           role: "admin",
@@ -412,10 +417,16 @@ async function startServer() {
       console.log(
         "ℹ️ No valid MONGO_URI found in environment. Starting in-memory MongoDB server...",
       );
-      const { MongoMemoryServer } = require("mongodb-memory-server");
-      mongoServer = await MongoMemoryServer.create();
-      mongoUri = mongoServer.getUri();
-      console.log(`📡 In-Memory MongoDB Server started at: ${mongoUri}`);
+      try {
+        const { MongoMemoryServer } = require("mongodb-memory-server");
+        mongoServer = await MongoMemoryServer.create();
+        mongoUri = mongoServer.getUri();
+        console.log(`📡 In-Memory MongoDB Server started at: ${mongoUri}`);
+      } catch (memErr) {
+        console.error("❌ Failed to start In-Memory MongoDB:", memErr.message);
+        console.error("👉 Please set MONGO_URI in your environment variables (e.g. MongoDB Atlas connection string).");
+        throw memErr;
+      }
     }
 
     await mongoose.connect(mongoUri);
